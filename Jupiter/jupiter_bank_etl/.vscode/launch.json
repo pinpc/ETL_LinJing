@@ -1,0 +1,20 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Jupiter ETL (debug): python -m jupiter_bank_etl",
+      "type": "python",
+      "request": "launch",
+      "module": "jupiter_bank_etl",
+      "cwd": "${workspaceFolder}/..",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "--input",
+        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 02.2026\\Jupiter Konto 02.2026",
+        "--out",
+        "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_bank_etl\\result\\ETL_Jupiter_02_2026.xlsx"
+      ]
+    }
+  ]
+}
