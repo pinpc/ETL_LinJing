@@ -123,7 +123,7 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
                     found = best_combo
                     warnings.append(
                         f"allO pay {betrag:.2f}: kleinste Differenz {best_diff:.2f}€ "
-                        f"({len(found)} CSV-Zeile(n)) → Split trotzdem durchgeführt"
+                        f"({len(found)} CSV-Zeile(n)) -> Split trotzdem durchgeführt"
                     )
 
             if found:
@@ -161,7 +161,7 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
                 write_row(ws_final, final_idx, kr[:7])
                 final_idx += 1
                 warnings.append(
-                    f"allO pay {betrag:.2f} → kein Match (Differenz ≥ 1,00€), unverändert"
+                    f"allO pay {betrag:.2f} -> kein Match (Differenz >= 1,00EUR), unverändert"
                 )
         else:
             write_row(ws_final, final_idx, kr[:7])
@@ -170,13 +170,13 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
     ws_final.freeze_panes = "A2"
 
     unused_allo = [p for p in allo_pairs if not p["used"]]
-    print(f"   📋 Sheet Final: {final_idx - 2} Zeilen")
+    print(f"   Sheet Final: {final_idx - 2} Zeilen")
     if warnings:
-        print(f"   ⚠ {len(warnings)} allO pay ohne Match:")
+        print(f"   WARN: {len(warnings)} allO pay ohne Match:")
         for w in warnings:
             print(f"     {w}")
     if unused_allo:
-        print(f"   ⚠ {len(unused_allo)} Allopay-Paare nicht verwendet:")
+        print(f"   WARN: {len(unused_allo)} Allopay-Paare nicht verwendet:")
         for p in unused_allo:
             print(f"     {p['datum']} amount={p['amount']} net={p['net']}")
 
@@ -263,7 +263,7 @@ def build_workbook(
                         cell.number_format = fmt
                     cell.font = XL_FONT
                 row_idx += 1
-        print(f"   📊 Sheet Allopay: {len(stripe_rows)} Stripe-Dateien → {row_idx - 2} Zeilen")
+        print(f"   Sheet Allopay: {len(stripe_rows)} Stripe-Dateien -> {row_idx - 2} Zeilen")
 
         build_final_sheet(wb, bank, kost)
 

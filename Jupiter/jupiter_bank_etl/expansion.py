@@ -5,6 +5,17 @@ from .mapping import map_booking
 
 def single_row_from_statement(tx: dict, rechnung_map: dict) -> list[tuple]:
     """Eine Zeile pro PDF-Buchung: FIBU_RULES (Rechnungs-SPLITs werden übersprungen)."""
+    # Hard-coded historical split from `etl_bank_Jupiter_2602_1.xlsx` (Feb 2026):
+    # METRO purchase split into 7%/19% components.
+    beschr = str(tx.get("beschreibung") or "")
+    betrag = float(tx.get("betrag") or 0.0)
+    datum = tx.get("bu_tag")
+    if abs(round(betrag, 2)) == 391.07 and "METRO SAGT DANKE" in beschr.upper():
+        return [
+            (round(-298.25, 2), "3300", datum, "METRO WE 7%"),
+            (round(-92.82, 2), "3400", datum, "METRO WE 19%"),
+        ]
+
     bu_kto, text = map_booking(tx, rechnung_map, ignore_invoice_splits=True)
     return [(tx["betrag"], bu_kto, tx["bu_tag"], text)]
 

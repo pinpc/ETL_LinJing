@@ -59,7 +59,7 @@ class JupiterBankETL:
             kontoauszug_pdf = os.path.normpath(kontoauszug_pdf.strip())
 
         if not os.path.exists(source_dir):
-            print(f"❌ Verzeichnis nicht gefunden: {source_dir}")
+            print(f"ERROR: Verzeichnis nicht gefunden: {source_dir}")
             return
 
         if not kontoauszug_pdf or not os.path.exists(kontoauszug_pdf):
@@ -70,15 +70,15 @@ class JupiterBankETL:
             ]
             if found:
                 kontoauszug_pdf = os.path.join(source_dir, found[0])
-                print(f"   📄 Kontoauszug automatisch gefunden: {found[0]}")
+                print(f"   Kontoauszug automatisch gefunden: {found[0]}")
             else:
-                print("❌ Kontoauszug-PDF nicht gefunden. Bitte als 3. Argument angeben.")
+                print("ERROR: Kontoauszug-PDF nicht gefunden. Bitte als 3. Argument angeben.")
                 print(f"   Gesucht: 00b*.pdf in {source_dir}")
                 return
 
         print(f"\n{'=' * 60}")
-        print(f"📄 Kontoauszug: {os.path.basename(kontoauszug_pdf)}")
-        print(f"📁 Rechnungen:  {source_dir}")
+        print(f"Kontoauszug: {os.path.basename(kontoauszug_pdf)}")
+        print(f"Rechnungen:  {source_dir}")
         print(f"{'=' * 60}\n")
 
         self.rechnung_map.clear()
@@ -87,7 +87,7 @@ class JupiterBankETL:
         self.all_rows.clear()
 
         self.transactions = self.extract_statement(kontoauszug_pdf)
-        print(f"✓ {len(self.transactions)} Buchungen aus Kontoauszug gelesen")
+        print(f"OK: {len(self.transactions)} Buchungen aus Kontoauszug gelesen")
 
         self.load_invoices(source_dir)
 
@@ -100,14 +100,14 @@ class JupiterBankETL:
             self.save_sqlite(self.all_rows, sqlite_path)
 
         print(f"\n{'=' * 60}")
-        print(f"✅ {count} Zeilen → {os.path.basename(output_path)}")
+        print(f"OK: {count} Zeilen -> {os.path.basename(output_path)}")
         print(f"   Kontoauszug-Buchungen: {len(self.transactions)}")
         print(f"   Excel-Zeilen (mit Splits): {count}")
         print(f"   Saldo: {total:,.2f} EUR")
 
         ohne = [(b, t) for b, bu, d, t in self.all_rows if not bu]
         if ohne:
-            print(f"\n   ⚠ {len(ohne)} Buchungen ohne BU-Konto (manuell nachbuchen):")
+            print(f"\n   WARN: {len(ohne)} Buchungen ohne BU-Konto (manuell nachbuchen):")
             for b, t in ohne[:10]:
                 print(f"     {b:>10.2f}  {t[:50]}")
 

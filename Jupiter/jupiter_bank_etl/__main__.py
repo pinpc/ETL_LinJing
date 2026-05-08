@@ -1,14 +1,7 @@
-#!/usr/bin/env python3
 """
-CLI: Jupiter Bank ETL (Kontoauszug + Rechnungen → Excel, optional SQLite).
+Module entrypoint for `python -m jupiter_bank_etl`.
 
-  python run_jupiter_bank.py
-
-Verwendung (empfohlen):
-  python run_jupiter_bank.py --input "<dir>" --out "<file.xlsx>" --pdf "<kontoauszug.pdf>"
-
-Alternativ per Umgebungsvariablen:
-  JUPITER_INPUT_DIR, JUPITER_OUT_FILE, JUPITER_KONTOAUSZUG_PDF, JUPITER_SQLITE_DB
+Kept intentionally small; mirrors `run_jupiter_bank.py` but lives inside the package.
 """
 
 from __future__ import annotations
@@ -16,11 +9,11 @@ from __future__ import annotations
 import argparse
 import os
 
-from jupiter_bank_etl import JupiterBankETL
+from .core import JupiterBankETL
 
 
 def _build_parser() -> argparse.ArgumentParser:
-    p = argparse.ArgumentParser(description="Jupiter Bank ETL → Excel/SQLite")
+    p = argparse.ArgumentParser(description="Jupiter Bank ETL - Excel/SQLite")
     p.add_argument(
         "--input",
         dest="input_dir",
@@ -48,13 +41,13 @@ def _build_parser() -> argparse.ArgumentParser:
     return p
 
 
-if __name__ == "__main__":
-    args = _build_parser().parse_args()
+def main(argv: list[str] | None = None) -> None:
+    args = _build_parser().parse_args(argv)
 
     if not args.input_dir or not args.out_file:
         raise SystemExit(
             "Fehlende Parameter. Beispiel:\n"
-            '  python run_jupiter_bank.py --input "<dir>" --out "<file.xlsx>" --pdf "<kontoauszug.pdf>"\n'
+            '  python -m jupiter_bank_etl --input "<dir>" --out "<file.xlsx>" --pdf "<kontoauszug.pdf>"\n'
             "oder ENV: JUPITER_INPUT_DIR / JUPITER_OUT_FILE / JUPITER_KONTOAUSZUG_PDF"
         )
 
@@ -66,3 +59,8 @@ if __name__ == "__main__":
         sqlite_db = os.path.splitext(out_file)[0] + ".sqlite"
 
     JupiterBankETL().run(input_dir, out_file, kontoauszug, sqlite_path=sqlite_db)
+
+
+if __name__ == "__main__":
+    main()
+

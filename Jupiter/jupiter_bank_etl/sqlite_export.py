@@ -39,4 +39,4 @@ def save_konto_jupiter(all_rows: list[tuple], db_path: str, bank: str, kost: str
         conn.commit()
     finally:
         conn.close()
-    print(f"   💾 SQLite: {len(all_rows)} Zeilen → {os.path.basename(db_path)}")
+    print(f"   SQLite: {len(all_rows)} Zeilen -> {os.path.basename(db_path)}")

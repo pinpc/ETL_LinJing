@@ -39,7 +39,7 @@ def extract_statements(pdf_path: str) -> list[dict]:
                 if text:
                     all_lines.extend(text.split("\n"))
     except Exception as e:
-        print(f"❌ Kontoauszug lesen fehlgeschlagen: {e}")
+        print(f"ERROR: Kontoauszug lesen fehlgeschlagen: {e}")
         return transactions
 
     i = 0

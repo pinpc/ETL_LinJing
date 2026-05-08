@@ -1,5 +1,5 @@
 """
-Jupiter Bank FiBu-ETL — Paket für Kontoauszug + Rechnungen → Excel/SQLite.
+Jupiter Bank FiBu-ETL - Paket für Kontoauszug + Rechnungen -> Excel/SQLite.
 
 Verwendung:
     from jupiter_bank_etl import JupiterBankETL

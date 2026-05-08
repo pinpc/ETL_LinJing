@@ -292,5 +292,5 @@ def load_invoices(source_dir: str, rechnung_map: dict, stripe_rows: list) -> int
         except Exception:
             pass
 
-    print(f"   📋 Rechnungs-Mapping: {len(rechnung_map)} Einträge aus {ok} Dateien")
+    print(f"   Rechnungs-Mapping: {len(rechnung_map)} Einträge aus {ok} Dateien")
     return ok
