@@ -8,7 +8,7 @@ from . import _logging
 _logging.silence_pdfminer()
 
 from .config import BANK, KOST
-from .expansion import single_row_from_statement
+from .expansion import expand_transaction
 from .excel_export import build_workbook
 from .invoices import load_invoices
 from .sqlite_export import save_konto_jupiter
@@ -92,7 +92,7 @@ class JupiterBankETL:
         self.load_invoices(source_dir)
 
         for tx in self.transactions:
-            self.all_rows.extend(single_row_from_statement(tx, self.rechnung_map))
+            self.all_rows.extend(expand_transaction(tx, self.rechnung_map))
 
         count, total = self.build_excel(self.all_rows, output_path)
 
