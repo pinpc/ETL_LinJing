@@ -8,9 +8,10 @@ from openpyxl.styles import Alignment, Border, Side
 from openpyxl.utils import get_column_letter
 
 from .config import XL_EURO_NUM_FMT, XL_FONT, XL_FONT_BOLD
+from .expansion import expand_transaction
 
 
-def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
+def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) -> None:
     ws_konto = wb["Konto Jupiter"]
     ws_allo = wb["Allopay"]
 
@@ -42,9 +43,12 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
             row += 1
 
     konto_rows = []
+    konto_running = 0.0
     for r in ws_konto.iter_rows(min_row=2, max_row=ws_konto.max_row, values_only=True):
         if r[0] is not None and not isinstance(r[0], str):
             konto_rows.append(list(r))
+            if str(r[6] or "") != "TOTAL":
+                konto_running += float(r[0])
 
     ws_final = wb.create_sheet("Final")
     for col in range(1, 8):
@@ -75,7 +79,20 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
                 cell.number_format = fmt
             cell.font = XL_FONT
 
+    def write_total_row(ws, row_idx, total):
+        total_cell = ws.cell(row=row_idx, column=1, value=round(total, 2))
+        total_cell.font = XL_FONT
+        total_cell.border = thin()
+        total_cell.alignment = L
+        total_cell.number_format = XL_EURO_NUM_FMT
+
+        label_cell = ws.cell(row=row_idx, column=7, value="TOTAL")
+        label_cell.font = XL_FONT
+        label_cell.border = thin()
+        label_cell.alignment = L
+
     final_idx = 2
+    final_running = 0.0
     warnings = []
 
     for kr in konto_rows:
@@ -83,6 +100,8 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
         bu = kr[1]
         datum = kr[3]
         txt = kr[6] or ""
+        if str(txt) == "TOTAL":
+            continue
 
         if bu == "1360" and "allO pay" in str(txt) and "Gebühr" not in str(txt):
             target_net = round(float(betrag), 2)
@@ -150,23 +169,57 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str) -> None:
                     final_idx,
                     [total_amount, "1360", "01", bu_tag, bank, kost, f"all0pay {ds_label}"],
                 )
+                final_running += total_amount
                 final_idx += 1
                 write_row(
                     ws_final,
                     final_idx,
                     [total_fee, "4970", "01", bu_tag, bank, kost, f"all0pay Gebühr {ds_label}"],
                 )
+                final_running += total_fee
                 final_idx += 1
             else:
                 write_row(ws_final, final_idx, kr[:7])
+                final_running += float(kr[0])
                 final_idx += 1
                 warnings.append(
                     f"allO pay {betrag:.2f} -> kein Match (Differenz >= 1,00EUR), unverändert"
                 )
         else:
+            key = round(abs(float(betrag)), 2)
+            has_invoice_split = (
+                key in rechnung_map
+                and isinstance(rechnung_map[key][0], str)
+                and rechnung_map[key][0].endswith("_SPLIT")
+            )
+            has_manual_split = abs(round(float(betrag), 2)) == 391.07 and "METRO SAGT DANKE" in str(txt).upper()
+
+            if has_invoice_split or has_manual_split:
+                tx = {"betrag": float(betrag), "bu_tag": datum, "beschreibung": txt}
+                expanded_rows = expand_transaction(tx, rechnung_map)
+                if len(expanded_rows) > 1:
+                    for betrag2, bu2, datum2, txt2 in expanded_rows:
+                        write_row(ws_final, final_idx, [betrag2, bu2, "01", datum2, bank, kost, txt2])
+                        final_running += betrag2
+                        final_idx += 1
+                    continue
+
             write_row(ws_final, final_idx, kr[:7])
+            final_running += float(kr[0])
             final_idx += 1
 
+    residual = round(konto_running - final_running, 2)
+    if residual:
+        note_text = (
+            f"NOTIZ: Abstimmungsdifferenz zu Konto Jupiter {residual:+.2f} EUR "
+            "(z. B. Rundung in Splits)"
+        )
+        write_row(ws_final, final_idx, [residual, "", "", None, bank, kost, note_text])
+        final_running += residual
+        final_idx += 1
+        warnings.append(note_text)
+
+    write_total_row(ws_final, final_idx, final_running)
     ws_final.freeze_panes = "A2"
 
     unused_allo = [p for p in allo_pairs if not p["used"]]
@@ -187,6 +240,7 @@ def build_workbook(
     bank: str,
     kost: str,
     stripe_rows: list,
+    rechnung_map: dict,
 ) -> tuple[int, float]:
     def thin():
         t = Side(style="thin", color="CCCCCC")
@@ -265,7 +319,7 @@ def build_workbook(
                 row_idx += 1
         print(f"   Sheet Allopay: {len(stripe_rows)} Stripe-Dateien -> {row_idx - 2} Zeilen")
 
-        build_final_sheet(wb, bank, kost)
+        build_final_sheet(wb, bank, kost, rechnung_map)
 
     wb.save(output_path)
     return len(all_rows), round(running, 2)

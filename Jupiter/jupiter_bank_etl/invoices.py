@@ -59,40 +59,44 @@ def _parse_hamberger(filepath: str, rm: dict) -> None:
 def _parse_uber(filepath: str, rm: dict) -> None:
     try:
         with pdfplumber.open(filepath) as pdf:
-            txt = pdf.pages[0].extract_text() or ""
+            pages = [p.extract_text() or "" for p in pdf.pages]
     except Exception:
         return
 
-    tf_m = re.search(r"vom\s+(\d{2}\.\d{2}\.\d{4})\s+bis zum\s+(\d{2}\.\d{2}\.\d{4})", txt)
+    if not pages:
+        return
+
+    p1 = pages[0]
+    txt = "\n".join(pages)
+
+    tf_m = re.search(r"vom\s+(\d{2}\.\d{2}\.\d{4})\s+bis zum\s+(\d{2}\.\d{2}\.\d{4})", p1)
     tf = ""
     if tf_m:
         d1 = parse_date(tf_m.group(1))
         d2 = parse_date(tf_m.group(2))
         tf = f"{d1.strftime('%d.%m.%y')} - {d2.strftime('%d.%m.%y')}" if d1 and d2 else ""
 
-    def grab(pat):
-        m = re.search(pat, txt)
+    def grab(pat, text):
+        m = re.search(pat, text, re.DOTALL)
         return de_float(m.group(1)) if m else 0.0
 
-    auszahlung = grab(r"Gesamtauszahlung\s*€\s*([\d.]+,\d{2})")
-    umsatz = grab(r"Gesamtwert von:\s*€\s*([\d.]+,\d{2})")
-    rabatt = grab(r"Rabatte\s*/Angebote.*?€\s*-\s*([\d.]+,\d{2})")
-    gebühr = grab(r"Uber Eats Gebühr\s*€\s*([\d.]+,\d{2})")
-    mwst = grab(r"MwSt\.\s*\(19%.*?\)\s*€\s*([\d.]+,\d{2})")
-    offer = grab(r"Angebotsgebühr.*?€\s*-\s*([\d.]+,\d{2})")
+    auszahlung = grab(r"Gesamtauszahlung\s*€\s*([\d.]+,\d{2})", p1)
+    umsatz = grab(r"Gesamtwert von:\s*€\s*([\d.]+,\d{2})", p1)
+    rabatt = grab(r"Rabatte\s*/Angebote.*?€\s*-\s*([\d.]+,\d{2})", p1)
+    gebühr = grab(r"Uber Eats Gebühr\s*€\s*([\d.]+,\d{2})", p1)
+    mwst = grab(r"MwSt\.\s*\(19%.*?\)\s*€\s*([\d.]+,\d{2})", p1)
+    offer = grab(r"Angebotsgebühr.*?€\s*-\s*([\d.]+,\d{2})", p1)
+    invoice_total = grab(r"Gesamtbetrag\s+([\d.]+,\d{2})\s*€", txt)
 
-    prov = round(gebühr + mwst + offer, 2)
-
-    sonstiges = 0.0
-    so_m = re.search(r"Sonstiges:.*?€\s*(-?\s*[\d.]+,\d{2})\s*Gesamtauszahlung", txt, re.DOTALL)
-    if so_m:
-        so_str = so_m.group(1).replace(" ", "")
-        sonstiges = de_float(so_str)
-
-    umsatz_fibu = round(umsatz + sonstiges, 2)
+    prov = round(invoice_total, 2) if invoice_total > 0 else round(gebühr + mwst + offer, 2)
 
     if auszahlung and umsatz:
-        rm[round(auszahlung, 2)] = ("UBER_SPLIT", f"{umsatz_fibu}|{rabatt}|{prov}|{tf}")
+        split_sum = round(umsatz - rabatt - prov, 2)
+        if abs(split_sum - auszahlung) > 0.05:
+            # Reconcile the split to the bank payout if Uber's summary page
+            # and invoice page differ slightly because of cross-period adjustments.
+            prov = round(umsatz - rabatt - auszahlung, 2)
+        rm[round(auszahlung, 2)] = ("UBER_SPLIT", f"{umsatz}|{rabatt}|{prov}|{tf}")
 
 
 def _parse_stripe(filepath: str, rm: dict, stripe_rows: list) -> None:

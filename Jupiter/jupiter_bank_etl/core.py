@@ -8,7 +8,7 @@ from . import _logging
 _logging.silence_pdfminer()
 
 from .config import BANK, KOST
-from .expansion import expand_transaction
+from .expansion import single_row_from_statement
 from .excel_export import build_workbook
 from .invoices import load_invoices
 from .sqlite_export import save_konto_jupiter
@@ -40,7 +40,7 @@ class JupiterBankETL:
 
     def build_excel(self, all_rows: list[tuple], output_path: str) -> tuple[int, float]:
         return build_workbook(
-            all_rows, output_path, self.bank, self.kost, self.stripe_rows
+            all_rows, output_path, self.bank, self.kost, self.stripe_rows, self.rechnung_map
         )
 
     def save_sqlite(self, all_rows: list[tuple], db_path: str) -> None:
@@ -92,7 +92,7 @@ class JupiterBankETL:
         self.load_invoices(source_dir)
 
         for tx in self.transactions:
-            self.all_rows.extend(expand_transaction(tx, self.rechnung_map))
+            self.all_rows.extend(single_row_from_statement(tx, self.rechnung_map))
 
         count, total = self.build_excel(self.all_rows, output_path)
 

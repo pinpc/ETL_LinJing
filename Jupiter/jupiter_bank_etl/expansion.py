@@ -22,10 +22,6 @@ def _manual_split_rows(tx: dict) -> list[tuple]:
 
 def single_row_from_statement(tx: dict, rechnung_map: dict) -> list[tuple]:
     """Eine Zeile pro PDF-Buchung: FIBU_RULES (Rechnungs-SPLITs werden übersprungen)."""
-    manual_rows = _manual_split_rows(tx)
-    if manual_rows:
-        return manual_rows
-
     bu_kto, text = map_booking(tx, rechnung_map, ignore_invoice_splits=True)
     return [(tx["betrag"], bu_kto, tx["bu_tag"], text)]
 
