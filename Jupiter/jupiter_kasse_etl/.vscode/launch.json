@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    
+    {
+      "name": "Jupiter Kasse ETL (debug): python -m jupiter_kasse_etl",
+      "type": "debugpy",
+      "request": "launch",
+      "module": "jupiter_kasse_etl",
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "--input",
+        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Kasse 03.2026\\02b Kassenbuch_Jupiter 03.2026.xlsx",
+        "--pdf-base",
+        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Kasse 03.2026",
+        "--out",
+        "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_kasse_etl\\result\\Jupite_umsatz_etl_2603.xlsx"
+      ]
+    }
+  ]
+}
