@@ -1,0 +1,23 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Asia Kasse ETL",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/__main__.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--input",
+        "C:/temp_cursor/LinJing/01_Asia/Asia Kasse 03.2026/01 allO现金簿导出2026.03/cashbook_china_restaurant_asia__01_03_2026_31_03_2026.xlsx",
+        "--out",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/asia/asia_kasse_etl/result/asia_kasse_etl_03_2026.xlsx",
+        "--pdf-base",
+        "C:/temp_cursor/LinJing/01_Asia",
+        "--sheet",
+        "cashbook"
+      ]
+    }
+  ]
+}

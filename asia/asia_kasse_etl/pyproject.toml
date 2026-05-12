@@ -1,0 +1,11 @@
+[project]
+name = "asia-kasse-etl"
+version = "0.1.0"
+description = "Minimal ETL project that loads CSV into SQLite."
+readme = "README.md"
+requires-python = ">=3.10"
+authors = [{ name = "LinJing" }]
+
+[tool.black]
+line-length = 100
+

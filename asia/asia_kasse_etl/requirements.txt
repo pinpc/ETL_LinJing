@@ -1,0 +1,5 @@
+# SQLite is part of Python standard library.
+# Keep dependencies minimal for portability.
+
+openpyxl>=3.1
+
