@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import replace
 from decimal import Decimal
 from pathlib import Path
@@ -31,6 +32,13 @@ class JupiterKasseETL:
             return []
 
         if not allopay_rows:
+            for row in umsatz_rows:
+                if row.umsatz_euro > 0 and "allo" in row.buchungstext.lower():
+                    print(
+                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
+                        f"({row.datum}): keine Allopay-PDF-Zeilen geladen; Kasse bleibt {row.umsatz_euro} EUR.",
+                        file=sys.stderr,
+                    )
             return sort_rows_by_date([replace(row, beleg_1="") for row in umsatz_rows])
 
         allopay_by_date: dict[str, list[BuchungRow]] = {}
@@ -44,14 +52,30 @@ class JupiterKasseETL:
         final_rows: list[BuchungRow] = []
         for row in umsatz_rows:
             is_allopay_income = row.umsatz_euro > 0 and "allo" in row.buchungstext.lower()
-            if is_allopay_income and row.datum in allopay_sum_by_date:
-                diff = abs(allopay_sum_by_date[row.datum] - row.umsatz_euro)
-                if diff < MERGE_TOLERANCE:
-                    final_rows.extend(
-                        replace(allopay_row, beleg_1=safe_allopay_beleg_by_date.get(row.datum, ""))
-                        for allopay_row in allopay_by_date[row.datum]
+            if is_allopay_income:
+                pdf_umsatz_sum = allopay_sum_by_date.get(row.datum)
+                if pdf_umsatz_sum is not None:
+                    diff = abs(pdf_umsatz_sum - row.umsatz_euro)
+                    if diff < MERGE_TOLERANCE:
+                        final_rows.extend(
+                            replace(allopay_row, beleg_1=safe_allopay_beleg_by_date.get(row.datum, ""))
+                            for allopay_row in allopay_by_date[row.datum]
+                        )
+                        continue
+                    print(
+                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
+                        f"({row.datum}): Kasse {row.umsatz_euro} EUR vs. Summe PDF "
+                        f"(Umsatz 19 % + Umsatz 7 %) {pdf_umsatz_sum} EUR "
+                        f"(|Diff|={diff}, Toleranz {MERGE_TOLERANCE}).",
+                        file=sys.stderr,
                     )
-                    continue
+                else:
+                    print(
+                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
+                        f"({row.datum}): keine PDF-Umsatzzeilen (19 %/7 %) für dieses Datum; "
+                        f"Kasse bleibt {row.umsatz_euro} EUR.",
+                        file=sys.stderr,
+                    )
 
             split_rows = self._split_compound_final_row(
                 row,

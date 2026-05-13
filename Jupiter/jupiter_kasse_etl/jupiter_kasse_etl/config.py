@@ -1,40 +1,37 @@
 from __future__ import annotations
 
+import json
 from decimal import Decimal
 from pathlib import Path
 
-TARGET_COLUMNS = [
-    "Umsatz Euro",
-    "BU Gkto",
-    "Beleg 1",
-    "Datum",
-    "KOST 1",
-    "Bank",
-    "Buchungstext",
-]
+CONFIG_JSON_PATH = Path(__file__).resolve().parents[1] / "config.json"
 
-COLUMN_WIDTHS = {"A": 15, "B": 12, "C": 10, "D": 12, "E": 10, "F": 10, "G": 40}
 
-STANDARD_KOST = 2000
-STANDARD_BANK = 1001
+def _load_config() -> dict:
+    return json.loads(CONFIG_JSON_PATH.read_text(encoding="utf-8"))
 
-BU_GKTO_ALLOPAY_EXPENSE = 1360
-BU_GKTO_BAUMARKT_EXPENSE = 904280
-BU_GKTO_FISCH_FOOD = 3300
-BU_GKTO_INCOME = 8000
-BU_GKTO_ALLOPAY_19 = 8400
-BU_GKTO_ALLOPAY_7 = 8300
 
-MERGE_TOLERANCE = Decimal("0.01")
-XL_EURO_NUM_FMT = "#,##0.00"
+_CONFIG = _load_config()
+_DEFAULTS = _CONFIG["defaults"]
+_ACCOUNTS = _CONFIG["accounts"]
+_PATHS = _CONFIG["paths"]
 
-DEFAULT_BASE_PATH = Path(r"C:\temp_cursor\LinJing\02_Jupiter\Buchhaltung Jupiter 03.2026\Jupiter Kasse 03.2026")
-DEFAULT_CASHBOOK_CANDIDATES = [
-    DEFAULT_BASE_PATH / "02b Kassenbuch_Jupiter 03.2026.xlsx",
-    DEFAULT_BASE_PATH / "02a Kassenbuch Jupiter 03.2026.pdf",
-]
-DEFAULT_OUTPUT_PATH = (
-    Path(r"C:\temp_cursor\LinJing\03_Coding\ETL_LinJing\Jupiter\jupiter_kasse_etl")
-    / "result"
-    / "etl_umsatz_jupiter_2603.xlsx"
-)
+TARGET_COLUMNS = list(_CONFIG["target_columns"])
+COLUMN_WIDTHS = {key: int(value) for key, value in _CONFIG["column_widths"].items()}
+
+STANDARD_KOST = int(_DEFAULTS["standard_kost"])
+STANDARD_BANK = int(_DEFAULTS["standard_bank"])
+
+BU_GKTO_ALLOPAY_EXPENSE = int(_ACCOUNTS["allopay_expense"])
+BU_GKTO_BAUMARKT_EXPENSE = int(_ACCOUNTS["baumarkt_expense"])
+BU_GKTO_FISCH_FOOD = int(_ACCOUNTS["fisch_food"])
+BU_GKTO_INCOME = int(_ACCOUNTS["income"])
+BU_GKTO_ALLOPAY_19 = int(_ACCOUNTS["allopay_19"])
+BU_GKTO_ALLOPAY_7 = int(_ACCOUNTS["allopay_7"])
+
+MERGE_TOLERANCE = Decimal(str(_DEFAULTS["merge_tolerance"]))
+XL_EURO_NUM_FMT = str(_DEFAULTS["xl_euro_num_fmt"])
+
+DEFAULT_BASE_PATH = Path(_PATHS["base_path"])
+DEFAULT_CASHBOOK_CANDIDATES = [Path(path) for path in _PATHS["cashbook_candidates"]]
+DEFAULT_OUTPUT_PATH = Path(_PATHS["output_path"])

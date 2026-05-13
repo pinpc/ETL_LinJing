@@ -8,7 +8,26 @@ import pdfplumber
 
 from .config import BU_GKTO_ALLOPAY_19, BU_GKTO_ALLOPAY_7, STANDARD_BANK, STANDARD_KOST
 from .models import AllopayPdfData, BuchungRow
-from .utils import convert_german_number, sort_rows_by_date
+from decimal import Decimal
+
+from .utils import convert_german_number, parse_money_amount, sort_rows_by_date
+
+
+def _table_gross_amount(row: list) -> Decimal:
+    """Rightmost amount column in Jupiter PDF tables (index 3)."""
+    if not row:
+        return Decimal("0")
+    if len(row) >= 4 and row[3] is not None and str(row[3]).strip():
+        value = parse_money_amount(row[3])
+        if value != 0:
+            return value
+    for cell in reversed(row[1:]):
+        if cell is None:
+            continue
+        value = parse_money_amount(cell)
+        if value != 0:
+            return value
+    return Decimal("0")
 
 
 def _find_allopay_pdfs(base_path: Path) -> list[Path]:
@@ -57,40 +76,43 @@ def _extract_allopay_from_pdf(pdf_path: Path) -> AllopayPdfData:
 
                     row_text = " ".join(str(cell) if cell else "" for cell in row)
                     first_cell = str(row[0]).strip().lower() if row[0] else ""
+                    gross = _table_gross_amount(row)
+
                     if "Umsatz 7%" in row_text or "Umsatz 7 %" in row_text:
-                        numbers = re.findall(r"(\d+(?:[.,]\d+)?)", row_text)
-                        if numbers:
-                            umsatz_7 = convert_german_number(numbers[-1])
+                        if gross > 0:
+                            umsatz_7 = gross
                     if "Umsatz 19%" in row_text or "Umsatz 19 %" in row_text:
-                        numbers = re.findall(r"(\d+(?:[.,]\d+)?)", row_text)
-                        if numbers:
-                            umsatz_19 = convert_german_number(numbers[-1])
+                        if gross > 0:
+                            umsatz_19 = gross
                     if "allo" in first_cell and "pay" in first_cell:
-                        allopay_payment_sum = convert_german_number(row[3] if len(row) > 3 else row[-1])
+                        if gross > 0:
+                            allopay_payment_sum = max(allopay_payment_sum, gross)
 
         if umsatz_7 == 0 and umsatz_19 == 0:
             match_7 = re.search(
-                r"Umsatz\s*7%\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)",
+                r"Umsatz\s*7\s*%\D*([\d.,]+)\D+([\d.,]+)\D+([\d.,]+)",
                 full_text,
+                re.IGNORECASE,
             )
             if match_7:
-                umsatz_7 = convert_german_number(match_7.group(3))
+                umsatz_7 = parse_money_amount(match_7.group(3))
 
             match_19 = re.search(
-                r"Umsatz\s*19%\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)",
+                r"Umsatz\s*19\s*%\D*([\d.,]+)\D+([\d.,]+)\D+([\d.,]+)",
                 full_text,
+                re.IGNORECASE,
             )
             if match_19:
-                umsatz_19 = convert_german_number(match_19.group(3))
+                umsatz_19 = parse_money_amount(match_19.group(3))
 
         if allopay_payment_sum == 0:
             payment_match = re.search(
-                r"allO\s*Pay\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)\s*(?:€\s*)?([\d.,]+)",
+                r"allO\s*Pay\D*([\d.,]+)\D+([\d.,]+)\D+([\d.,]+)",
                 full_text,
                 re.IGNORECASE,
             )
             if payment_match:
-                allopay_payment_sum = convert_german_number(payment_match.group(3))
+                allopay_payment_sum = parse_money_amount(payment_match.group(3))
 
     return AllopayPdfData(
         datum=datum,

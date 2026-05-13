@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import datetime
 from decimal import Decimal, InvalidOperation
 from typing import Any, Iterable
@@ -44,6 +45,69 @@ def convert_german_number(value: Any) -> Decimal:
         return Decimal(text)
     except InvalidOperation:
         return Decimal("0")
+
+
+def parse_money_amount(value: Any) -> Decimal:
+    """Parse a monetary cell or snippet from PDF/Excel.
+
+    Supports typical German notation (``1.264,80``) and US-style amounts
+    used in Jupiter PDF tables (``1,264.80``). ``convert_german_number``
+    mis-reads the latter (e.g. ``1,030.50`` → ``1.03050``).
+    """
+    if value is None:
+        return Decimal("0")
+    if isinstance(value, Decimal):
+        return value
+    if isinstance(value, (int, float)):
+        return Decimal(str(value))
+
+    text = str(value).strip()
+    if text in {"", "-"}:
+        return Decimal("0")
+
+    text = text.replace("\ufeff", "").replace("\ufffd", "")
+    text = text.replace("EUR", "").replace("€", "")
+    text = re.sub(r"\s+", "", text)
+    if text == "":
+        return Decimal("0")
+
+    neg = False
+    if text.startswith("(") and text.endswith(")"):
+        neg = True
+        text = text[1:-1]
+    if text.startswith("-"):
+        neg = True
+        text = text[1:]
+
+    m = re.search(r"([\d.,]+)", text)
+    if not m:
+        return Decimal("0")
+    core = m.group(1)
+
+    if "," in core and "." in core:
+        if core.rfind(".") > core.rfind(","):
+            core = core.replace(",", "")
+        else:
+            core = core.replace(".", "").replace(",", ".")
+    elif "," in core:
+        parts = core.split(",")
+        if len(parts) == 2 and len(parts[1]) <= 2:
+            core = parts[0].replace(".", "") + "." + parts[1]
+        else:
+            core = core.replace(".", "").replace(",", ".")
+    elif "." in core:
+        if core.count(".") > 1:
+            core = core.replace(".", "")
+        else:
+            parts = core.split(".")
+            if len(parts) == 2 and len(parts[1]) != 2:
+                core = parts[0] + parts[1]
+
+    try:
+        d = Decimal(core)
+    except InvalidOperation:
+        return Decimal("0")
+    return -d if neg else d
 
 
 def parse_date(value: Any) -> str:
