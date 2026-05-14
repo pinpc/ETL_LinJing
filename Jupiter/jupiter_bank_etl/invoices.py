@@ -8,6 +8,25 @@ from datetime import datetime
 from .utils import de_float, parse_date, stripe_float
 import pdfplumber
 
+# Wolt: Bank-PDF vs. Rechnungssumme / expand_transaction
+_WOLT_NET_TOLERANCE = 0.05
+
+
+def _wolt_vertrieb_netto_spalte(p2: str, steuersatz: str) -> float:
+    """Dritte Zahl der Zeile 'Summe Vertrieb mit Umsatzsteuer 7/19 %' (Netto-Spalte)."""
+    m = re.search(
+        rf"Summe Vertrieb mit Umsatzsteuer {steuersatz}[.,]00\s*%?\s+"
+        r"(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})",
+        p2,
+    )
+    return de_float(m.group(3)) if m else 0.0
+
+
+def _wolt_probe_summe(
+    umsatz: float, rabatt: float, provision: float, provision19: float, gebühr: float
+) -> float:
+    return round(umsatz + rabatt + provision + provision19 - gebühr, 2)
+
 
 def _parse_hamberger(filepath: str, rm: dict) -> None:
     try:
@@ -147,14 +166,24 @@ def _parse_stripe(filepath: str, rm: dict, stripe_rows: list) -> None:
     stripe_rows.append({"date": csv_date, "ds": ds, "amount": total_amount, "fee": total_fee})
 
 
-def _parse_wolt(filepath: str, rm: dict) -> None:
+def _parse_wolt(filepath: str, rm: dict, wolt_audit: list | None) -> None:
+    fname = os.path.basename(filepath)
+
+    def audit(**fields: object) -> None:
+        if wolt_audit is None:
+            return
+        row = {"datei": fname, **fields}
+        wolt_audit.append(row)
+
     try:
         with pdfplumber.open(filepath) as pdf:
             pages = [p.extract_text() or "" for p in pdf.pages]
     except Exception:
+        audit(status="FEHLER", grund="PDF konnte nicht gelesen werden")
         return
 
     if len(pages) < 2:
+        audit(status="SKIP", grund="Weniger als 2 PDF-Seiten")
         return
 
     p1 = pages[0]
@@ -163,6 +192,7 @@ def _parse_wolt(filepath: str, rm: dict) -> None:
 
     m = re.search(r"Nettoauszahlung\s+([\d.]+,\d{2})", p1)
     if not m:
+        audit(status="SKIP", grund='"Nettoauszahlung" auf Seite 1 nicht gefunden')
         return
     auszahlung = de_float(m.group(1))
 
@@ -195,11 +225,9 @@ def _parse_wolt(filepath: str, rm: dict) -> None:
 
     rabatt = round(vergütungen + haendlerrabatt, 2)
 
-    m = re.search(
-        r"Summe Vertrieb mit Umsatzsteuer 7[.,]00\s*%\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})",
-        p2,
-    )
-    provision = de_float(m.group(3)) if m else 0.0
+    # "%" nach dem Steuersatz fehlt in manchen Wolt-PDFs (z. B. "19.00 -10,78").
+    provision = _wolt_vertrieb_netto_spalte(p2, "7")
+    provision19 = _wolt_vertrieb_netto_spalte(p2, "19")
 
     gebühr = 0.0
     if p3:
@@ -213,11 +241,75 @@ def _parse_wolt(filepath: str, rm: dict) -> None:
             gebühr += de_float(m_zus.group(3))
     gebühr = round(gebühr, 2)
 
-    summe = round(umsatz + rabatt + provision - gebühr, 2)
-    if abs(summe - auszahlung) > 0.05:
+    summe = _wolt_probe_summe(umsatz, rabatt, provision, provision19, gebühr)
+    key = round(auszahlung, 2)
+    if abs(summe - auszahlung) > _WOLT_NET_TOLERANCE:
+        audit(
+            status="SUMME_MISMATCH",
+            grund="Umsatz+Rabatt+Vertrieb7%+Vertrieb19%-Gebühr weicht >0,05 EUR von Nettoauszahlung ab",
+            nettoauszahlung=key,
+            umsatz=umsatz,
+            rabatt=rabatt,
+            provision=provision,
+            provision19=provision19,
+            gebühr=gebühr,
+            zeitraum=tf,
+            probe_summe=summe,
+            diff_probe=round(summe - auszahlung, 2),
+            erw_final="Kein rechnung_map-Eintrag; Final bleibt 1 Zeile",
+        )
         return
 
-    rm[round(auszahlung, 2)] = ("WOLT_SPLIT", f"{umsatz}|{rabatt}|{provision}|{gebühr}|{tf}")
+    dup = key in rm and rm[key][0] == "WOLT_SPLIT"
+    erw = _wolt_erwartung_final(key, umsatz, rabatt, provision, provision19, gebühr)
+    audit(
+        status="OK_DUPLIKAT" if dup else "OK",
+        grund=(
+            "Gleicher Nettoauszahlungsbetrag wie bereits gemappte Datei (Schlüssel überschrieben)"
+            if dup
+            else ""
+        ),
+        nettoauszahlung=key,
+        umsatz=umsatz,
+        rabatt=rabatt,
+        provision=provision,
+        provision19=provision19,
+        gebühr=gebühr,
+        zeitraum=tf,
+        probe_summe=summe,
+        diff_probe=0.0,
+        erw_final=erw,
+    )
+
+    rm[key] = ("WOLT_SPLIT", f"{umsatz}|{rabatt}|{provision}|{provision19}|{gebühr}|{tf}")
+
+
+def _wolt_erwartung_final(
+    key: float,
+    umsatz: float,
+    rabatt: float,
+    provision: float,
+    provision19: float,
+    gebühr: float,
+) -> str:
+    """Kurztext wie expand_transaction WOLT_SPLIT sich im Blatt Final verhält."""
+    cons = _wolt_probe_summe(umsatz, rabatt, provision, provision19, gebühr)
+    if abs(cons - key) > _WOLT_NET_TOLERANCE:
+        return "1 FiBu-Zeile (Fallback 8300, Konsistenzprüfung)"
+    n = 0
+    if umsatz:
+        n += 1
+    if rabatt:
+        n += 1
+    if provision:
+        n += 1
+    if provision19:
+        n += 1
+    if gebühr:
+        n += 1
+    if not n:
+        return "1 FiBu-Zeile (8300)"
+    return f"{n} FiBu-Zeilen (8300 / 8780 / 804760 / 904760)"
 
 
 def _parse_takeaway(filepath: str, rm: dict) -> None:
@@ -261,7 +353,30 @@ def _parse_takeaway(filepath: str, rm: dict) -> None:
     rm[round(auszahlung, 2)] = ("TAKEAWAY_SPLIT", f"{umsatz}|{gebühr}|{tf}")
 
 
-def load_invoices(source_dir: str, rechnung_map: dict, stripe_rows: list) -> int:
+def wolt_resolution_warning_lines(wolt_audit: list | None) -> list[str]:
+    """Kurze Textzeilen fuer Konsole: Wolt-PDFs mit Mapping- oder Final-Aufloesungsproblemen."""
+    if not wolt_audit:
+        return []
+    problem_stati = frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP", "OK_DUPLIKAT"})
+    out: list[str] = []
+    for row in wolt_audit:
+        fn = str(row.get("datei") or "?")
+        if fn == "(keine)":
+            continue
+        st = row.get("status") or ""
+        grund = (row.get("grund") or "").strip()
+        if st in problem_stati:
+            out.append(f"{fn}: [{st}] {grund}".strip())
+        elif st == "OK":
+            erw = row.get("erw_final") or ""
+            if "Fallback" in erw:
+                out.append(f"{fn}: [Final-Fallback] {erw}")
+    return out
+
+
+def load_invoices(
+    source_dir: str, rechnung_map: dict, stripe_rows: list, wolt_audit: list | None = None
+) -> int:
     """Liest Rechnungen aus source_dir; mutiert rechnung_map und stripe_rows."""
     files = sorted(os.listdir(source_dir))
     ok = skip = 0
@@ -281,7 +396,7 @@ def load_invoices(source_dir: str, rechnung_map: dict, stripe_rows: list) -> int
                     _parse_hamberger(fpath, rechnung_map)
                     ok += 1
                 elif "wolt" in fl:
-                    _parse_wolt(fpath, rechnung_map)
+                    _parse_wolt(fpath, rechnung_map, wolt_audit)
                     ok += 1
                 elif "takeaway" in fl:
                     _parse_takeaway(fpath, rechnung_map)

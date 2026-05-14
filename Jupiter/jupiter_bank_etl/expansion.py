@@ -2,6 +2,8 @@
 
 from .mapping import map_booking
 
+_WOLT_SPLIT_EPS = 0.05
+
 
 def _manual_split_rows(tx: dict) -> list[tuple]:
     """Historische manuelle Splits, die nicht aus Rechnungen extrahiert werden."""
@@ -18,6 +20,19 @@ def _manual_split_rows(tx: dict) -> list[tuple]:
         ]
 
     return []
+
+
+def _unpack_wolt_split(data: str) -> tuple[float, float, float, float, float, str]:
+    """WOLT_SPLIT Nutzlast: umsatz|rabatt|provision7|[provision19]|gebühr|tf (5 Felder = alt ohne provision19)."""
+    parts = data.split("|")
+    umsatz = float(parts[0])
+    rabatt = float(parts[1])
+    provision = float(parts[2])
+    if len(parts) >= 6:
+        return (umsatz, rabatt, provision, float(parts[3]), float(parts[4]), parts[5])
+    gebühr = float(parts[3])
+    tf = parts[4] if len(parts) > 4 else ""
+    return (umsatz, rabatt, provision, 0.0, gebühr, tf)
 
 
 def single_row_from_statement(tx: dict, rechnung_map: dict) -> list[tuple]:
@@ -51,13 +66,8 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
 
     if key in rechnung_map and rechnung_map[key][0] == "WOLT_SPLIT":
         _, data = rechnung_map[key]
-        parts = data.split("|")
-        umsatz = float(parts[0])
-        rabatt = float(parts[1])
-        provision = float(parts[2])
-        gebühr = float(parts[3])
-        tf = parts[4]
-        if abs(round(umsatz + rabatt + provision - gebühr, 2) - key) > 0.05:
+        umsatz, rabatt, provision, provision19, gebühr, tf = _unpack_wolt_split(data)
+        if abs(round(umsatz + rabatt + provision + provision19 - gebühr, 2) - key) > _WOLT_SPLIT_EPS:
             return [(betrag, "8300", datum, f"Wolt Umsatz 7 % {tf}")]
         rows = []
         if umsatz:
@@ -66,6 +76,8 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
             rows.append((round(rabatt, 2), "8780", datum, f"Wolt Rabatt 7 % {tf}"))
         if provision:
             rows.append((round(provision, 2), "804760", datum, f"Wolt Provision 7 % {tf}"))
+        if provision19:
+            rows.append((round(provision19, 2), "804760", datum, f"Wolt Provision 19 % {tf}"))
         if gebühr:
             rows.append((round(-gebühr, 2), "904760", datum, f"Wolt Gebühr 19% {tf}"))
         return rows if rows else [(betrag, "8300", datum, f"Wolt {tf}")]

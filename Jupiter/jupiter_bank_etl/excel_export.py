@@ -10,6 +10,8 @@ from openpyxl.utils import get_column_letter
 from .config import XL_EURO_NUM_FMT, XL_FONT, XL_FONT_BOLD
 from .expansion import expand_transaction
 
+SHEET_WOLT = "Wolt"
+
 
 def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) -> None:
     ws_konto = wb["Konto Jupiter"]
@@ -234,6 +236,83 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) ->
             print(f"     {p['datum']} amount={p['amount']} net={p['net']}")
 
 
+def build_wolt_sheet(wb: Workbook, wolt_audit: list | None) -> None:
+    """Blatt Wolt: je Wolt-PDF eine Zeile mit Aufschluesselung und Final-Hinweis."""
+    rows_in = list(wolt_audit or [])
+    for sn in list(wb.sheetnames):
+        if sn.lower() == SHEET_WOLT.lower():
+            wb.remove(wb[sn])
+    ws = wb.create_sheet(SHEET_WOLT, 1)
+
+    def thin():
+        t = Side(style="thin", color="CCCCCC")
+        return Border(left=t, right=t, top=t, bottom=t)
+
+    L = Alignment(horizontal="left", vertical="center")
+    headers = [
+        "Datei",
+        "Status",
+        "Hinweis / Grund",
+        "Nettoauszahlung",
+        "Umsatz 7 %",
+        "Rabatt",
+        "Vertrieb 7 %",
+        "Vertrieb 19 %",
+        "Gebühr (PDF)",
+        "Leistungszeitraum",
+        "Summe Probe U+R+V7+V19-G",
+        "Diff zu Nettoausz.",
+        "Erwartung Blatt Final",
+    ]
+    widths = [36, 14, 44, 14, 12, 12, 12, 12, 12, 28, 18, 14, 38]
+    for col, (h, w) in enumerate(zip(headers, widths), 1):
+        c = ws.cell(row=1, column=col, value=h)
+        c.font = XL_FONT_BOLD
+        c.alignment = L
+        c.border = thin()
+        ws.column_dimensions[get_column_letter(col)].width = w
+    ws.row_dimensions[1].height = 15
+    ws.freeze_panes = "A2"
+
+    euro_cols = {4, 5, 6, 7, 8, 9, 11, 12}
+    if not rows_in:
+        rows_in = [
+            {
+                "datei": "(keine)",
+                "status": "-",
+                "grund": "Keine Wolt-PDFs verarbeitet (Dateiname muss wolt enthalten).",
+            }
+        ]
+
+    r = 2
+    for item in rows_in:
+        vals = [
+            item.get("datei"),
+            item.get("status"),
+            item.get("grund") or "",
+            item.get("nettoauszahlung"),
+            item.get("umsatz"),
+            item.get("rabatt"),
+            item.get("provision"),
+            item.get("provision19"),
+            item.get("gebühr"),
+            item.get("zeitraum") or "",
+            item.get("probe_summe"),
+            item.get("diff_probe"),
+            item.get("erw_final") or "",
+        ]
+        for col, v in enumerate(vals, 1):
+            cell = ws.cell(row=r, column=col, value=v if v != "" else None)
+            cell.font = XL_FONT
+            cell.alignment = L
+            cell.border = thin()
+            if col in euro_cols and isinstance(v, (int, float)):
+                cell.number_format = XL_EURO_NUM_FMT
+        r += 1
+
+    print(f"   Sheet {SHEET_WOLT}: {len(rows_in)} Zeilen")
+
+
 def build_workbook(
     all_rows: list[tuple],
     output_path: str,
@@ -241,6 +320,7 @@ def build_workbook(
     kost: str,
     stripe_rows: list,
     rechnung_map: dict,
+    wolt_audit: list | None = None,
 ) -> tuple[int, float]:
     def thin():
         t = Side(style="thin", color="CCCCCC")
@@ -287,6 +367,8 @@ def build_workbook(
     lc.font = XL_FONT
     lc.border = thin()
     lc.alignment = L
+
+    build_wolt_sheet(wb, wolt_audit)
 
     if stripe_rows:
         ws2 = wb.create_sheet("Allopay")

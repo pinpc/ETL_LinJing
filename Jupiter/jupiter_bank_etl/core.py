@@ -10,7 +10,7 @@ _logging.silence_pdfminer()
 from .config import BANK, KOST
 from .expansion import single_row_from_statement
 from .excel_export import build_workbook
-from .invoices import load_invoices
+from .invoices import load_invoices, wolt_resolution_warning_lines
 from .sqlite_export import save_konto_jupiter
 from .statement import extract_statements
 
@@ -29,6 +29,7 @@ class JupiterBankETL:
         self.kost = kost if kost is not None else KOST
         self.rechnung_map: dict = {}
         self.stripe_rows: list = []
+        self.wolt_audit: list[dict] = []
         self.transactions: list[dict] = []
         self.all_rows: list[tuple] = []
 
@@ -36,11 +37,17 @@ class JupiterBankETL:
         return extract_statements(pdf_path)
 
     def load_invoices(self, source_dir: str) -> int:
-        return load_invoices(source_dir, self.rechnung_map, self.stripe_rows)
+        return load_invoices(source_dir, self.rechnung_map, self.stripe_rows, self.wolt_audit)
 
     def build_excel(self, all_rows: list[tuple], output_path: str) -> tuple[int, float]:
         return build_workbook(
-            all_rows, output_path, self.bank, self.kost, self.stripe_rows, self.rechnung_map
+            all_rows,
+            output_path,
+            self.bank,
+            self.kost,
+            self.stripe_rows,
+            self.rechnung_map,
+            self.wolt_audit,
         )
 
     def save_sqlite(self, all_rows: list[tuple], db_path: str) -> None:
@@ -83,6 +90,7 @@ class JupiterBankETL:
 
         self.rechnung_map.clear()
         self.stripe_rows.clear()
+        self.wolt_audit.clear()
         self.transactions.clear()
         self.all_rows.clear()
 
@@ -110,6 +118,12 @@ class JupiterBankETL:
             print(f"\n   WARN: {len(ohne)} Buchungen ohne BU-Konto (manuell nachbuchen):")
             for b, t in ohne[:10]:
                 print(f"     {b:>10.2f}  {t[:50]}")
+
+        wolt_lines = wolt_resolution_warning_lines(self.wolt_audit)
+        if wolt_lines:
+            print(f"\n   WARN Wolt-Aufloesung ({len(wolt_lines)}):")
+            for line in wolt_lines:
+                print(f"     {line}")
 
 
 def run_cli(
