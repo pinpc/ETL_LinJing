@@ -39,6 +39,29 @@ def map_booking(
                     return kto, f"{label} {mon} {yr}"
                 return kto, label
 
+            if label == "ovag Strom":
+                d = tx.get("bu_tag")
+                if d:
+                    return kto, f"ovag Strom {d.strftime('%m')} {d.year}"
+                return kto, label
+
+            if label == "BGN Beitrag":
+                d = tx.get("bu_tag")
+                if d:
+                    q = min(4, d.month // 3 + 1)
+                    return kto, f"BGN Beitrag {d.year} Q {q}"
+                m_y = re.search(r"Vorschuss\s+(\d{4})", beschr, re.I)
+                if m_y:
+                    return kto, f"BGN Beitrag {m_y.group(1)} Q 2"
+                return kto, label
+
+            if label == "A.R.Z. GmbH":
+                m_rg = re.search(r"Rg\.-Nr\.\s*(\d+)", beschr, re.I)
+                rg = m_rg.group(1) if m_rg else ""
+                if rg:
+                    return kto, f"A.R.Z. GmbH Rg.-Nr. {rg} Küchenreinigung Dunstabzugsanlage"
+                return kto, "A.R.Z. GmbH Küchenreinigung Dunstabzugsanlage"
+
             if kto == "1740" and richtung == "S":
                 clean = re.sub(r"\s+SecureGo.*$", "", beschr, re.IGNORECASE).strip()
                 m = re.match(r"^(.+?)\s+(Lohn\s+\d{2}\.\d{4})", clean, re.IGNORECASE)

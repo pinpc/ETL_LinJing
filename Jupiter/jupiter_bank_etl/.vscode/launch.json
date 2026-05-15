@@ -11,9 +11,26 @@
       "justMyCode": true,
       "args": [
         "--input",
-        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 02.2026\\Jupiter Konto 02.2026",
+        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Konto 03.2026",
         "--out",
-        "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_bank_etl\\result\\ETL_Jupiter_02_2026.xlsx"
+        "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_bank_etl\\result\\Jupiter_bank_etl_03_2026.xlsx"
+      ]
+    },
+    {
+      "name": "Jupiter ETL + Agenda-Vergleich",
+      "type": "python",
+      "request": "launch",
+      "module": "jupiter_bank_etl",
+      "cwd": "${workspaceFolder}/..",
+      "console": "integratedTerminal",
+      "justMyCode": true,
+      "args": [
+        "--input",
+        "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Konto 03.2026",
+        "--out",
+        "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_bank_etl\\result\\Jupiter_bank_etl_03_2026.xlsx",
+        "--agenda",
+        "\\\\DESKTOP-5EFJOIJ\\mama\\SWTool\\2026 Vorab\\2603\\Jupiter\\Jupiter_Agenda_Bank_03 2026.xlsx"
       ]
     }
   ]

@@ -82,6 +82,22 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
             rows.append((round(-gebühr, 2), "904760", datum, f"Wolt Gebühr 19% {tf}"))
         return rows if rows else [(betrag, "8300", datum, f"Wolt {tf}")]
 
+    if key in rechnung_map and rechnung_map[key][0] == "ZHOU_SPLIT":
+        _, data = rechnung_map[key]
+        parts = data.split("|")
+        we7 = float(parts[0])
+        we19 = float(parts[1]) if len(parts) > 1 else 0.0
+        ref = parts[2] if len(parts) > 2 else ""
+        label_suffix = ref if ref else ""
+        if abs(round(we7 + we19, 2) - key) > 0.05:
+            return [(betrag, "3300", datum, "Zhou Wareneinkauf")]
+        rows = []
+        if we7:
+            rows.append((round(-we7, 2), "3300", datum, f"Zhou 7 % {label_suffix}".strip()))
+        if we19:
+            rows.append((round(-we19, 2), "3400", datum, f"Zhou 19 % {label_suffix}".strip()))
+        return rows if rows else [(betrag, "3300", datum, "Zhou Wareneinkauf")]
+
     if key in rechnung_map and rechnung_map[key][0] == "HAMBERGER_SPLIT":
         _, data = rechnung_map[key]
         parts = data.split("|")

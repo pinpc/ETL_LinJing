@@ -10,7 +10,7 @@ _logging.silence_pdfminer()
 from .config import BANK, KOST
 from .expansion import single_row_from_statement
 from .excel_export import build_workbook
-from .invoices import load_invoices, wolt_resolution_warning_lines
+from .invoices import load_invoices, wolt_resolution_warning_lines, zhou_resolution_warning_lines
 from .sqlite_export import save_konto_jupiter
 from .statement import extract_statements
 
@@ -30,6 +30,7 @@ class JupiterBankETL:
         self.rechnung_map: dict = {}
         self.stripe_rows: list = []
         self.wolt_audit: list[dict] = []
+        self.zhou_audit: list[dict] = []
         self.transactions: list[dict] = []
         self.all_rows: list[tuple] = []
 
@@ -37,7 +38,9 @@ class JupiterBankETL:
         return extract_statements(pdf_path)
 
     def load_invoices(self, source_dir: str) -> int:
-        return load_invoices(source_dir, self.rechnung_map, self.stripe_rows, self.wolt_audit)
+        return load_invoices(
+            source_dir, self.rechnung_map, self.stripe_rows, self.wolt_audit, self.zhou_audit
+        )
 
     def build_excel(self, all_rows: list[tuple], output_path: str) -> tuple[int, float]:
         return build_workbook(
@@ -48,6 +51,7 @@ class JupiterBankETL:
             self.stripe_rows,
             self.rechnung_map,
             self.wolt_audit,
+            self.zhou_audit,
         )
 
     def save_sqlite(self, all_rows: list[tuple], db_path: str) -> None:
@@ -59,6 +63,7 @@ class JupiterBankETL:
         output_path: str,
         kontoauszug_pdf: str | None = None,
         sqlite_path: str | None = None,
+        agenda_path: str | None = None,
     ) -> None:
         source_dir = os.path.normpath(source_dir.strip())
         output_path = os.path.normpath(output_path.strip())
@@ -91,6 +96,7 @@ class JupiterBankETL:
         self.rechnung_map.clear()
         self.stripe_rows.clear()
         self.wolt_audit.clear()
+        self.zhou_audit.clear()
         self.transactions.clear()
         self.all_rows.clear()
 
@@ -125,6 +131,17 @@ class JupiterBankETL:
             for line in wolt_lines:
                 print(f"     {line}")
 
+        zhou_lines = zhou_resolution_warning_lines(self.zhou_audit)
+        if zhou_lines:
+            print(f"\n   WARN Zhou-Aufloesung ({len(zhou_lines)}):")
+            for line in zhou_lines:
+                print(f"     {line}")
+
+        if agenda_path:
+            from .compare_bu_agenda import run_compare
+
+            run_compare(agenda_path, output_path)
+
 
 def run_cli(
     source_dir: str,
@@ -133,6 +150,9 @@ def run_cli(
     sqlite_path: str | None = None,
     bank: str | None = None,
     kost: str | None = None,
+    agenda_path: str | None = None,
 ) -> None:
     """Modul-Level Einstieg (ein Lauf, Standard-Instanz)."""
-    JupiterBankETL(bank=bank, kost=kost).run(source_dir, output_path, kontoauszug_pdf, sqlite_path)
+    JupiterBankETL(bank=bank, kost=kost).run(
+        source_dir, output_path, kontoauszug_pdf, sqlite_path, agenda_path
+    )

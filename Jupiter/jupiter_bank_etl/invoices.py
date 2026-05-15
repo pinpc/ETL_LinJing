@@ -75,6 +75,169 @@ def _parse_hamberger(filepath: str, rm: dict) -> None:
         rm[key] = ("HAMBERGER_SPLIT", f"{we7}|0|{ds}")
 
 
+def _zhou_summary_amounts(txt: str) -> tuple[float, float, float]:
+    """Brutto 7 %, Brutto 19 % und Endbetrag (Summe = Bankzahlung)."""
+    we7 = we19 = 0.0
+    endbetrag = 0.0
+    for line in txt.splitlines():
+        s = line.strip()
+        m_end = re.search(r"Endbetrag\s*€\s*([\d.]+,\d{2})", s, re.I)
+        if m_end:
+            endbetrag = de_float(m_end.group(1))
+        m7 = re.search(
+            r"([\d.]+,\d{2})\s+7[,.]00\s+[\d.]+,\d{2}\s+([\d.]+,\d{2})\s*$",
+            s,
+        )
+        if m7 and "Endbetrag" not in s:
+            we7 = de_float(m7.group(2))
+        m19 = re.search(
+            r"([\d.]+,\d{2})\s+19[,.]00\s+[\d.]+,\d{2}\s+([\d.]+,\d{2})",
+            s,
+        )
+        if m19:
+            we19 = de_float(m19.group(2))
+    return we7, we19, endbetrag
+
+
+def _zhou_erwartung_final(we7: float, we19: float, endbetrag: float) -> str:
+    probe = round(we7 + we19, 2)
+    if endbetrag and abs(probe - endbetrag) > 0.05:
+        return "1 FiBu-Zeile (Fallback Zhou Wareneinkauf)"
+    n = (1 if we7 else 0) + (1 if we19 else 0)
+    if not n:
+        return "1 FiBu-Zeile (3300)"
+    return f"{n} FiBu-Zeilen (Zhou 7 % / Zhou 19 %)"
+
+
+def _parse_zhou(filepath: str, rm: dict, zhou_audit: list | None) -> None:
+    fname = os.path.basename(filepath)
+    fl = fname.lower()
+    is_gs = " gs-" in fl or fl.startswith("gs ") or " gutschrift" in fl
+
+    def audit(**fields: object) -> None:
+        if zhou_audit is None:
+            return
+        zhou_audit.append({"datei": fname, **fields})
+
+    try:
+        with pdfplumber.open(filepath) as pdf:
+            txt = "\n".join((p.extract_text() or "") for p in pdf.pages)
+    except Exception:
+        audit(status="FEHLER", grund="PDF konnte nicht gelesen werden")
+        return
+
+    if not txt.strip():
+        audit(status="SKIP", grund="Kein Text im PDF")
+        return
+
+    m_nr = re.search(r"(?:Rechnung|Gutschrift)\s+Nr\.?:\s*(\S+)", txt, re.I)
+    re_nr = m_nr.group(1) if m_nr else ""
+    typ = "GS" if is_gs else "RE"
+
+    we7, we19, endbetrag = _zhou_summary_amounts(txt)
+    if endbetrag <= 0 and we7 <= 0 and we19 <= 0:
+        audit(
+            status="SKIP",
+            grund="Keine Summenzeilen 7 % / 19 % / Endbetrag gefunden",
+            rechnung_nr=re_nr,
+            typ=typ,
+        )
+        return
+
+    sign = -1.0 if is_gs else 1.0
+    we7 = round(we7 * sign, 2)
+    we19 = round(we19 * sign, 2)
+    endbetrag = round(endbetrag * sign, 2)
+    probe = round(we7 + we19, 2)
+
+    if endbetrag and abs(probe - endbetrag) > 0.05:
+        audit(
+            status="SUMME_MISMATCH",
+            grund="Netto 7 % + Netto 19 % weicht vom Endbetrag ab",
+            rechnung_nr=re_nr,
+            typ=typ,
+            netto_7=we7,
+            netto_19=we19,
+            endbetrag=endbetrag,
+            probe_summe=probe,
+            diff_probe=round(probe - endbetrag, 2),
+            erw_final="Kein Einzel-Mapping",
+        )
+        return
+
+    erw = _zhou_erwartung_final(abs(we7), abs(we19), abs(endbetrag))
+    audit(
+        status="OK",
+        grund="",
+        rechnung_nr=re_nr,
+        typ=typ,
+        netto_7=we7,
+        netto_19=we19,
+        endbetrag=endbetrag,
+        probe_summe=probe,
+        diff_probe=0.0,
+        erw_final=erw,
+    )
+
+    key = round(abs(endbetrag), 2)
+    if key > 0:
+        rm[key] = ("ZHOU_SPLIT", f"{abs(we7)}|{abs(we19)}|{re_nr}")
+
+
+def _zhou_finalize_collective(zhou_audit: list | None, rm: dict) -> None:
+    """Sammelzahlung: Summe aller OK-Zhou-PDFs als ein ZHOU_SPLIT-Schlüssel."""
+    if not zhou_audit:
+        return
+    ok = [r for r in zhou_audit if r.get("status") == "OK"]
+    if len(ok) < 2:
+        return
+
+    sum_we7 = round(sum(float(r.get("netto_7") or 0) for r in ok), 2)
+    sum_we19 = round(sum(float(r.get("netto_19") or 0) for r in ok), 2)
+    sum_end = round(sum(float(r.get("endbetrag") or 0) for r in ok), 2)
+    if sum_end <= 0:
+        return
+
+    key = round(abs(sum_end), 2)
+    re_list = ",".join(str(r.get("rechnung_nr") or "") for r in ok if r.get("rechnung_nr"))
+    erw = _zhou_erwartung_final(abs(sum_we7), abs(sum_we19), abs(sum_end))
+
+    zhou_audit.append(
+        {
+            "datei": "(Sammelzahlung)",
+            "status": "OK_SAMMEL",
+            "grund": f"{len(ok)} Rechnungen/Gutschriften",
+            "rechnung_nr": re_list,
+            "typ": "SUM",
+            "netto_7": sum_we7,
+            "netto_19": sum_we19,
+            "endbetrag": sum_end,
+            "probe_summe": round(sum_we7 + sum_we19, 2),
+            "diff_probe": round(sum_we7 + sum_we19 - sum_end, 2),
+            "erw_final": erw,
+        }
+    )
+    rm[key] = ("ZHOU_SPLIT", f"{abs(sum_we7)}|{abs(sum_we19)}|Sammel {re_list}")
+
+
+def zhou_resolution_warning_lines(zhou_audit: list | None) -> list[str]:
+    if not zhou_audit:
+        return []
+    problem = frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP"})
+    out: list[str] = []
+    for row in zhou_audit:
+        fn = str(row.get("datei") or "?")
+        if fn == "(keine)":
+            continue
+        st = row.get("status") or ""
+        grund = (row.get("grund") or "").strip()
+        if st in problem:
+            out.append(f"{fn}: [{st}] {grund}".strip())
+        elif st == "OK" and "Fallback" in str(row.get("erw_final") or ""):
+            out.append(f"{fn}: [Final-Fallback] {row.get('erw_final')}")
+    return out
+
+
 def _parse_uber(filepath: str, rm: dict) -> None:
     try:
         with pdfplumber.open(filepath) as pdf:
@@ -375,7 +538,11 @@ def wolt_resolution_warning_lines(wolt_audit: list | None) -> list[str]:
 
 
 def load_invoices(
-    source_dir: str, rechnung_map: dict, stripe_rows: list, wolt_audit: list | None = None
+    source_dir: str,
+    rechnung_map: dict,
+    stripe_rows: list,
+    wolt_audit: list | None = None,
+    zhou_audit: list | None = None,
 ) -> int:
     """Liest Rechnungen aus source_dir; mutiert rechnung_map und stripe_rows."""
     files = sorted(os.listdir(source_dir))
@@ -398,6 +565,9 @@ def load_invoices(
                 elif "wolt" in fl:
                     _parse_wolt(fpath, rechnung_map, wolt_audit)
                     ok += 1
+                elif "zhou" in fl:
+                    _parse_zhou(fpath, rechnung_map, zhou_audit)
+                    ok += 1
                 elif "takeaway" in fl:
                     _parse_takeaway(fpath, rechnung_map)
                     ok += 1
@@ -410,6 +580,8 @@ def load_invoices(
                 skip += 1
         except Exception:
             pass
+
+    _zhou_finalize_collective(zhou_audit, rechnung_map)
 
     print(f"   Rechnungs-Mapping: {len(rechnung_map)} Einträge aus {ok} Dateien")
     return ok
