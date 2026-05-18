@@ -1,0 +1,42 @@
+{
+  "target_columns": [
+    "Umsatz Euro",
+    "BU Gkto",
+    "Beleg 1",
+    "Datum",
+    "KOST 1",
+    "Bank",
+    "Buchungstext"
+  ],
+  "column_widths": {
+    "A": 15,
+    "B": 12,
+    "C": 10,
+    "D": 12,
+    "E": 10,
+    "F": 10,
+    "G": 40
+  },
+  "defaults": {
+    "standard_kost": 2000,
+    "standard_bank": 1001,
+    "merge_tolerance": "0.01",
+    "xl_euro_num_fmt": "#,##0.00"
+  },
+  "accounts": {
+    "allopay_expense": 1360,
+    "baumarkt_expense": 904280,
+    "fisch_food": 3300,
+    "income": 8000,
+    "allopay_19": 8400,
+    "allopay_7": 8300
+  },
+  "paths": {
+    "base_path": "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Kasse 03.2026",
+    "cashbook_candidates": [
+      "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Kasse 03.2026\\02b Kassenbuch_Jupiter 03.2026.xlsx",
+      "C:\\temp_cursor\\LinJing\\02_Jupiter\\Buchhaltung Jupiter 03.2026\\Jupiter Kasse 03.2026\\02a Kassenbuch Jupiter 03.2026.pdf"
+    ],
+    "output_path": "C:\\temp_cursor\\LinJing\\03_Coding\\ETL_LinJing\\Jupiter\\jupiter_kasse_etl\\result\\etl_umsatz_jupiter_2603.xlsx"
+  }
+}

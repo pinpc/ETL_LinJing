@@ -1,0 +1,7 @@
+display_name: "Jupiter"
+bank_account: "1210"
+default_kost: "JUPITER"
+options:
+  currency: "EUR"
+  locale: "de-DE"
+

@@ -1,0 +1,7 @@
+display_name: "Asia"
+bank_account: "1200"
+default_kost: "ASIA"
+options:
+  currency: "EUR"
+  locale: "de-DE"
+

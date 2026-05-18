@@ -1,0 +1,2 @@
+"""Asia tenant configuration package."""
+
