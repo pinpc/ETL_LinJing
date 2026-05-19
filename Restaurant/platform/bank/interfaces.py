@@ -45,6 +45,7 @@ class BankPipelineResult:
     rows: list[ProcessedTransaction]
     output_path: Path
     canonical_json_path: Path
+    run_meta_path: Path | None = None
     diagnostics_path: Path | None = None
     warnings: list[str] = field(default_factory=list)
 

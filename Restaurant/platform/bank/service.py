@@ -4,13 +4,14 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from pathlib import Path
 from typing import Any
 
 from openpyxl import load_workbook
 
 from .asia_legacy import AsiaLegacyBankRunner
+from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
@@ -44,26 +45,42 @@ class BankService(IBankService):
 
     def run_with_result(self, request: BankRunRequest) -> BankPipelineResult:
         tenant_id = request.tenant_id.strip().lower()
-        tenant_context = self._tenant_resolver.resolve(tenant_id)
-        resolved_request = _resolve_tenant_bank_request(request, tenant_context)
+        try:
+            tenant_context = self._tenant_resolver.resolve(tenant_id)
+            resolved_request = _resolve_tenant_bank_request(request, tenant_context)
 
-        legacy_runner = self._legacy_bank_runners.get(tenant_id)
-        if legacy_runner is not None:
-            rows = _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
-            return _build_pipeline_result(tenant_id, resolved_request.output_path, rows)
+            legacy_runner = self._legacy_bank_runners.get(tenant_id)
+            if legacy_runner is not None:
+                rows = _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
+                return _build_pipeline_result(tenant_id, resolved_request.output_path, rows)
 
-        # Fallback path: generic minimal parser -> rules -> output pipeline.
-        parse_request = ParseRequest(
-            tenant_id=resolved_request.tenant_id,
-            source_type="csv",
-            source_path=_resolve_source_file(resolved_request.source_dir),
-        )
-        parsed_rows = self._parser_registry.parse(parse_request)
-        context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
-        processed_rows = self._rule_pipeline.run(parsed_rows, context)
-        _write_output_csv(resolved_request.output_path, processed_rows)
-        _write_bank_canonical_json(resolved_request.output_path, processed_rows)
-        return _build_pipeline_result(tenant_id, resolved_request.output_path, processed_rows)
+            # Fallback path: generic minimal parser -> rules -> output pipeline.
+            parse_request = ParseRequest(
+                tenant_id=resolved_request.tenant_id,
+                source_type="csv",
+                source_path=_resolve_source_file(resolved_request.source_dir),
+            )
+            parsed_rows = self._parser_registry.parse(parse_request)
+            context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
+            processed_rows = self._rule_pipeline.run(parsed_rows, context)
+            _write_output_csv(resolved_request.output_path, processed_rows)
+            _write_bank_canonical_json(resolved_request.output_path, processed_rows)
+            return _build_pipeline_result(tenant_id, resolved_request.output_path, processed_rows)
+        except BankServiceError:
+            raise
+        except FileNotFoundError as exc:
+            raise BankServiceError(BankErrorCode.INPUT_MISSING, str(exc)) from exc
+        except ValueError as exc:
+            raise BankServiceError(BankErrorCode.PARSER_FAILED, str(exc)) from exc
+        except RuntimeError as exc:
+            message = str(exc)
+            if "without producing output workbook" in message:
+                raise BankServiceError(BankErrorCode.OUTPUT_NOT_CREATED, message) from exc
+            if "Unsupported cashbook tenant" in message or "Unsupported bank tenant" in message:
+                raise BankServiceError(BankErrorCode.TENANT_UNSUPPORTED, message) from exc
+            raise BankServiceError(BankErrorCode.LEGACY_RUN_FAILED, message) from exc
+        except Exception as exc:
+            raise BankServiceError(BankErrorCode.UNKNOWN, str(exc)) from exc
 
     def register_legacy_runner(self, tenant_id: str, runner: ILegacyBankRunner) -> None:
         """Register or override a tenant-specific legacy runner implementation."""
@@ -123,6 +140,11 @@ def _build_pipeline_result(
     output_path: Path,
     rows: list[ProcessedTransaction],
 ) -> BankPipelineResult:
+    run_meta_path = _write_bank_run_meta(
+        tenant_id=tenant_id,
+        output_path=output_path,
+        row_count=len(rows),
+    )
     diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
     warnings: list[str] = []
     resolved_diagnostics: Path | None = None
@@ -135,6 +157,7 @@ def _build_pipeline_result(
         rows=rows,
         output_path=output_path,
         canonical_json_path=output_path.with_suffix(".processed.json"),
+        run_meta_path=run_meta_path,
         diagnostics_path=resolved_diagnostics,
         warnings=warnings,
     )
@@ -332,4 +355,22 @@ def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, e
         details["sheet_previews"][sheet_name] = preview
 
     diagnostics_path.write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> Path:
+    run_meta_path = output_path.with_suffix(".run_meta.json")
+    run_meta_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "tenant_id": tenant_id,
+        "module_name": "bank",
+        "row_count": row_count,
+        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
+        "artifacts": {
+            "workbook": str(output_path),
+            "processed_json": str(output_path.with_suffix(".processed.json")),
+            "diagnostics_json": str(output_path.with_suffix(".parse_diagnostics.json")),
+        },
+    }
+    run_meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    return run_meta_path
 

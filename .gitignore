@@ -5,3 +5,6 @@ result/
 *.sqlite
 *.xlsx
 ~$*.xlsx
+*.processed.json
+*.parse_diagnostics.json
+*.run_meta.json

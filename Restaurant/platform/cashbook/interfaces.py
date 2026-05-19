@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -26,4 +26,17 @@ class ICashbookService(Protocol):
 
     def run(self, request: CashbookRunRequest) -> list[ProcessedTransaction]:
         """Run cashbook ETL flow."""
+
+
+@dataclass(slots=True)
+class CashbookPipelineResult:
+    """Standardized cashbook pipeline result for GUI/API consumption."""
+
+    tenant_id: str
+    module_name: str
+    rows: list[ProcessedTransaction]
+    output_path: Path
+    sqlite_path: Path
+    run_meta_path: Path | None = None
+    warnings: list[str] = field(default_factory=list)
 

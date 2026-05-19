@@ -53,3 +53,8 @@ For GUI/API flows, prefer calling `BankService.run_with_result(...)` to get a `B
 - Workbook output is created
 - `processed.json` artifact is created
 - Parsed row count > 0
+
+CLI helper:
+
+- Preferred unified smoke entrypoint:
+  - `python -m Restaurant.apps.etl_cli.etl_smoke --module bank --tenant-id <tenant> --source <dir_or_file> --output <xlsx>`

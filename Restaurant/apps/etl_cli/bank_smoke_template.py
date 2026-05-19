@@ -1,4 +1,7 @@
-"""Template smoke runner for bank tenant onboarding checks."""
+"""Template smoke runner for bank tenant onboarding checks.
+
+Note: preferred unified entrypoint is ``apps.etl_cli.etl_smoke``.
+"""
 
 from __future__ import annotations
 
