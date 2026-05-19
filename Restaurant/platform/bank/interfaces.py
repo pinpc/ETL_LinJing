@@ -28,3 +28,10 @@ class IBankService(Protocol):
     def run(self, request: BankRunRequest) -> list[ProcessedTransaction]:
         """Run bank ETL flow."""
 
+
+class ILegacyBankRunner(Protocol):
+    """Common adapter contract for tenant-specific legacy bank runners."""
+
+    def run(self, request: BankRunRequest) -> None:
+        """Execute a tenant-specific legacy bank ETL pipeline."""
+

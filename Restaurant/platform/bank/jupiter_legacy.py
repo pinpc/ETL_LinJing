@@ -2,36 +2,42 @@
 
 from __future__ import annotations
 
-import importlib
-import importlib.util
-import sys
-import sysconfig
 from pathlib import Path
 
-from .interfaces import BankRunRequest
+from .interfaces import BankRunRequest, ILegacyBankRunner
+from .legacy_common import load_legacy_module, resolve_sqlite_output_path, stdlib_platform_guard
 
 _JUPITER_BANK_ROOT = Path(__file__).resolve().parent / "jupiter_bank_etl"
 _JUPITER_BANK_ROOT = _JUPITER_BANK_ROOT.resolve()
 
 
-def run_jupiter_bank(request: BankRunRequest) -> None:
-    """Execute the legacy Jupiter bank ETL with request-driven paths."""
-    previous_platform = sys.modules.get("platform")
-    _ensure_stdlib_platform()
-    try:
-        core = _load_module("jupiter_bank_etl.core")
-        etl = core.JupiterBankETL()  # type: ignore[attr-defined]
+class JupiterLegacyBankRunner(ILegacyBankRunner):
+    """Adapter that executes the legacy Jupiter bank ETL."""
 
+    def run(self, request: BankRunRequest) -> None:
+        """Execute the legacy Jupiter bank ETL with request-driven paths."""
         source_dir = _resolve_source_dir(request)
-        etl.run(
-            source_dir=str(source_dir),
-            output_path=str(request.output_path),
-            kontoauszug_pdf=str(request.statement_pdf) if request.statement_pdf else None,
-            sqlite_path=str(_resolve_sqlite_path(request)),
-            agenda_path=str(request.agenda_file) if request.agenda_file else None,
-        )
-    finally:
-        _restore_platform_module(previous_platform)
+        try:
+            with stdlib_platform_guard():
+                core = load_legacy_module(_JUPITER_BANK_ROOT, "jupiter_bank_etl.core")
+                etl = core.JupiterBankETL()  # type: ignore[attr-defined]
+                etl.run(
+                    source_dir=str(source_dir),
+                    output_path=str(request.output_path),
+                    kontoauszug_pdf=str(request.statement_pdf) if request.statement_pdf else None,
+                    sqlite_path=str(_resolve_sqlite_path(request)),
+                    agenda_path=str(request.agenda_file) if request.agenda_file else None,
+                )
+        except SystemExit as exc:
+            raise RuntimeError(
+                f"Jupiter legacy bank ETL exited unexpectedly with code {exc.code!r}."
+            ) from exc
+        _ensure_output_exists(request.output_path)
+
+
+def run_jupiter_bank(request: BankRunRequest) -> None:
+    """Backward-compatible function wrapper around `JupiterLegacyBankRunner`."""
+    JupiterLegacyBankRunner().run(request)
 
 
 def _resolve_source_dir(request: BankRunRequest) -> Path:
@@ -43,30 +49,11 @@ def _resolve_source_dir(request: BankRunRequest) -> Path:
 
 
 def _resolve_sqlite_path(request: BankRunRequest) -> Path:
-    if request.sqlite_output_path:
-        return request.sqlite_output_path
-    return request.output_path.with_suffix(".sqlite")
+    return resolve_sqlite_output_path(request.sqlite_output_path, request.output_path)
 
 
-def _load_module(module_name: str):
-    # Add package parent so `import jupiter_bank_etl.*` resolves and relative imports work.
-    package_parent = _JUPITER_BANK_ROOT.parent
-    if str(package_parent) not in sys.path:
-        sys.path.insert(0, str(package_parent))
-    return importlib.import_module(module_name)
-
-
-def _ensure_stdlib_platform() -> None:
-    """Avoid shadowing stdlib `platform` by local `Restaurant/platform` package."""
-    stdlib_platform = Path(sysconfig.get_paths()["stdlib"]) / "platform.py"
-    spec = importlib.util.spec_from_file_location("platform", stdlib_platform)
-    if spec is None or spec.loader is None:
-        raise ImportError(f"Cannot load stdlib platform module from {stdlib_platform}")
-    module = importlib.util.module_from_spec(spec)
-    spec.loader.exec_module(module)
-    sys.modules["platform"] = module
-
-
-def _restore_platform_module(previous_platform_module) -> None:
-    if previous_platform_module is not None and hasattr(previous_platform_module, "python_implementation"):
-        sys.modules["platform"] = previous_platform_module
+def _ensure_output_exists(output_path: Path) -> None:
+    if not output_path.exists():
+        raise RuntimeError(
+            f"Jupiter legacy bank ETL finished without producing output workbook: {output_path}"
+        )

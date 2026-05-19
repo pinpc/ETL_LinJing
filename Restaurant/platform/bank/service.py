@@ -4,25 +4,24 @@ from __future__ import annotations
 
 import csv
 import json
-from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
 from openpyxl import load_workbook
 
-from .asia_legacy import run_asia_bank
+from .asia_legacy import AsiaLegacyBankRunner
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
-from .interfaces import BankRunRequest, IBankService
-from .jupiter_legacy import run_jupiter_bank
+from .interfaces import BankRunRequest, IBankService, ILegacyBankRunner
+from .jupiter_legacy import JupiterLegacyBankRunner
 
-LEGACY_BANK_RUNNERS: dict[str, Callable[[BankRunRequest], None]] = {
-    "asia": run_asia_bank,
-    "jupiter": run_jupiter_bank,
+LEGACY_BANK_RUNNERS: dict[str, ILegacyBankRunner] = {
+    "asia": AsiaLegacyBankRunner(),
+    "jupiter": JupiterLegacyBankRunner(),
 }
 
 
@@ -93,11 +92,11 @@ def _write_output_csv(output_path: Path, rows) -> None:
 
 
 def _run_legacy_bank_pipeline(
-    runner: Callable[[BankRunRequest], None],
+    runner: ILegacyBankRunner,
     request: BankRunRequest,
     tenant_id: str,
 ) -> list[ProcessedTransaction]:
-    runner(request)
+    runner.run(request)
     rows = _load_processed_from_bank_workbook(request.output_path, tenant_id)
     _write_bank_canonical_json(request.output_path, rows)
     return rows
