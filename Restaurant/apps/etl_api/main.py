@@ -3,11 +3,13 @@
 from __future__ import annotations
 
 import json
+import sqlite3
 import threading
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Any
+from urllib.parse import parse_qs
 from uuid import uuid4
 from wsgiref.simple_server import make_server
 
@@ -238,6 +240,9 @@ _INDEX_HTML = """<!doctype html>
 </html>
 """
 
+_JOB_DB_LOCK = threading.Lock()
+_JOB_DB_PATH = Path(__file__).resolve().parents[2] / "data" / "etl_jobs.sqlite"
+
 
 def _utc_now_iso() -> str:
     return datetime.now(timezone.utc).isoformat()
@@ -272,9 +277,20 @@ class JobRecord:
             "error": self.error,
         }
 
-
-_JOBS: dict[str, JobRecord] = {}
-_JOBS_LOCK = threading.Lock()
+    @staticmethod
+    def from_db_row(row) -> "JobRecord":
+        return JobRecord(
+            job_id=row["job_id"],
+            status=row["status"],
+            module=row["module"],
+            tenant_id=row["tenant_id"],
+            created_at_utc=row["created_at_utc"],
+            started_at_utc=row["started_at_utc"],
+            finished_at_utc=row["finished_at_utc"],
+            request=json.loads(row["request_json"]) if row["request_json"] else {},
+            result=json.loads(row["result_json"]) if row["result_json"] else None,
+            error=json.loads(row["error_json"]) if row["error_json"] else None,
+        )
 
 
 def create_app():
@@ -302,6 +318,9 @@ def create_app():
         if method == "POST" and path == "/etl/run":
             return _handle_run_request(environ, start_response)
 
+        if method == "GET" and path == "/etl/runs":
+            return _handle_list_runs(environ, start_response)
+
         if method == "GET" and path.startswith("/etl/run/"):
             job_id = path.removeprefix("/etl/run/").strip()
             return _handle_get_job(job_id, start_response)
@@ -313,6 +332,7 @@ def create_app():
 
 def run_dev_server(host: str = "127.0.0.1", port: int = 8000) -> None:
     """Run local WSGI dev server for ETL API."""
+    _init_job_store()
     app = create_app()
     with make_server(host, port, app) as server:
         print(f"ETL API listening on http://{host}:{port}")
@@ -362,8 +382,7 @@ def _handle_run_request(environ, start_response):
             "output": output,
         },
     )
-    with _JOBS_LOCK:
-        _JOBS[job_id] = record
+    _job_store_insert(record)
 
     worker = threading.Thread(target=_run_job, args=(job_id, payload), daemon=True)
     worker.start()
@@ -372,8 +391,7 @@ def _handle_run_request(environ, start_response):
 
 
 def _handle_get_job(job_id: str, start_response):
-    with _JOBS_LOCK:
-        record = _JOBS.get(job_id)
+    record = _job_store_get(job_id)
     if record is None:
         return _json_response(
             start_response,
@@ -381,6 +399,21 @@ def _handle_get_job(job_id: str, start_response):
             {"error": {"code": "JOB_NOT_FOUND", "message": f"Job '{job_id}' was not found."}},
         )
     return _json_response(start_response, 200, record.to_dict())
+
+
+def _handle_list_runs(environ, start_response):
+    query = parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=False)
+    raw_limit = query.get("limit", ["50"])[0]
+    try:
+        limit = max(1, min(500, int(raw_limit)))
+    except ValueError:
+        return _json_response(
+            start_response,
+            400,
+            {"error": {"code": "BAD_REQUEST", "message": "Query parameter 'limit' must be an integer."}},
+        )
+    records = _job_store_list(limit=limit)
+    return _json_response(start_response, 200, {"runs": [record.to_dict() for record in records]})
 
 
 def _handle_pick_file(environ, start_response):
@@ -432,10 +465,7 @@ def _run_job(job_id: str, payload: dict[str, Any]) -> None:
     source = Path(str(payload["source"]))
     output = Path(str(payload["output"]))
 
-    with _JOBS_LOCK:
-        record = _JOBS[job_id]
-        record.status = "running"
-        record.started_at_utc = _utc_now_iso()
+    _job_store_mark_running(job_id)
 
     try:
         if module == "bank":
@@ -443,23 +473,18 @@ def _run_job(job_id: str, payload: dict[str, Any]) -> None:
         else:
             result = _run_cashbook_job(tenant_id=tenant_id, source=source, output=output, payload=payload)
 
-        with _JOBS_LOCK:
-            record = _JOBS[job_id]
-            record.status = "succeeded"
-            record.finished_at_utc = _utc_now_iso()
-            record.result = result
+        _job_store_mark_succeeded(job_id, result)
     except Exception as exc:  # safety net for worker thread
-        with _JOBS_LOCK:
-            record = _JOBS[job_id]
-            record.status = "failed"
-            record.finished_at_utc = _utc_now_iso()
-            error_code, public_message = _map_job_error(exc)
-            print(f"[JOB FAILED] {job_id} {type(exc).__name__}: {exc}")
-            record.error = {
+        error_code, public_message = _map_job_error(exc)
+        print(f"[JOB FAILED] {job_id} {type(exc).__name__}: {exc}")
+        _job_store_mark_failed(
+            job_id=job_id,
+            error={
                 "code": error_code,
                 "message": public_message,
                 "exception_type": type(exc).__name__,
-            }
+            },
+        )
 
 
 def _run_bank_job(tenant_id: str, source: Path, output: Path, payload: dict[str, Any]) -> dict[str, Any]:
@@ -638,6 +663,117 @@ def _map_job_error(exc: Exception) -> tuple[str, str]:
         _module, code, message = parts
         return code, message
     return "UNKNOWN", "Job failed. See server logs for details."
+
+
+def _init_job_store() -> None:
+    _JOB_DB_PATH.parent.mkdir(parents=True, exist_ok=True)
+    with _job_store_connection() as connection:
+        connection.execute(
+            """
+            CREATE TABLE IF NOT EXISTS etl_jobs (
+                job_id TEXT PRIMARY KEY,
+                status TEXT NOT NULL,
+                module TEXT NOT NULL,
+                tenant_id TEXT NOT NULL,
+                created_at_utc TEXT NOT NULL,
+                started_at_utc TEXT,
+                finished_at_utc TEXT,
+                request_json TEXT,
+                result_json TEXT,
+                error_json TEXT
+            )
+            """
+        )
+        connection.execute("CREATE INDEX IF NOT EXISTS idx_etl_jobs_created ON etl_jobs(created_at_utc DESC)")
+        connection.commit()
+
+
+def _job_store_connection():
+    connection = sqlite3.connect(_JOB_DB_PATH)
+    connection.row_factory = sqlite3.Row
+    return connection
+
+
+def _job_store_insert(record: JobRecord) -> None:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        connection.execute(
+            """
+            INSERT INTO etl_jobs (
+                job_id, status, module, tenant_id, created_at_utc, started_at_utc, finished_at_utc,
+                request_json, result_json, error_json
+            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """,
+            (
+                record.job_id,
+                record.status,
+                record.module,
+                record.tenant_id,
+                record.created_at_utc,
+                record.started_at_utc,
+                record.finished_at_utc,
+                json.dumps(record.request, ensure_ascii=False),
+                json.dumps(record.result, ensure_ascii=False) if record.result is not None else None,
+                json.dumps(record.error, ensure_ascii=False) if record.error is not None else None,
+            ),
+        )
+        connection.commit()
+
+
+def _job_store_get(job_id: str) -> JobRecord | None:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        row = connection.execute(
+            "SELECT * FROM etl_jobs WHERE job_id = ?",
+            (job_id,),
+        ).fetchone()
+    return JobRecord.from_db_row(row) if row is not None else None
+
+
+def _job_store_list(limit: int) -> list[JobRecord]:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        rows = connection.execute(
+            "SELECT * FROM etl_jobs ORDER BY created_at_utc DESC LIMIT ?",
+            (limit,),
+        ).fetchall()
+    return [JobRecord.from_db_row(row) for row in rows]
+
+
+def _job_store_mark_running(job_id: str) -> None:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        connection.execute(
+            """
+            UPDATE etl_jobs
+            SET status = ?, started_at_utc = ?
+            WHERE job_id = ?
+            """,
+            ("running", _utc_now_iso(), job_id),
+        )
+        connection.commit()
+
+
+def _job_store_mark_succeeded(job_id: str, result: dict[str, Any]) -> None:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        connection.execute(
+            """
+            UPDATE etl_jobs
+            SET status = ?, finished_at_utc = ?, result_json = ?, error_json = NULL
+            WHERE job_id = ?
+            """,
+            ("succeeded", _utc_now_iso(), json.dumps(result, ensure_ascii=False), job_id),
+        )
+        connection.commit()
+
+
+def _job_store_mark_failed(job_id: str, error: dict[str, Any]) -> None:
+    with _JOB_DB_LOCK, _job_store_connection() as connection:
+        connection.execute(
+            """
+            UPDATE etl_jobs
+            SET status = ?, finished_at_utc = ?, error_json = ?
+            WHERE job_id = ?
+            """,
+            ("failed", _utc_now_iso(), json.dumps(error, ensure_ascii=False), job_id),
+        )
+        connection.commit()
 
 
 if __name__ == "__main__":
