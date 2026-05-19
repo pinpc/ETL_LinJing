@@ -28,6 +28,18 @@ class ICashbookService(Protocol):
         """Run cashbook ETL flow."""
 
 
+class ILegacyCashbookRunner(Protocol):
+    """Common adapter contract for tenant-specific legacy cashbook runners."""
+
+    def run(
+        self,
+        request: CashbookRunRequest,
+        tenant_pdf_base: Path | None,
+        tenant_sheet_name: str | None,
+    ) -> list[ProcessedTransaction]:
+        """Execute a tenant-specific legacy cashbook ETL pipeline."""
+
+
 @dataclass(slots=True)
 class CashbookPipelineResult:
     """Standardized cashbook pipeline result for GUI/API consumption."""

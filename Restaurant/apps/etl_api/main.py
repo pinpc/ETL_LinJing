@@ -4,7 +4,6 @@ from __future__ import annotations
 
 import json
 import threading
-import traceback
 from dataclasses import dataclass, field
 from datetime import datetime, timezone
 from pathlib import Path
@@ -454,11 +453,12 @@ def _run_job(job_id: str, payload: dict[str, Any]) -> None:
             record = _JOBS[job_id]
             record.status = "failed"
             record.finished_at_utc = _utc_now_iso()
+            error_code, public_message = _map_job_error(exc)
+            print(f"[JOB FAILED] {job_id} {type(exc).__name__}: {exc}")
             record.error = {
-                "code": "UNKNOWN",
-                "message": str(exc),
+                "code": error_code,
+                "message": public_message,
                 "exception_type": type(exc).__name__,
-                "traceback": traceback.format_exc(),
             }
 
 
@@ -479,7 +479,7 @@ def _run_bank_job(tenant_id: str, source: Path, output: Path, payload: dict[str,
     try:
         result = BankService().run_with_result(request)
     except BankServiceError as exc:
-        raise RuntimeError(f"{exc.code}:{exc.message}") from exc
+        raise RuntimeError(f"bank:{exc.code}:{exc.message}") from exc
 
     return {
         "module": result.module_name,
@@ -511,7 +511,7 @@ def _run_cashbook_job(tenant_id: str, source: Path, output: Path, payload: dict[
     try:
         result = CashbookService().run_with_result(request)
     except CashbookServiceError as exc:
-        raise RuntimeError(f"{exc.code}:{exc.message}") from exc
+        raise RuntimeError(f"cashbook:{exc.code}:{exc.message}") from exc
 
     return {
         "module": result.module_name,
@@ -629,6 +629,15 @@ def _show_save_file_dialog(
         )
     finally:
         root.destroy()
+
+
+def _map_job_error(exc: Exception) -> tuple[str, str]:
+    raw = str(exc)
+    parts = raw.split(":", 2)
+    if len(parts) == 3 and parts[0] in {"bank", "cashbook"}:
+        _module, code, message = parts
+        return code, message
+    return "UNKNOWN", "Job failed. See server logs for details."
 
 
 if __name__ == "__main__":
