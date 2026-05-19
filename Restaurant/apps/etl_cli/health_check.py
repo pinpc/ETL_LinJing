@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -74,6 +75,9 @@ def main(argv: list[str] | None = None) -> int:
     else:
         _check_launch_profiles(launch_file, tenants, failures)
 
+    print("\n== Namespace Checks ==")
+    _check_namespace_migration(failures)
+
     print("\n== Health Check Result ==")
     if failures:
         print(f"FAIL ({len(failures)} issue(s))")
@@ -83,6 +87,33 @@ def main(argv: list[str] | None = None) -> int:
 
     print("OK (no blocking issues found)")
     return 0
+
+
+def _check_namespace_migration(failures: list[str]) -> None:
+    """Ensure legacy import namespace does not reappear outside bridge package."""
+    project_root = Path(__file__).resolve().parents[2]
+    pattern = re.compile(r"Restaurant\.platform\.")
+    excluded_roots = {
+        project_root / "etl_platform",
+        project_root / "__pycache__",
+    }
+
+    violations: list[str] = []
+    for py_file in project_root.rglob("*.py"):
+        if any(root in py_file.parents for root in excluded_roots):
+            continue
+        text = py_file.read_text(encoding="utf-8")
+        if pattern.search(text):
+            violations.append(str(py_file.relative_to(project_root)))
+
+    if not violations:
+        print("[OK] namespace migration: no legacy imports outside etl_platform bridge")
+        return
+
+    for relative in violations:
+        msg = f"legacy import namespace found outside bridge: {relative}"
+        failures.append(msg)
+        print(f"[FAIL] {msg}")
 
 
 def _check_launch_profiles(launch_file: Path, tenants: list[str], failures: list[str]) -> None:
