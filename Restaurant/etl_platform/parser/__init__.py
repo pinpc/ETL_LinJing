@@ -1,3 +1,3 @@
-"""Compatibility bridge to ``Restaurant.etl_platform_core.parser``."""
+"""Bridge to ``Restaurant.platform.parser``."""
 
-from ...etl_platform_core.parser import *  # noqa: F401,F403
+from ...platform.parser import *  # noqa: F401,F403

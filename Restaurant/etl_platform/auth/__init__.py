@@ -1,3 +1,3 @@
-"""Compatibility bridge to ``Restaurant.etl_platform_core.auth``."""
+"""Bridge to ``Restaurant.platform.auth``."""
 
-from ...etl_platform_core.auth import *  # noqa: F401,F403
+from ...platform.auth import *  # noqa: F401,F403

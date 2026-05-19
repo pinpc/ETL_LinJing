@@ -1,3 +1,3 @@
-"""Compatibility bridge to ``Restaurant.etl_platform_core.audit``."""
+"""Bridge to ``Restaurant.platform.audit``."""
 
-from ...etl_platform_core.audit import *  # noqa: F401,F403
+from ...platform.audit import *  # noqa: F401,F403
