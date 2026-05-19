@@ -31,6 +31,15 @@ _INDEX_HTML = """<!doctype html>
     .actions { margin-top: 16px; display: flex; gap: 10px; }
     .row { margin-top: 18px; }
     .status { font-weight: 700; }
+    .history { margin-top: 18px; border: 1px solid #ccc; border-radius: 6px; padding: 10px; }
+    .history-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; }
+    .history-list { max-height: 220px; overflow: auto; border: 1px solid #eee; padding: 6px; }
+    .history-item { display: flex; justify-content: space-between; gap: 8px; padding: 6px; border-bottom: 1px solid #f2f2f2; cursor: pointer; }
+    .history-item:last-child { border-bottom: none; }
+    .status-succeeded { color: #0a7d00; }
+    .status-failed { color: #c00000; }
+    .status-running { color: #0058c0; }
+    .status-queued { color: #8a6d00; }
   </style>
 </head>
 <body>
@@ -94,10 +103,19 @@ _INDEX_HTML = """<!doctype html>
     <textarea id="resultBox" readonly></textarea>
   </div>
 
+  <div class="history">
+    <div class="history-header">
+      <strong>Recent Runs</strong>
+      <button id="refreshHistoryBtn" type="button">Refresh History</button>
+    </div>
+    <div id="historyList" class="history-list"></div>
+  </div>
+
   <script>
     const jobIdEl = document.getElementById("jobId");
     const statusEl = document.getElementById("status");
     const resultBox = document.getElementById("resultBox");
+    const historyList = document.getElementById("historyList");
     let currentJobId = "";
     let pollTimer = null;
 
@@ -204,10 +222,54 @@ _INDEX_HTML = """<!doctype html>
       }
     }
 
+    function statusClass(status) {
+      switch (status) {
+        case "succeeded": return "status-succeeded";
+        case "failed": return "status-failed";
+        case "running": return "status-running";
+        case "queued": return "status-queued";
+        default: return "";
+      }
+    }
+
+    async function loadHistory() {
+      try {
+        const res = await fetch("/etl/runs?limit=30");
+        const data = await res.json();
+        if (!res.ok) {
+          setResult(data);
+          return;
+        }
+        const runs = Array.isArray(data.runs) ? data.runs : [];
+        historyList.innerHTML = "";
+        if (!runs.length) {
+          historyList.innerHTML = "<div class='history-item'>No runs yet.</div>";
+          return;
+        }
+        for (const run of runs) {
+          const item = document.createElement("div");
+          item.className = "history-item";
+          item.innerHTML = `
+            <span>${run.module}/${run.tenant_id} - <span class="${statusClass(run.status)}">${run.status}</span></span>
+            <span>${(run.created_at_utc || "").replace("T", " ").slice(0, 19)}</span>
+          `;
+          item.addEventListener("click", async () => {
+            currentJobId = run.job_id;
+            jobIdEl.textContent = currentJobId;
+            await pollJob();
+          });
+          historyList.appendChild(item);
+        }
+      } catch (err) {
+        setResult({ error: String(err) });
+      }
+    }
+
     function startPolling() {
       stopPolling();
       pollTimer = setInterval(pollJob, 1000);
       pollJob();
+      loadHistory();
     }
 
     function stopPolling() {
@@ -219,6 +281,7 @@ _INDEX_HTML = """<!doctype html>
 
     document.getElementById("startBtn").addEventListener("click", startJob);
     document.getElementById("pollBtn").addEventListener("click", pollJob);
+    document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
     document.getElementById("browseSourceFileBtn").addEventListener("click", () =>
       pickPath("/fs/pick-file", { title: "Select source file" }, "source")
     );
@@ -235,6 +298,7 @@ _INDEX_HTML = """<!doctype html>
         "output"
       );
     });
+    loadHistory();
   </script>
 </body>
 </html>
