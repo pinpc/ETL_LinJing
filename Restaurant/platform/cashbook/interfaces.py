@@ -16,6 +16,9 @@ class CashbookRunRequest:
     tenant_id: str
     input_path: Path
     output_path: Path
+    pdf_base_dir: Path | None = None
+    sheet_name: str | None = None
+    sqlite_output_path: Path | None = None
 
 
 class ICashbookService(Protocol):

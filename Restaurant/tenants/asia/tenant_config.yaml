@@ -4,4 +4,8 @@ default_kost: "ASIA"
 options:
   currency: "EUR"
   locale: "de-DE"
+  cashbook_sheet_name: "cashbook"
+  cashbook_sqlite_output_path: "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_kasse_etl_debug.sqlite"
+  bank_statement_pdf: "C:/temp_cursor/LinJing/01_Asia/Asia Konto 03.2026/01b Kontoauszug 2026_03.pdf"
+  bank_sqlite_output_path: "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_bank_etl_debug.sqlite"
 

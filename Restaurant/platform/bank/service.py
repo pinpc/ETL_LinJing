@@ -3,18 +3,26 @@
 from __future__ import annotations
 
 import csv
+from datetime import date, datetime
 from pathlib import Path
 
+from openpyxl import load_workbook
+
+from .asia_legacy import run_asia_bank
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
-from ..shared.models import ParseRequest, RuleContext
+from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
+from ..tenant.models import TenantContext
+from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from .interfaces import BankRunRequest, IBankService
+from .jupiter_legacy import run_jupiter_bank
 
 
 class BankService(IBankService):
-    """Minimal bank orchestration for parser -> rules -> output."""
+    """Bank orchestration with tenant-specific legacy adapters."""
 
-    def __init__(self) -> None:
+    def __init__(self, tenant_resolver: TenantResolver | None = None) -> None:
+        self._tenant_resolver = tenant_resolver or TenantResolver()
         parser_registry = ParserRegistry()
         parser_registry.register("csv", CsvParser())
         self._parser_registry = parser_registry
@@ -23,16 +31,28 @@ class BankService(IBankService):
         rule_registry.register("*", "bank", [IdentityRule()])
         self._rule_pipeline = RulePipeline(rule_registry)
 
-    def run(self, request: BankRunRequest):
+    def run(self, request: BankRunRequest) -> list[ProcessedTransaction]:
+        tenant_id = request.tenant_id.strip().lower()
+        tenant_context = self._tenant_resolver.resolve(tenant_id)
+        resolved_request = _resolve_tenant_bank_request(request, tenant_context)
+
+        if tenant_id == "asia":
+            run_asia_bank(resolved_request)
+            return _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+        if tenant_id == "jupiter":
+            run_jupiter_bank(resolved_request)
+            return _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+
+        # Fallback path: generic minimal parser -> rules -> output pipeline.
         parse_request = ParseRequest(
-            tenant_id=request.tenant_id,
+            tenant_id=resolved_request.tenant_id,
             source_type="csv",
-            source_path=_resolve_source_file(request.source_dir),
+            source_path=_resolve_source_file(resolved_request.source_dir),
         )
         parsed_rows = self._parser_registry.parse(parse_request)
-        context = RuleContext(tenant_id=request.tenant_id, module_name="bank")
+        context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
         processed_rows = self._rule_pipeline.run(parsed_rows, context)
-        _write_output_csv(request.output_path, processed_rows)
+        _write_output_csv(resolved_request.output_path, processed_rows)
         return processed_rows
 
 
@@ -74,4 +94,96 @@ def _write_output_csv(output_path: Path, rows) -> None:
                     "beleg_1": row.beleg_1,
                 }
             )
+
+
+def _resolve_tenant_bank_request(
+    request: BankRunRequest,
+    tenant_context: TenantContext,
+) -> BankRunRequest:
+    return BankRunRequest(
+        tenant_id=request.tenant_id,
+        source_dir=request.source_dir,
+        output_path=request.output_path,
+        statement_pdf=request.statement_pdf or resolve_option_path(tenant_context, "bank_statement_pdf"),
+        agenda_file=request.agenda_file or resolve_option_path(tenant_context, "bank_agenda_file"),
+        sqlite_output_path=request.sqlite_output_path
+        or resolve_option_path(tenant_context, "bank_sqlite_output_path"),
+        excel_title=request.excel_title or resolve_option_str(tenant_context.options, "bank_excel_title"),
+    )
+
+
+def _load_processed_from_bank_workbook(output_path: Path, tenant_id: str) -> list[ProcessedTransaction]:
+    if not output_path.exists():
+        raise FileNotFoundError(f"Bank output workbook not found: {output_path}")
+
+    workbook = load_workbook(output_path, data_only=True)
+    try:
+        sheet_name = _detect_statement_sheet(workbook.sheetnames)
+        if sheet_name is None:
+            raise ValueError(
+                f"Could not detect bank statement sheet in workbook: {output_path}. "
+                f"Available sheets: {workbook.sheetnames}"
+            )
+
+        worksheet = workbook[sheet_name]
+        header_row = _find_header_row(worksheet)
+        if header_row is None:
+            raise ValueError(
+                f"Could not find expected headers in bank sheet '{sheet_name}' of {output_path}."
+            )
+
+        rows: list[ProcessedTransaction] = []
+        for values in worksheet.iter_rows(min_row=header_row + 1, values_only=True):
+            if not values:
+                continue
+            amount = values[0] if len(values) > 0 else None
+            if not isinstance(amount, (int, float)):
+                continue
+            booking_text = str(values[6]).strip() if len(values) > 6 and values[6] is not None else ""
+            if booking_text.upper() in {"TOTAL", "GESAMT"}:
+                continue
+
+            rows.append(
+                ProcessedTransaction(
+                    tenant_id=tenant_id,
+                    module_name="bank",
+                    amount=float(amount),
+                    booking_date=_as_date_text(values[3] if len(values) > 3 else None),
+                    booking_text=booking_text,
+                    bu_gkto=str(values[1]).strip() if len(values) > 1 and values[1] is not None else "",
+                    beleg_1=str(values[2]).strip() if len(values) > 2 and values[2] is not None else "",
+                )
+            )
+
+        if not rows:
+            raise ValueError(
+                f"No transaction rows parsed from bank workbook '{output_path}' "
+                f"(sheet '{sheet_name}')."
+            )
+        return rows
+    finally:
+        workbook.close()
+
+
+def _detect_statement_sheet(sheet_names: list[str]) -> str | None:
+    for candidate in ("Kontoauszug", "Buchungen", "Konto Jupiter"):
+        if candidate in sheet_names:
+            return candidate
+    return sheet_names[0] if sheet_names else None
+
+
+def _find_header_row(worksheet) -> int | None:
+    for row_idx in range(1, min(10, worksheet.max_row) + 1):
+        cell_values = [str(cell.value).strip().lower() if cell.value is not None else "" for cell in worksheet[row_idx]]
+        if "umsatz euro" in cell_values and "buchungstext" in cell_values:
+            return row_idx
+    return None
+
+
+def _as_date_text(value) -> str:
+    if isinstance(value, datetime):
+        return value.date().isoformat()
+    if isinstance(value, date):
+        return value.isoformat()
+    return str(value).strip() if value is not None else ""
 

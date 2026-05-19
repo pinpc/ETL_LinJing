@@ -495,7 +495,7 @@ def build_workbook(
     output_xlsx: Path,
 ) -> tuple[Path, int, int, int]:
     workbook = _load_or_create_workbook(output_xlsx)
-    buchung_count = _write_rows_sheet(workbook, buchung_rows, "Buchung")
+    buchung_count = _write_rows_sheet(workbook, buchung_rows, "Umsatz")
     allopay_count = _write_rows_sheet(workbook, allopay_rows, "Allopay")
     final_count = _write_rows_sheet(workbook, final_rows, "Final")
     _rename_umsatz_bank_header(workbook)

@@ -17,6 +17,9 @@ class BankRunRequest:
     source_dir: Path
     output_path: Path
     statement_pdf: Path | None = None
+    agenda_file: Path | None = None
+    sqlite_output_path: Path | None = None
+    excel_title: str | None = None
 
 
 class IBankService(Protocol):

@@ -25,6 +25,7 @@ class TenantResolver(ITenantResolver):
         return TenantContext(
             tenant_id=tenant_id,
             display_name=str(raw_config.get("display_name") or tenant_id),
+            config_dir=config_path.parent,
             bank_account=str(raw_config.get("bank_account") or ""),
             default_kost=str(raw_config.get("default_kost") or ""),
             options=_normalize_options(raw_config.get("options")),
@@ -64,4 +65,24 @@ def _normalize_options(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValidationError("Tenant 'options' must be a mapping.")
     return value.copy()
+
+
+def resolve_option_str(options: dict[str, Any], key: str) -> str | None:
+    """Resolve optional string option from tenant options mapping."""
+    value = options.get(key)
+    if not isinstance(value, str):
+        return None
+    normalized = value.strip()
+    return normalized if normalized else None
+
+
+def resolve_option_path(context: TenantContext, key: str) -> Path | None:
+    """Resolve optional path option, supporting absolute and tenant-relative paths."""
+    raw = resolve_option_str(context.options, key)
+    if raw is None:
+        return None
+    candidate = Path(raw)
+    if candidate.is_absolute():
+        return candidate
+    return (context.config_dir / candidate).resolve()
 

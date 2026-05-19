@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, field
+from pathlib import Path
 from typing import Any
 
 
@@ -12,6 +13,7 @@ class TenantContext:
 
     tenant_id: str
     display_name: str
+    config_dir: Path
     bank_account: str = ""
     default_kost: str = ""
     options: dict[str, Any] = field(default_factory=dict)

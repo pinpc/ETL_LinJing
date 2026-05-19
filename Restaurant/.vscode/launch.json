@@ -1,0 +1,87 @@
+{
+  "version": "0.2.0",
+  "configurations": [
+    {
+      "name": "Restaurant Bank - Asia",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/etl_cli/bank_debug_runner.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--tenant-id",
+        "asia",
+        "--source-dir",
+        "C:/temp_cursor/LinJing/01_Asia/Asia Konto 03.2026",
+        "--statement-pdf",
+        "C:/temp_cursor/LinJing/01_Asia/Asia Konto 03.2026/01b Kontoauszug 2026_03.pdf",
+        "--output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_bank_etl_debug.xlsx",
+        "--sqlite-output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_bank_etl_debug.sqlite"
+      ]
+    },
+    {
+      "name": "Restaurant Bank - Jupiter",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/etl_cli/bank_debug_runner.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--tenant-id",
+        "jupiter",
+        "--source-dir",
+        "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Konto 03.2026",
+        "--statement-pdf",
+        "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Konto 03.2026/00b Nr.003 Kontoauszug 2026.03.31.pdf",
+        "--output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_bank_etl_debug.xlsx",
+        "--sqlite-output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_bank_etl_debug.sqlite"
+      ]
+    },
+    {
+      "name": "Restaurant Cashbook - Asia",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/etl_cli/cashbook_debug_runner.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--tenant-id",
+        "asia",
+        "--input",
+        "C:/temp_cursor/LinJing/01_Asia/Asia Kasse 03.2026/01 allO现金簿导出2026.03/cashbook_china_restaurant_asia__01_03_2026_31_03_2026.xlsx",
+        "--pdf-base-dir",
+        "C:/temp_cursor/LinJing/01_Asia/Asia Kasse 03.2026",
+        "--sheet-name",
+        "cashbook",
+        "--output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_kasse_etl_debug.xlsx",
+        "--sqlite-output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/asia_kasse_etl_debug.sqlite"
+      ]
+    },
+    {
+      "name": "Restaurant Cashbook - Jupiter",
+      "type": "debugpy",
+      "request": "launch",
+      "program": "${workspaceFolder}/apps/etl_cli/cashbook_debug_runner.py",
+      "console": "integratedTerminal",
+      "cwd": "${workspaceFolder}",
+      "args": [
+        "--tenant-id",
+        "jupiter",
+        "--input",
+        "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Kasse 03.2026/02b Kassenbuch_Jupiter 03.2026.xlsx",
+        "--pdf-base-dir",
+        "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Kasse 03.2026",
+        "--output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_kasse_etl_debug.xlsx",
+        "--sqlite-output",
+        "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_kasse_etl_debug.sqlite"
+      ]
+    }
+  ]
+}
