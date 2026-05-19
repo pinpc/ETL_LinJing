@@ -94,10 +94,7 @@ def _check_namespace_migration(failures: list[str]) -> None:
     project_root = Path(__file__).resolve().parents[2]
     legacy_pattern = re.compile(r"Restaurant\.platform\.")
     removed_alias_pattern = re.compile(r"Restaurant\.etl_platform_core\.")
-    excluded_roots = {
-        project_root / "etl_platform",
-        project_root / "__pycache__",
-    }
+    excluded_roots = {project_root / "__pycache__"}
 
     legacy_violations: list[str] = []
     removed_alias_violations: list[str] = []
