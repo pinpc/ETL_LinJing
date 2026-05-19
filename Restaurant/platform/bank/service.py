@@ -3,8 +3,10 @@
 from __future__ import annotations
 
 import csv
+import json
 from datetime import date, datetime
 from pathlib import Path
+from typing import Any
 
 from openpyxl import load_workbook
 
@@ -38,10 +40,14 @@ class BankService(IBankService):
 
         if tenant_id == "asia":
             run_asia_bank(resolved_request)
-            return _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+            rows = _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+            _write_bank_canonical_json(resolved_request.output_path, rows)
+            return rows
         if tenant_id == "jupiter":
             run_jupiter_bank(resolved_request)
-            return _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+            rows = _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
+            _write_bank_canonical_json(resolved_request.output_path, rows)
+            return rows
 
         # Fallback path: generic minimal parser -> rules -> output pipeline.
         parse_request = ParseRequest(
@@ -53,6 +59,7 @@ class BankService(IBankService):
         context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
         processed_rows = self._rule_pipeline.run(parsed_rows, context)
         _write_output_csv(resolved_request.output_path, processed_rows)
+        _write_bank_canonical_json(resolved_request.output_path, processed_rows)
         return processed_rows
 
 
@@ -161,6 +168,9 @@ def _load_processed_from_bank_workbook(output_path: Path, tenant_id: str) -> lis
                 f"(sheet '{sheet_name}')."
             )
         return rows
+    except Exception as exc:
+        _write_bank_parse_diagnostics(output_path, workbook, tenant_id, exc)
+        raise
     finally:
         workbook.close()
 
@@ -186,4 +196,53 @@ def _as_date_text(value) -> str:
     if isinstance(value, date):
         return value.isoformat()
     return str(value).strip() if value is not None else ""
+
+
+def _write_bank_canonical_json(output_path: Path, rows: list[ProcessedTransaction]) -> None:
+    json_path = output_path.with_suffix(".processed.json")
+    json_path.parent.mkdir(parents=True, exist_ok=True)
+    payload = [
+        {
+            "tenant_id": row.tenant_id,
+            "module_name": row.module_name,
+            "amount": row.amount,
+            "booking_date": row.booking_date,
+            "booking_text": row.booking_text,
+            "bu_gkto": row.bu_gkto,
+            "beleg_1": row.beleg_1,
+        }
+        for row in rows
+    ]
+    json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+
+
+def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, exc: Exception) -> None:
+    diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
+    diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
+
+    details: dict[str, Any] = {
+        "tenant_id": tenant_id,
+        "output_path": str(output_path),
+        "error_type": type(exc).__name__,
+        "error_message": str(exc),
+        "sheet_names": list(workbook.sheetnames),
+        "sheet_previews": {},
+    }
+
+    for sheet_name in workbook.sheetnames:
+        worksheet = workbook[sheet_name]
+        preview: list[list[str]] = []
+        max_rows = min(5, worksheet.max_row)
+        max_cols = min(7, worksheet.max_column)
+        for values in worksheet.iter_rows(
+            min_row=1,
+            max_row=max_rows,
+            min_col=1,
+            max_col=max_cols,
+            values_only=True,
+        ):
+            preview.append(["" if value is None else str(value).strip() for value in values])
+        details["sheet_previews"][sheet_name] = preview
+
+    diagnostics_path.write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")
 
