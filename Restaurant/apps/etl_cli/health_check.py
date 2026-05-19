@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
 
-    from Restaurant.platform.tenant.service import TenantResolver, resolve_option_path_info
+    from Restaurant.etl_platform.tenant.service import TenantResolver, resolve_option_path_info
 
     tenants = ["asia", "jupiter"] if args.tenant == "all" else [args.tenant]
     resolver = TenantResolver()

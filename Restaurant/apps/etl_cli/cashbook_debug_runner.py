@@ -30,8 +30,8 @@ def main(argv: list[str] | None = None) -> None:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
 
-    from Restaurant.platform.cashbook.interfaces import CashbookRunRequest
-    from Restaurant.platform.cashbook.service import CashbookService
+    from Restaurant.etl_platform.cashbook.interfaces import CashbookRunRequest
+    from Restaurant.etl_platform.cashbook.service import CashbookService
 
     request = CashbookRunRequest(
         tenant_id=args.tenant_id,

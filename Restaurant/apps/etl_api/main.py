@@ -552,9 +552,9 @@ def _run_job(job_id: str, payload: dict[str, Any]) -> None:
 
 
 def _run_bank_job(tenant_id: str, source: Path, output: Path, payload: dict[str, Any]) -> dict[str, Any]:
-    from Restaurant.platform.bank.errors import BankServiceError
-    from Restaurant.platform.bank.interfaces import BankRunRequest
-    from Restaurant.platform.bank.service import BankService
+    from Restaurant.etl_platform.bank.errors import BankServiceError
+    from Restaurant.etl_platform.bank.interfaces import BankRunRequest
+    from Restaurant.etl_platform.bank.service import BankService
 
     request = BankRunRequest(
         tenant_id=tenant_id,
@@ -585,9 +585,9 @@ def _run_bank_job(tenant_id: str, source: Path, output: Path, payload: dict[str,
 
 
 def _run_cashbook_job(tenant_id: str, source: Path, output: Path, payload: dict[str, Any]) -> dict[str, Any]:
-    from Restaurant.platform.cashbook.errors import CashbookServiceError
-    from Restaurant.platform.cashbook.interfaces import CashbookRunRequest
-    from Restaurant.platform.cashbook.service import CashbookService
+    from Restaurant.etl_platform.cashbook.errors import CashbookServiceError
+    from Restaurant.etl_platform.cashbook.interfaces import CashbookRunRequest
+    from Restaurant.etl_platform.cashbook.service import CashbookService
 
     request = CashbookRunRequest(
         tenant_id=tenant_id,

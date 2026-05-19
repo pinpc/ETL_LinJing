@@ -15,8 +15,8 @@ def _bootstrap_import_path() -> None:
 
 def main() -> int:
     _bootstrap_import_path()
-    from Restaurant.platform.rule_engine.registry import RulePipeline, RuleSetRegistry
-    from Restaurant.platform.shared.models import ParsedTransaction, RuleContext
+    from Restaurant.etl_platform.rule_engine.registry import RulePipeline, RuleSetRegistry
+    from Restaurant.etl_platform.shared.models import ParsedTransaction, RuleContext
 
     registry = RuleSetRegistry()
     pipeline = RulePipeline(registry)

@@ -30,8 +30,8 @@ def _build_parser() -> argparse.ArgumentParser:
 
 
 def _run_bank(args) -> None:
-    from Restaurant.platform.bank.interfaces import BankRunRequest
-    from Restaurant.platform.bank.service import BankService
+    from Restaurant.etl_platform.bank.interfaces import BankRunRequest
+    from Restaurant.etl_platform.bank.service import BankService
 
     request = BankRunRequest(
         tenant_id=args.tenant_id,
@@ -57,8 +57,8 @@ def _run_bank(args) -> None:
 
 
 def _run_cashbook(args) -> None:
-    from Restaurant.platform.cashbook.interfaces import CashbookRunRequest
-    from Restaurant.platform.cashbook.service import CashbookService
+    from Restaurant.etl_platform.cashbook.interfaces import CashbookRunRequest
+    from Restaurant.etl_platform.cashbook.service import CashbookService
 
     request = CashbookRunRequest(
         tenant_id=args.tenant_id,

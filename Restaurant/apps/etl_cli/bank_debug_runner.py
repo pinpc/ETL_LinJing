@@ -31,8 +31,8 @@ def main(argv: list[str] | None = None) -> None:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
 
-    from Restaurant.platform.bank.interfaces import BankRunRequest
-    from Restaurant.platform.bank.service import BankService
+    from Restaurant.etl_platform.bank.interfaces import BankRunRequest
+    from Restaurant.etl_platform.bank.service import BankService
 
     request = BankRunRequest(
         tenant_id=args.tenant_id,
