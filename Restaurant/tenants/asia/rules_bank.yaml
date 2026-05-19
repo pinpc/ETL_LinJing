@@ -1,3 +1,14 @@
-# Phase 1 skeleton only.
-# Bank rules for Asia will be defined in later phases.
+- id: asia_bank_allopay_income
+  when:
+    text_contains: "allo"
+    amount_gt: 0
+  set:
+    bu_gkto: "1360"
+    booking_text: "allO pay"
+
+- id: asia_bank_basic_expense
+  when:
+    amount_lt: 0
+  set:
+    bu_gkto: "4970"
 

@@ -1,3 +1,12 @@
-# Phase 1 skeleton only.
-# Cashbook rules for Jupiter will be defined in later phases.
+- id: jupiter_cashbook_positive_income
+  when:
+    amount_gt: 0
+  set:
+    bu_gkto: "8000"
+
+- id: jupiter_cashbook_negative_bank
+  when:
+    amount_lt: 0
+  set:
+    bu_gkto: "1360"
 
