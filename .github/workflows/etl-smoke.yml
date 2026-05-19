@@ -1,0 +1,33 @@
+name: ETL Smoke
+
+on:
+  push:
+    branches:
+      - main
+  pull_request:
+
+jobs:
+  smoke:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install openpyxl pyyaml
+
+      - name: Namespace health check
+        run: python -m Restaurant.apps.etl_cli.health_check --namespace-only
+
+      - name: Bank CI smoke
+        run: python -m Restaurant.apps.etl_cli.ci_smoke --module bank
+
+      - name: Cashbook CI smoke
+        run: python -m Restaurant.apps.etl_cli.ci_smoke --module cashbook

@@ -24,56 +24,64 @@ def _build_parser() -> argparse.ArgumentParser:
         default="all",
         help="Tenant scope to check.",
     )
+    parser.add_argument(
+        "--namespace-only",
+        action="store_true",
+        help="Run only namespace import checks (CI-friendly mode).",
+    )
     return parser
 
 
 def main(argv: list[str] | None = None) -> int:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
-
-    from Restaurant.etl_platform.tenant.service import TenantResolver, resolve_option_path_info
-
-    tenants = ["asia", "jupiter"] if args.tenant == "all" else [args.tenant]
-    resolver = TenantResolver()
     failures: list[str] = []
+    if not args.namespace_only:
+        from Restaurant.etl_platform.tenant.service import TenantResolver, resolve_option_path_info
 
-    print("== Tenant Config Checks ==")
-    for tenant_id in tenants:
-        context = resolver.resolve(tenant_id)
-        print(f"\n[{tenant_id}] config_dir: {context.config_dir}")
+        tenants = ["asia", "jupiter"] if args.tenant == "all" else [args.tenant]
+        resolver = TenantResolver()
 
-        _check_path(
-            label=f"{tenant_id}.bank_statement_pdf",
-            path=resolve_option_path_info(context, "bank_statement_pdf")[0],
-            required=True,
-            expect_file=True,
-            failures=failures,
-            origin=resolve_option_path_info(context, "bank_statement_pdf")[1],
-        )
-        _check_path(
-            label=f"{tenant_id}.bank_sqlite_output_path",
-            path=resolve_option_path_info(context, "bank_sqlite_output_path")[0],
-            required=False,
-            expect_file=False,
-            failures=failures,
-            origin=resolve_option_path_info(context, "bank_sqlite_output_path")[1],
-        )
-        _check_path(
-            label=f"{tenant_id}.cashbook_sqlite_output_path",
-            path=resolve_option_path_info(context, "cashbook_sqlite_output_path")[0],
-            required=False,
-            expect_file=False,
-            failures=failures,
-            origin=resolve_option_path_info(context, "cashbook_sqlite_output_path")[1],
-        )
+        print("== Tenant Config Checks ==")
+        for tenant_id in tenants:
+            context = resolver.resolve(tenant_id)
+            print(f"\n[{tenant_id}] config_dir: {context.config_dir}")
 
-    print("\n== Launch.json Checks ==")
-    launch_file = Path(__file__).resolve().parents[2] / ".vscode" / "launch.json"
-    if not launch_file.exists():
-        failures.append(f"missing launch file: {launch_file}")
-        print(f"[FAIL] launch_file missing: {launch_file}")
+            _check_path(
+                label=f"{tenant_id}.bank_statement_pdf",
+                path=resolve_option_path_info(context, "bank_statement_pdf")[0],
+                required=True,
+                expect_file=True,
+                failures=failures,
+                origin=resolve_option_path_info(context, "bank_statement_pdf")[1],
+            )
+            _check_path(
+                label=f"{tenant_id}.bank_sqlite_output_path",
+                path=resolve_option_path_info(context, "bank_sqlite_output_path")[0],
+                required=False,
+                expect_file=False,
+                failures=failures,
+                origin=resolve_option_path_info(context, "bank_sqlite_output_path")[1],
+            )
+            _check_path(
+                label=f"{tenant_id}.cashbook_sqlite_output_path",
+                path=resolve_option_path_info(context, "cashbook_sqlite_output_path")[0],
+                required=False,
+                expect_file=False,
+                failures=failures,
+                origin=resolve_option_path_info(context, "cashbook_sqlite_output_path")[1],
+            )
+
+        print("\n== Launch.json Checks ==")
+        launch_file = Path(__file__).resolve().parents[2] / ".vscode" / "launch.json"
+        if not launch_file.exists():
+            failures.append(f"missing launch file: {launch_file}")
+            print(f"[FAIL] launch_file missing: {launch_file}")
+        else:
+            _check_launch_profiles(launch_file, tenants, failures)
     else:
-        _check_launch_profiles(launch_file, tenants, failures)
+        print("== Namespace-only Mode ==")
+        print("[INFO] skipping tenant and launch.json checks")
 
     print("\n== Namespace Checks ==")
     _check_namespace_migration(failures)
@@ -109,7 +117,7 @@ def _check_namespace_migration(failures: list[str]) -> None:
             removed_alias_violations.append(relative)
 
     if not legacy_violations and not removed_alias_violations:
-        print("[OK] namespace migration: no legacy imports outside etl_platform bridge")
+        print("[OK] namespace migration: no forbidden namespace imports found")
         return
 
     for relative in legacy_violations:
