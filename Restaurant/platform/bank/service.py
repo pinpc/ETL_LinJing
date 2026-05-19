@@ -16,10 +16,10 @@ from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
-from .interfaces import BankRunRequest, IBankService, ILegacyBankRunner
+from .interfaces import BankPipelineResult, BankRunRequest, IBankService, ILegacyBankRunner
 from .jupiter_legacy import JupiterLegacyBankRunner
 
-LEGACY_BANK_RUNNERS: dict[str, ILegacyBankRunner] = {
+_DEFAULT_LEGACY_BANK_RUNNERS: dict[str, ILegacyBankRunner] = {
     "asia": AsiaLegacyBankRunner(),
     "jupiter": JupiterLegacyBankRunner(),
 }
@@ -30,6 +30,7 @@ class BankService(IBankService):
 
     def __init__(self, tenant_resolver: TenantResolver | None = None) -> None:
         self._tenant_resolver = tenant_resolver or TenantResolver()
+        self._legacy_bank_runners = dict(_DEFAULT_LEGACY_BANK_RUNNERS)
         parser_registry = ParserRegistry()
         parser_registry.register("csv", CsvParser())
         self._parser_registry = parser_registry
@@ -39,13 +40,17 @@ class BankService(IBankService):
         self._rule_pipeline = RulePipeline(rule_registry)
 
     def run(self, request: BankRunRequest) -> list[ProcessedTransaction]:
+        return self.run_with_result(request).rows
+
+    def run_with_result(self, request: BankRunRequest) -> BankPipelineResult:
         tenant_id = request.tenant_id.strip().lower()
         tenant_context = self._tenant_resolver.resolve(tenant_id)
         resolved_request = _resolve_tenant_bank_request(request, tenant_context)
 
-        legacy_runner = LEGACY_BANK_RUNNERS.get(tenant_id)
+        legacy_runner = self._legacy_bank_runners.get(tenant_id)
         if legacy_runner is not None:
-            return _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
+            rows = _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
+            return _build_pipeline_result(tenant_id, resolved_request.output_path, rows)
 
         # Fallback path: generic minimal parser -> rules -> output pipeline.
         parse_request = ParseRequest(
@@ -58,7 +63,18 @@ class BankService(IBankService):
         processed_rows = self._rule_pipeline.run(parsed_rows, context)
         _write_output_csv(resolved_request.output_path, processed_rows)
         _write_bank_canonical_json(resolved_request.output_path, processed_rows)
-        return processed_rows
+        return _build_pipeline_result(tenant_id, resolved_request.output_path, processed_rows)
+
+    def register_legacy_runner(self, tenant_id: str, runner: ILegacyBankRunner) -> None:
+        """Register or override a tenant-specific legacy runner implementation."""
+        normalized = tenant_id.strip().lower()
+        if not normalized:
+            raise ValueError("tenant_id must not be empty when registering a legacy runner.")
+        self._legacy_bank_runners[normalized] = runner
+
+    def list_registered_tenants(self) -> list[str]:
+        """Return currently registered tenant ids for bank legacy runners."""
+        return sorted(self._legacy_bank_runners.keys())
 
 
 def _resolve_source_file(source_dir: Path) -> Path:
@@ -100,6 +116,28 @@ def _run_legacy_bank_pipeline(
     rows = _load_processed_from_bank_workbook(request.output_path, tenant_id)
     _write_bank_canonical_json(request.output_path, rows)
     return rows
+
+
+def _build_pipeline_result(
+    tenant_id: str,
+    output_path: Path,
+    rows: list[ProcessedTransaction],
+) -> BankPipelineResult:
+    diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
+    warnings: list[str] = []
+    resolved_diagnostics: Path | None = None
+    if diagnostics_path.exists():
+        resolved_diagnostics = diagnostics_path
+        warnings.append("Parse diagnostics file created; review diagnostics artifact.")
+    return BankPipelineResult(
+        tenant_id=tenant_id,
+        module_name="bank",
+        rows=rows,
+        output_path=output_path,
+        canonical_json_path=output_path.with_suffix(".processed.json"),
+        diagnostics_path=resolved_diagnostics,
+        warnings=warnings,
+    )
 
 
 def _resolve_tenant_bank_request(

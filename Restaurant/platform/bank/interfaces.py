@@ -2,7 +2,7 @@
 
 from __future__ import annotations
 
-from dataclasses import dataclass
+from dataclasses import dataclass, field
 from pathlib import Path
 from typing import Protocol
 
@@ -34,4 +34,17 @@ class ILegacyBankRunner(Protocol):
 
     def run(self, request: BankRunRequest) -> None:
         """Execute a tenant-specific legacy bank ETL pipeline."""
+
+
+@dataclass(slots=True)
+class BankPipelineResult:
+    """Standardized bank pipeline result for GUI/API consumption."""
+
+    tenant_id: str
+    module_name: str
+    rows: list[ProcessedTransaction]
+    output_path: Path
+    canonical_json_path: Path
+    diagnostics_path: Path | None = None
+    warnings: list[str] = field(default_factory=list)
 
