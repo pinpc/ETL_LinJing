@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
+from collections.abc import Callable
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -18,6 +19,11 @@ from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from .interfaces import BankRunRequest, IBankService
 from .jupiter_legacy import run_jupiter_bank
+
+LEGACY_BANK_RUNNERS: dict[str, Callable[[BankRunRequest], None]] = {
+    "asia": run_asia_bank,
+    "jupiter": run_jupiter_bank,
+}
 
 
 class BankService(IBankService):
@@ -38,16 +44,9 @@ class BankService(IBankService):
         tenant_context = self._tenant_resolver.resolve(tenant_id)
         resolved_request = _resolve_tenant_bank_request(request, tenant_context)
 
-        if tenant_id == "asia":
-            run_asia_bank(resolved_request)
-            rows = _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
-            _write_bank_canonical_json(resolved_request.output_path, rows)
-            return rows
-        if tenant_id == "jupiter":
-            run_jupiter_bank(resolved_request)
-            rows = _load_processed_from_bank_workbook(resolved_request.output_path, tenant_id)
-            _write_bank_canonical_json(resolved_request.output_path, rows)
-            return rows
+        legacy_runner = LEGACY_BANK_RUNNERS.get(tenant_id)
+        if legacy_runner is not None:
+            return _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
 
         # Fallback path: generic minimal parser -> rules -> output pipeline.
         parse_request = ParseRequest(
@@ -90,17 +89,18 @@ def _write_output_csv(output_path: Path, rows) -> None:
         )
         writer.writeheader()
         for row in rows:
-            writer.writerow(
-                {
-                    "tenant_id": row.tenant_id,
-                    "module_name": row.module_name,
-                    "amount": row.amount,
-                    "booking_date": row.booking_date,
-                    "booking_text": row.booking_text,
-                    "bu_gkto": row.bu_gkto,
-                    "beleg_1": row.beleg_1,
-                }
-            )
+            writer.writerow(_serialize_processed_row(row))
+
+
+def _run_legacy_bank_pipeline(
+    runner: Callable[[BankRunRequest], None],
+    request: BankRunRequest,
+    tenant_id: str,
+) -> list[ProcessedTransaction]:
+    runner(request)
+    rows = _load_processed_from_bank_workbook(request.output_path, tenant_id)
+    _write_bank_canonical_json(request.output_path, rows)
+    return rows
 
 
 def _resolve_tenant_bank_request(
@@ -139,14 +139,17 @@ def _load_processed_from_bank_workbook(output_path: Path, tenant_id: str) -> lis
                 f"Could not find expected headers in bank sheet '{sheet_name}' of {output_path}."
             )
 
+        column_indexes = _extract_column_indexes(worksheet[header_row])
         rows: list[ProcessedTransaction] = []
         for values in worksheet.iter_rows(min_row=header_row + 1, values_only=True):
             if not values:
                 continue
-            amount = values[0] if len(values) > 0 else None
+            amount = _pick_value(values, column_indexes["amount"], fallback_index=0)
             if not isinstance(amount, (int, float)):
                 continue
-            booking_text = str(values[6]).strip() if len(values) > 6 and values[6] is not None else ""
+            booking_text = _as_clean_text(
+                _pick_value(values, column_indexes["booking_text"], fallback_index=6)
+            )
             if booking_text.upper() in {"TOTAL", "GESAMT"}:
                 continue
 
@@ -155,10 +158,16 @@ def _load_processed_from_bank_workbook(output_path: Path, tenant_id: str) -> lis
                     tenant_id=tenant_id,
                     module_name="bank",
                     amount=float(amount),
-                    booking_date=_as_date_text(values[3] if len(values) > 3 else None),
+                    booking_date=_as_date_text(
+                        _pick_value(values, column_indexes["booking_date"], fallback_index=3)
+                    ),
                     booking_text=booking_text,
-                    bu_gkto=str(values[1]).strip() if len(values) > 1 and values[1] is not None else "",
-                    beleg_1=str(values[2]).strip() if len(values) > 2 and values[2] is not None else "",
+                    bu_gkto=_as_clean_text(
+                        _pick_value(values, column_indexes["bu_gkto"], fallback_index=1)
+                    ),
+                    beleg_1=_as_clean_text(
+                        _pick_value(values, column_indexes["beleg_1"], fallback_index=2)
+                    ),
                 )
             )
 
@@ -198,21 +207,62 @@ def _as_date_text(value) -> str:
     return str(value).strip() if value is not None else ""
 
 
+def _as_clean_text(value: Any) -> str:
+    return str(value).strip() if value is not None else ""
+
+
+def _pick_value(values: tuple[Any, ...], index: int | None, fallback_index: int) -> Any:
+    effective_index = index if index is not None else fallback_index
+    return values[effective_index] if effective_index < len(values) else None
+
+
+def _extract_column_indexes(header_cells) -> dict[str, int | None]:
+    normalized_headers = [
+        _normalize_header(cell.value if hasattr(cell, "value") else cell) for cell in header_cells
+    ]
+    return {
+        "amount": _find_header_index(normalized_headers, {"umsatz euro", "umsatz"}),
+        "bu_gkto": _find_header_index(normalized_headers, {"bu/gkto", "gkto", "konto"}),
+        "beleg_1": _find_header_index(normalized_headers, {"beleg 1", "beleg", "belegnr"}),
+        "booking_date": _find_header_index(
+            normalized_headers,
+            {"buchungstag", "buchungsdatum", "datum"},
+        ),
+        "booking_text": _find_header_index(
+            normalized_headers,
+            {"buchungstext", "verwendungszweck", "text"},
+        ),
+    }
+
+
+def _find_header_index(headers: list[str], aliases: set[str]) -> int | None:
+    alias_set = {_normalize_header(alias) for alias in aliases}
+    for idx, header in enumerate(headers):
+        if header in alias_set:
+            return idx
+    return None
+
+
+def _normalize_header(value: Any) -> str:
+    return str(value).strip().lower() if value is not None else ""
+
+
+def _serialize_processed_row(row: ProcessedTransaction) -> dict[str, Any]:
+    return {
+        "tenant_id": row.tenant_id,
+        "module_name": row.module_name,
+        "amount": row.amount,
+        "booking_date": row.booking_date,
+        "booking_text": row.booking_text,
+        "bu_gkto": row.bu_gkto,
+        "beleg_1": row.beleg_1,
+    }
+
+
 def _write_bank_canonical_json(output_path: Path, rows: list[ProcessedTransaction]) -> None:
     json_path = output_path.with_suffix(".processed.json")
     json_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = [
-        {
-            "tenant_id": row.tenant_id,
-            "module_name": row.module_name,
-            "amount": row.amount,
-            "booking_date": row.booking_date,
-            "booking_text": row.booking_text,
-            "bu_gkto": row.bu_gkto,
-            "beleg_1": row.beleg_1,
-        }
-        for row in rows
-    ]
+    payload = [_serialize_processed_row(row) for row in rows]
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
