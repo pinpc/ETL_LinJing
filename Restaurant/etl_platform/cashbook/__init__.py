@@ -1,3 +1,7 @@
-"""Stage-1 bridge package to ``Restaurant.platform.cashbook``."""
+"""Cashbook ETL module."""
 
-from ...platform.cashbook import *  # noqa: F401,F403
+from .interfaces import CashbookPipelineResult, CashbookRunRequest, ICashbookService, ILegacyCashbookRunner
+from .service import CashbookService
+
+__all__ = ["CashbookRunRequest", "ICashbookService", "ILegacyCashbookRunner", "CashbookPipelineResult", "CashbookService"]
+

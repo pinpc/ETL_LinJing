@@ -1,3 +1,2 @@
-"""Bridge to ``Restaurant.platform.audit``."""
+"""Audit module for ETL run traces and events."""
 
-from ...platform.audit import *  # noqa: F401,F403

@@ -1,3 +1,7 @@
-"""Stage-1 bridge package to ``Restaurant.platform.bank``."""
+"""Bank ETL module."""
 
-from ...platform.bank import *  # noqa: F401,F403
+from .interfaces import BankPipelineResult, BankRunRequest, IBankService, ILegacyBankRunner
+from .service import BankService
+
+__all__ = ["BankRunRequest", "IBankService", "ILegacyBankRunner", "BankPipelineResult", "BankService"]
+

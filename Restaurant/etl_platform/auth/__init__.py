@@ -1,3 +1,2 @@
-"""Bridge to ``Restaurant.platform.auth``."""
+"""Authentication and authorization module."""
 
-from ...platform.auth import *  # noqa: F401,F403

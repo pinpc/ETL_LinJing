@@ -1,3 +1,2 @@
-"""Bridge to ``Restaurant.platform.parser``."""
+"""Parser module for source adapters and normalization entry."""
 
-from ...platform.parser import *  # noqa: F401,F403

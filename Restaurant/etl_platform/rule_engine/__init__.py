@@ -1,3 +1,2 @@
-"""Stage-1 bridge package to ``Restaurant.platform.rule_engine``."""
+"""Rule engine module for transformation and mapping rules."""
 
-from ...platform.rule_engine import *  # noqa: F401,F403

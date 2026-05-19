@@ -1,3 +1,8 @@
-"""Stage-1 bridge package to ``Restaurant.platform.tenant``."""
+"""Tenant module for tenant resolution and config."""
 
-from ...platform.tenant import *  # noqa: F401,F403
+from .interfaces import ITenantResolver
+from .models import TenantContext
+from .service import TenantResolver
+
+__all__ = ["ITenantResolver", "TenantContext", "TenantResolver"]
+
