@@ -5,7 +5,7 @@ from __future__ import annotations
 import warnings
 
 warnings.warn(
-    "Restaurant.platform is deprecated; prefer Restaurant.etl_platform or Restaurant.etl_platform_core.",
+    "Restaurant.platform is deprecated; prefer Restaurant.etl_platform.",
     DeprecationWarning,
     stacklevel=2,
 )

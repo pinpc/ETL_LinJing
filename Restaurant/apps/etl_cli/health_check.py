@@ -90,28 +90,38 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _check_namespace_migration(failures: list[str]) -> None:
-    """Ensure legacy import namespace does not reappear outside bridge package."""
+    """Ensure only approved namespace aliases are used."""
     project_root = Path(__file__).resolve().parents[2]
-    pattern = re.compile(r"Restaurant\.platform\.")
+    legacy_pattern = re.compile(r"Restaurant\.platform\.")
+    transitional_pattern = re.compile(r"Restaurant\.etl_platform_core\.")
     excluded_roots = {
         project_root / "etl_platform",
         project_root / "__pycache__",
     }
+    etl_platform_core_alias_file = project_root / "etl_platform_core" / "__init__.py"
 
-    violations: list[str] = []
+    legacy_violations: list[str] = []
+    transitional_violations: list[str] = []
     for py_file in project_root.rglob("*.py"):
         if any(root in py_file.parents for root in excluded_roots):
             continue
         text = py_file.read_text(encoding="utf-8")
-        if pattern.search(text):
-            violations.append(str(py_file.relative_to(project_root)))
+        relative = str(py_file.relative_to(project_root))
+        if legacy_pattern.search(text):
+            legacy_violations.append(relative)
+        if transitional_pattern.search(text) and py_file != etl_platform_core_alias_file:
+            transitional_violations.append(relative)
 
-    if not violations:
+    if not legacy_violations and not transitional_violations:
         print("[OK] namespace migration: no legacy imports outside etl_platform bridge")
         return
 
-    for relative in violations:
+    for relative in legacy_violations:
         msg = f"legacy import namespace found outside bridge: {relative}"
+        failures.append(msg)
+        print(f"[FAIL] {msg}")
+    for relative in transitional_violations:
+        msg = f"transitional namespace etl_platform_core used outside alias: {relative}"
         failures.append(msg)
         print(f"[FAIL] {msg}")
 
