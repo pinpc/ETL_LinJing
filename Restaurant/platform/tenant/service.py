@@ -2,6 +2,8 @@
 
 from __future__ import annotations
 
+import os
+import re
 from pathlib import Path
 from typing import Any
 
@@ -78,11 +80,40 @@ def resolve_option_str(options: dict[str, Any], key: str) -> str | None:
 
 def resolve_option_path(context: TenantContext, key: str) -> Path | None:
     """Resolve optional path option, supporting absolute and tenant-relative paths."""
+    path, _origin = resolve_option_path_info(context, key)
+    return path
+
+
+def resolve_option_path_info(context: TenantContext, key: str) -> tuple[Path | None, str]:
+    """Resolve optional path and return its resolution origin for diagnostics."""
     raw = resolve_option_str(context.options, key)
     if raw is None:
-        return None
-    candidate = Path(raw)
+        return None, "unset"
+
+    expanded = _expand_path_template(raw, context)
+    if not expanded:
+        return None, "empty_after_expansion"
+
+    candidate = Path(expanded)
     if candidate.is_absolute():
-        return candidate
-    return (context.config_dir / candidate).resolve()
+        return candidate, "absolute_or_template"
+    return (context.config_dir / candidate).resolve(), "tenant_relative_or_template"
+
+
+_ENV_PATTERN = re.compile(r"\$\{ENV:([A-Za-z_][A-Za-z0-9_]*)\}")
+
+
+def _expand_path_template(raw: str, context: TenantContext) -> str:
+    """Expand supported path placeholders for tenant configs."""
+    workspace_root = context.config_dir.parents[1]
+    expanded = raw
+    expanded = expanded.replace("${WORKSPACE_ROOT}", str(workspace_root))
+    expanded = expanded.replace("${TENANT_DIR}", str(context.config_dir))
+
+    def repl(match: re.Match[str]) -> str:
+        env_name = match.group(1)
+        return os.environ.get(env_name, "")
+
+    expanded = _ENV_PATTERN.sub(repl, expanded)
+    return expanded.strip()
 

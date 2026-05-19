@@ -5,7 +5,7 @@ options:
   currency: "EUR"
   locale: "de-DE"
   cashbook_sheet_name: ""
-  cashbook_sqlite_output_path: "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_kasse_etl_debug.sqlite"
+  cashbook_sqlite_output_path: "${WORKSPACE_ROOT}/jupiter_kasse_etl_debug.sqlite"
   bank_statement_pdf: "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Konto 03.2026/00b Nr.003 Kontoauszug 2026.03.31.pdf"
-  bank_sqlite_output_path: "C:/temp_cursor/LinJing/03_Coding/ETL_LinJing/Restaurant/jupiter_bank_etl_debug.sqlite"
+  bank_sqlite_output_path: "${WORKSPACE_ROOT}/jupiter_bank_etl_debug.sqlite"
 

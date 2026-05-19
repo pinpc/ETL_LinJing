@@ -30,7 +30,7 @@ def main(argv: list[str] | None = None) -> int:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
 
-    from Restaurant.platform.tenant.service import TenantResolver, resolve_option_path
+    from Restaurant.platform.tenant.service import TenantResolver, resolve_option_path_info
 
     tenants = ["asia", "jupiter"] if args.tenant == "all" else [args.tenant]
     resolver = TenantResolver()
@@ -43,24 +43,27 @@ def main(argv: list[str] | None = None) -> int:
 
         _check_path(
             label=f"{tenant_id}.bank_statement_pdf",
-            path=resolve_option_path(context, "bank_statement_pdf"),
+            path=resolve_option_path_info(context, "bank_statement_pdf")[0],
             required=True,
             expect_file=True,
             failures=failures,
+            origin=resolve_option_path_info(context, "bank_statement_pdf")[1],
         )
         _check_path(
             label=f"{tenant_id}.bank_sqlite_output_path",
-            path=resolve_option_path(context, "bank_sqlite_output_path"),
+            path=resolve_option_path_info(context, "bank_sqlite_output_path")[0],
             required=False,
             expect_file=False,
             failures=failures,
+            origin=resolve_option_path_info(context, "bank_sqlite_output_path")[1],
         )
         _check_path(
             label=f"{tenant_id}.cashbook_sqlite_output_path",
-            path=resolve_option_path(context, "cashbook_sqlite_output_path"),
+            path=resolve_option_path_info(context, "cashbook_sqlite_output_path")[0],
             required=False,
             expect_file=False,
             failures=failures,
+            origin=resolve_option_path_info(context, "cashbook_sqlite_output_path")[1],
         )
 
     print("\n== Launch.json Checks ==")
@@ -148,6 +151,7 @@ def _check_path(
     required: bool,
     expect_file: bool,
     failures: list[str],
+    origin: str | None = None,
 ) -> None:
     if path is None:
         if required:
@@ -160,7 +164,10 @@ def _check_path(
 
     if expect_file:
         if path.exists() and path.is_file():
-            print(f"[OK] {label}: {_safe_text(path)}")
+            if origin:
+                print(f"[OK] {label}: {_safe_text(path)} (origin={origin})")
+            else:
+                print(f"[OK] {label}: {_safe_text(path)}")
         else:
             msg = f"{label}: file not found ({_safe_text(path)})"
             failures.append(msg)
@@ -169,7 +176,10 @@ def _check_path(
 
     parent = path.parent
     if parent.exists():
-        print(f"[OK] {label}: parent exists ({_safe_text(parent)})")
+        if origin:
+            print(f"[OK] {label}: parent exists ({_safe_text(parent)}) (origin={origin})")
+        else:
+            print(f"[OK] {label}: parent exists ({_safe_text(parent)})")
     else:
         msg = f"{label}: parent directory missing ({_safe_text(parent)})"
         failures.append(msg)
