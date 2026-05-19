@@ -90,18 +90,17 @@ def main(argv: list[str] | None = None) -> int:
 
 
 def _check_namespace_migration(failures: list[str]) -> None:
-    """Ensure only approved namespace aliases are used."""
+    """Ensure only canonical namespace imports are used."""
     project_root = Path(__file__).resolve().parents[2]
     legacy_pattern = re.compile(r"Restaurant\.platform\.")
-    transitional_pattern = re.compile(r"Restaurant\.etl_platform_core\.")
+    removed_alias_pattern = re.compile(r"Restaurant\.etl_platform_core\.")
     excluded_roots = {
         project_root / "etl_platform",
         project_root / "__pycache__",
     }
-    etl_platform_core_alias_file = project_root / "etl_platform_core" / "__init__.py"
 
     legacy_violations: list[str] = []
-    transitional_violations: list[str] = []
+    removed_alias_violations: list[str] = []
     for py_file in project_root.rglob("*.py"):
         if any(root in py_file.parents for root in excluded_roots):
             continue
@@ -109,10 +108,10 @@ def _check_namespace_migration(failures: list[str]) -> None:
         relative = str(py_file.relative_to(project_root))
         if legacy_pattern.search(text):
             legacy_violations.append(relative)
-        if transitional_pattern.search(text) and py_file != etl_platform_core_alias_file:
-            transitional_violations.append(relative)
+        if removed_alias_pattern.search(text):
+            removed_alias_violations.append(relative)
 
-    if not legacy_violations and not transitional_violations:
+    if not legacy_violations and not removed_alias_violations:
         print("[OK] namespace migration: no legacy imports outside etl_platform bridge")
         return
 
@@ -120,8 +119,8 @@ def _check_namespace_migration(failures: list[str]) -> None:
         msg = f"legacy import namespace found outside bridge: {relative}"
         failures.append(msg)
         print(f"[FAIL] {msg}")
-    for relative in transitional_violations:
-        msg = f"transitional namespace etl_platform_core used outside alias: {relative}"
+    for relative in removed_alias_violations:
+        msg = f"removed namespace etl_platform_core still referenced: {relative}"
         failures.append(msg)
         print(f"[FAIL] {msg}")
 

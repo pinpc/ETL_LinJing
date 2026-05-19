@@ -20,7 +20,7 @@ When adding a tenant implementation:
 
 ## 3) Standard Errors
 
-Use `CashbookServiceError` codes from `platform/cashbook/errors.py`:
+Use `CashbookServiceError` codes from `etl_platform/cashbook/errors.py`:
 
 - `INPUT_MISSING`
 - `PARSER_FAILED`

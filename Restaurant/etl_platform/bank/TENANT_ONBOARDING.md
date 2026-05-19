@@ -4,7 +4,7 @@ This document defines the minimum contract for adding a new bank tenant runner.
 
 ## 1) Runner Implementation Contract
 
-Implement `ILegacyBankRunner` from `platform.bank.interfaces`:
+Implement `ILegacyBankRunner` from `Restaurant.etl_platform.bank.interfaces`:
 
 - Method: `run(self, request: BankRunRequest) -> None`
 - Responsibility: execute tenant-specific legacy ETL and create output workbook at `request.output_path`
@@ -12,8 +12,8 @@ Implement `ILegacyBankRunner` from `platform.bank.interfaces`:
 
 Recommended pattern:
 
-- Put tenant adapter in `platform/bank/<tenant>_legacy.py`
-- Reuse shared helpers from `platform/bank/legacy_common.py`
+- Put tenant adapter in `etl_platform/bank/<tenant>_legacy.py`
+- Reuse shared helpers from `etl_platform/bank/legacy_common.py`
   - `stdlib_platform_guard`
   - `load_legacy_module`
   - `resolve_sqlite_output_path`
