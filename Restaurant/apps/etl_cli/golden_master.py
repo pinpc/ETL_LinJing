@@ -45,8 +45,10 @@ def _build_parser() -> argparse.ArgumentParser:
     )
     parser.add_argument(
         "--scenarios",
-        required=True,
-        help="Path to JSON scenarios file (see tenants/golden_master_scenarios.template.json).",
+        help=(
+            "Path to JSON scenarios file. "
+            "Defaults to tenants/golden_master_scenarios.json when omitted."
+        ),
     )
     parser.add_argument(
         "--case",
@@ -115,6 +117,23 @@ def _expand_path(value: str) -> Path:
     expanded = value.replace("${WORKSPACE_ROOT}", str(workspace_root))
     expanded = expanded.replace("${PROJECT_ROOT}", str(package_root))
     return Path(expanded)
+
+
+def _default_scenarios_path() -> Path:
+    package_root = Path(__file__).resolve().parents[2]
+    return package_root / "tenants" / "golden_master_scenarios.json"
+
+
+def _resolve_scenarios_path(raw: str | None) -> Path:
+    if raw:
+        return _expand_path(raw)
+    default_path = _default_scenarios_path()
+    if default_path.exists():
+        return default_path
+    raise SystemExit(
+        "Missing scenarios file. Provide --scenarios <path> or create "
+        f"the default file at: {default_path}"
+    )
 
 
 def _run_bank_case(case: GoldenCase) -> list[dict[str, Any]]:
@@ -233,7 +252,7 @@ def _normalize_rows(rows: Any, *, ignore_fields: list[str] | None) -> list[dict[
 def main(argv: list[str] | None = None) -> None:
     _bootstrap_import_path()
     args = _build_parser().parse_args(argv)
-    cases = _load_cases(_expand_path(args.scenarios))
+    cases = _load_cases(_resolve_scenarios_path(args.scenarios))
     if args.case_ids:
         allowed = {case_id.strip() for case_id in args.case_ids if case_id.strip()}
         cases = [case for case in cases if case.case_id in allowed]
