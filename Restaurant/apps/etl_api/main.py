@@ -137,7 +137,11 @@ _INDEX_HTML = """<!doctype html>
         tenantSelect.innerHTML = "";
         const tenants = Array.isArray(data.tenants) ? data.tenants : [];
         const selectedModule = document.getElementById("module").value;
+        let visibleCount = 0;
         for (const tenant of tenants) {
+          if (tenant.status && tenant.status !== "ok") {
+            continue;
+          }
           const supported = Array.isArray(tenant.supported_modules)
             ? tenant.supported_modules
             : ["bank", "cashbook"];
@@ -150,11 +154,12 @@ _INDEX_HTML = """<!doctype html>
             ? `${tenant.tenant_id} (${tenant.display_name})`
             : tenant.tenant_id;
           tenantSelect.appendChild(option);
+          visibleCount += 1;
         }
-        if (!tenants.length) {
+        if (!visibleCount) {
           const option = document.createElement("option");
           option.value = "";
-          option.textContent = "no tenants found";
+          option.textContent = "no tenants available";
           tenantSelect.appendChild(option);
         }
       } catch (err) {

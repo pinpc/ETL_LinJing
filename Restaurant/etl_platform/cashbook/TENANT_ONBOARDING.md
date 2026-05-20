@@ -44,11 +44,19 @@ Use `CashbookServiceError` codes from `etl_platform/cashbook/errors.py`:
 `CashbookService` writes:
 
 - Workbook at `request.output_path`
-- SQLite at resolved sqlite path
+- Canonical JSON at `<output>.processed.json`
 - Run metadata at `<output>.run_meta.json`
+- SQLite at resolved sqlite path
 
 ## 5) Smoke Test
 
 Preferred unified smoke entrypoint:
 
 - `python -m Restaurant.apps.etl_cli.etl_smoke --module cashbook --tenant-id <tenant> --source <file> --output <xlsx>`
+
+Quality gate:
+
+- CI-friendly checks:
+  - `python -m Restaurant.apps.etl_cli.quality_gate`
+- Include local-data golden-master checks:
+  - `python -m Restaurant.apps.etl_cli.quality_gate --include-golden`

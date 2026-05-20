@@ -47,6 +47,7 @@ flowchart TD
 
 - `etl_platform/tenant/`
   - `service.py`: tenant config resolving and path template expansion
+  - `registry.py`: dynamic tenant discovery for API/GUI and operational tooling
 
 - `apps/etl_api/`
   - WSGI API + browser GUI + async run management
@@ -128,6 +129,17 @@ This keeps API/GUI responses deterministic and easier to diagnose than raw trace
 
 ## Tenant Extensibility Pattern
 
+Tenants are discovered dynamically from `tenants/*/tenant_config.yaml`.
+`/etl/tenants` exposes this registry to the GUI and includes:
+
+- `tenant_id`
+- `display_name`
+- `supported_modules`
+- `status`
+- `error` for malformed tenant configs
+
+Malformed tenant configs are reported by the registry but are not selectable in the GUI.
+
 ### Recommended for new Bank tenants
 
 - Keep `*_legacy.py` as **adapter**
@@ -142,6 +154,20 @@ This keeps API/GUI responses deterministic and easier to diagnose than raw trace
 ---
 
 ## Operational Commands
+
+### Standard quality gate
+
+CI-friendly checks that do not require local tenant source files:
+
+```bash
+python -m Restaurant.apps.etl_cli.quality_gate
+```
+
+Full local regression check, including configured golden-master source data:
+
+```bash
+python -m Restaurant.apps.etl_cli.quality_gate --include-golden
+```
 
 ### Health check
 
@@ -191,7 +217,7 @@ python -m Restaurant.apps.etl_cli.main golden-master --mode verify --scenarios <
 
 Expected artifacts after a successful run:
 
-- required: `<output>.xlsx` (or configured workbook output path)
+- required: workbook at the configured output path, normally `<output>.xlsx`
 - required: `<output>.processed.json`
 - required: `<output>.run_meta.json`
 - optional: `<output>.sqlite` (cashbook / configured bank sqlite outputs)
@@ -200,9 +226,7 @@ Expected artifacts after a successful run:
 ### Daily Regression Check
 
 ```bash
-python apps/etl_cli/health_check.py
-python apps/etl_cli/rules_smoke.py
-python apps/etl_cli/golden_master.py --mode verify
+python -m Restaurant.apps.etl_cli.quality_gate --include-golden
 ```
 
 ---

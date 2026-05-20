@@ -38,6 +38,8 @@ def list_tenants(tenants_root: Path | None = None) -> list[dict[str, object]]:
     for tenant_id in list_tenant_ids(tenants_root=tenants_root):
         display_name = tenant_id
         supported_modules: list[str] = ["bank", "cashbook"]
+        status = "ok"
+        error_message = ""
         try:
             context = resolver.resolve(tenant_id)
             display_name = context.display_name or tenant_id
@@ -52,15 +54,19 @@ def list_tenants(tenants_root: Path | None = None) -> list[dict[str, object]]:
                 )
                 if normalized:
                     supported_modules = normalized
-        except Exception:
-            # Keep registry resilient even when one tenant config is malformed.
-            pass
+        except Exception as exc:
+            # Keep registry resilient while making malformed tenant configs visible.
+            status = "error"
+            error_message = f"{type(exc).__name__}: {exc}"
+            supported_modules = []
 
         tenants.append(
             {
                 "tenant_id": tenant_id,
                 "display_name": display_name,
                 "supported_modules": supported_modules,
+                "status": status,
+                "error": error_message,
             }
         )
     return tenants
