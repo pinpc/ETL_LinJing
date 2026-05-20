@@ -16,8 +16,10 @@ from .interfaces import (
 )
 from .jupiter_legacy import JupiterKasseETL
 from ..shared.artifacts import write_run_meta
+from ..shared.options import first_defined
+from ..shared.serialization import legacy_rows_to_processed_transactions
 from ..shared.sqlite_store import write_processed_transactions_sqlite
-from ..shared.tenancy import canonical_tenant_id, require_tenant_id
+from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from ..shared.models import ProcessedTransaction
 
@@ -84,15 +86,16 @@ class CashbookService(ICashbookService):
 
     def register_legacy_runner(self, tenant_id: str, runner: ILegacyCashbookRunner) -> None:
         """Register or override a tenant-specific legacy cashbook runner."""
-        normalized = require_tenant_id(
-            tenant_id,
+        register_tenant_runner(
+            self._legacy_cashbook_runners,
+            tenant_id=tenant_id,
+            runner=runner,
             field_name="tenant_id",
         )
-        self._legacy_cashbook_runners[normalized] = runner
 
     def list_registered_tenants(self) -> list[str]:
         """Return currently registered tenant ids for cashbook legacy runners."""
-        return sorted(self._legacy_cashbook_runners.keys())
+        return list_registered_tenant_ids(self._legacy_cashbook_runners)
 
 
 class _AsiaLegacyCashbookRunner(ILegacyCashbookRunner):
@@ -150,20 +153,11 @@ class _JupiterLegacyCashbookRunner(ILegacyCashbookRunner):
 
 
 def _result_to_processed_transactions(rows: list, tenant_id: str, module_name: str) -> list[ProcessedTransaction]:
-    processed: list[ProcessedTransaction] = []
-    for row in rows:
-        processed.append(
-            ProcessedTransaction(
-                tenant_id=tenant_id,
-                module_name=module_name,
-                amount=float(row.umsatz_euro),
-                booking_date=str(row.datum),
-                booking_text=str(row.buchungstext),
-                bu_gkto=str(row.bu_gkto),
-                beleg_1=str(row.beleg_1),
-            )
-        )
-    return processed
+    return legacy_rows_to_processed_transactions(
+        rows,
+        tenant_id=tenant_id,
+        module_name=module_name,
+    )
 
 
 def _resolve_pdf_base_dir(
@@ -171,11 +165,7 @@ def _resolve_pdf_base_dir(
     tenant_value: Path | None,
     fallback: Path,
 ) -> Path:
-    if request.pdf_base_dir is not None:
-        return request.pdf_base_dir
-    if tenant_value is not None:
-        return tenant_value
-    return fallback
+    return first_defined(request.pdf_base_dir, tenant_value, fallback)
 
 
 def _resolve_sheet_name(
@@ -183,11 +173,7 @@ def _resolve_sheet_name(
     tenant_value: str | None,
     fallback: str | None,
 ) -> str | None:
-    if request.sheet_name is not None:
-        return request.sheet_name
-    if tenant_value is not None:
-        return tenant_value
-    return fallback
+    return first_defined(request.sheet_name, tenant_value, fallback)
 
 
 def _resolve_sqlite_output_path(
@@ -195,11 +181,7 @@ def _resolve_sqlite_output_path(
     tenant_value: Path | None,
     fallback: Path,
 ) -> Path:
-    if request.sqlite_output_path is not None:
-        return request.sqlite_output_path
-    if tenant_value is not None:
-        return tenant_value
-    return fallback
+    return first_defined(request.sqlite_output_path, tenant_value, fallback)
 
 
 def _write_sqlite(sqlite_path: Path, rows: list[ProcessedTransaction]) -> None:

@@ -28,3 +28,24 @@ def serialize_processed_transaction(row: ProcessedTransaction) -> dict[str, Any]
         "bu_gkto": row.bu_gkto,
         "beleg_1": row.beleg_1,
     }
+
+
+def legacy_rows_to_processed_transactions(
+    rows: list[object],
+    *,
+    tenant_id: str,
+    module_name: str,
+) -> list[ProcessedTransaction]:
+    """Convert legacy row objects with expected attributes to canonical processed rows."""
+    return [
+        ProcessedTransaction(
+            tenant_id=tenant_id,
+            module_name=module_name,
+            amount=float(getattr(row, "umsatz_euro")),
+            booking_date=str(getattr(row, "datum")),
+            booking_text=str(getattr(row, "buchungstext")),
+            bu_gkto=str(getattr(row, "bu_gkto")),
+            beleg_1=str(getattr(row, "beleg_1")),
+        )
+        for row in rows
+    ]

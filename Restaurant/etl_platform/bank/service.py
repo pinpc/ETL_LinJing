@@ -15,8 +15,9 @@ from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.artifacts import write_run_meta
+from ..shared.options import first_defined
 from ..shared.serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
-from ..shared.tenancy import canonical_tenant_id, require_tenant_id
+from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
@@ -87,15 +88,16 @@ class BankService(IBankService):
 
     def register_legacy_runner(self, tenant_id: str, runner: ILegacyBankRunner) -> None:
         """Register or override a tenant-specific legacy runner implementation."""
-        normalized = require_tenant_id(
-            tenant_id,
+        register_tenant_runner(
+            self._legacy_bank_runners,
+            tenant_id=tenant_id,
+            runner=runner,
             field_name="tenant_id",
         )
-        self._legacy_bank_runners[normalized] = runner
 
     def list_registered_tenants(self) -> list[str]:
         """Return currently registered tenant ids for bank legacy runners."""
-        return sorted(self._legacy_bank_runners.keys())
+        return list_registered_tenant_ids(self._legacy_bank_runners)
 
 
 def _resolve_source_file(source_dir: Path) -> Path:
@@ -167,11 +169,22 @@ def _resolve_tenant_bank_request(
         tenant_id=request.tenant_id,
         source_dir=request.source_dir,
         output_path=request.output_path,
-        statement_pdf=request.statement_pdf or resolve_option_path(tenant_context, "bank_statement_pdf"),
-        agenda_file=request.agenda_file or resolve_option_path(tenant_context, "bank_agenda_file"),
-        sqlite_output_path=request.sqlite_output_path
-        or resolve_option_path(tenant_context, "bank_sqlite_output_path"),
-        excel_title=request.excel_title or resolve_option_str(tenant_context.options, "bank_excel_title"),
+        statement_pdf=first_defined(
+            request.statement_pdf,
+            resolve_option_path(tenant_context, "bank_statement_pdf"),
+        ),
+        agenda_file=first_defined(
+            request.agenda_file,
+            resolve_option_path(tenant_context, "bank_agenda_file"),
+        ),
+        sqlite_output_path=first_defined(
+            request.sqlite_output_path,
+            resolve_option_path(tenant_context, "bank_sqlite_output_path"),
+        ),
+        excel_title=first_defined(
+            request.excel_title,
+            resolve_option_str(tenant_context.options, "bank_excel_title"),
+        ),
     )
 
 

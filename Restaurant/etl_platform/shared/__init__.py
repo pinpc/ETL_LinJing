@@ -10,9 +10,19 @@ from .interfaces import (
     ITenantResolver,
 )
 from .artifacts import write_run_meta
+from .options import first_defined
 from .sqlite_store import write_processed_transactions_sqlite
-from .serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
-from .tenancy import canonical_tenant_id, require_tenant_id
+from .serialization import (
+    PROCESSED_TRANSACTION_FIELDS,
+    legacy_rows_to_processed_transactions,
+    serialize_processed_transaction,
+)
+from .tenancy import (
+    canonical_tenant_id,
+    list_registered_tenant_ids,
+    register_tenant_runner,
+    require_tenant_id,
+)
 from .models import (
     AuditEvent,
     BankRunRequest,
@@ -42,6 +52,10 @@ __all__ = [
     "TenantContext",
     "PROCESSED_TRANSACTION_FIELDS",
     "canonical_tenant_id",
+    "first_defined",
+    "legacy_rows_to_processed_transactions",
+    "list_registered_tenant_ids",
+    "register_tenant_runner",
     "require_tenant_id",
     "serialize_processed_transaction",
     "write_processed_transactions_sqlite",
