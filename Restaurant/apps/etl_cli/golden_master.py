@@ -10,6 +10,8 @@ from dataclasses import dataclass
 from pathlib import Path
 from typing import Any
 
+from openpyxl import load_workbook
+
 
 def _bootstrap_import_path() -> None:
     package_root = Path(__file__).resolve().parents[2]
@@ -154,6 +156,7 @@ def _run_bank_case(case: GoldenCase) -> list[dict[str, Any]]:
             excel_title=case.excel_title,
         )
     )
+    _validate_case_artifacts(case, output_path)
     return [serialize_processed_transaction(row) for row in result.rows]
 
 
@@ -174,6 +177,7 @@ def _run_cashbook_case(case: GoldenCase) -> list[dict[str, Any]]:
             sqlite_output_path=_expand_path(case.sqlite_output) if case.sqlite_output else None,
         )
     )
+    _validate_case_artifacts(case, output_path)
     return [serialize_processed_transaction(row) for row in result.rows]
 
 
@@ -183,6 +187,26 @@ def _run_case(case: GoldenCase) -> list[dict[str, Any]]:
     if case.module == "cashbook":
         return _run_cashbook_case(case)
     raise ValueError(f"Unsupported module '{case.module}' for case '{case.case_id}'.")
+
+
+def _validate_case_artifacts(case: GoldenCase, output_path: Path) -> None:
+    if not output_path.exists():
+        raise ValueError(f"Case '{case.case_id}' did not create output file: {output_path}")
+
+    if output_path.suffix.lower() == ".xlsx":
+        workbook = load_workbook(output_path, data_only=True)
+        workbook.close()
+
+    processed_json = output_path.with_suffix(".processed.json")
+    run_meta_json = output_path.with_suffix(".run_meta.json")
+    if not processed_json.exists():
+        raise ValueError(
+            f"Case '{case.case_id}' missing sidecar artifact: {processed_json}"
+        )
+    if not run_meta_json.exists():
+        raise ValueError(
+            f"Case '{case.case_id}' missing sidecar artifact: {run_meta_json}"
+        )
 
 
 def _record_case(case: GoldenCase) -> None:

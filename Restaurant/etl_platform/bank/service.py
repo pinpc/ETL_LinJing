@@ -128,7 +128,7 @@ def _run_legacy_bank_pipeline(
 ) -> list[ProcessedTransaction]:
     runner.run(request)
     rows = _load_processed_from_bank_workbook(request.output_path, tenant_id)
-    _export_bank_outputs(request.output_path, rows)
+    _export_bank_sidecars(request.output_path, rows)
     return rows
 
 
@@ -325,10 +325,20 @@ def _normalize_header(value: Any) -> str:
 
 
 def _export_bank_outputs(output_path: Path, rows: list[ProcessedTransaction]) -> None:
+    csv_target: Path | None = output_path if output_path.suffix.lower() == ".csv" else None
     export_processed_rows(
         rows,
         ProcessedExportTargets(
-            csv_output_path=output_path,
+            csv_output_path=csv_target,
+            json_output_path=output_path.with_suffix(".processed.json"),
+        ),
+    )
+
+
+def _export_bank_sidecars(output_path: Path, rows: list[ProcessedTransaction]) -> None:
+    export_processed_rows(
+        rows,
+        ProcessedExportTargets(
             json_output_path=output_path.with_suffix(".processed.json"),
         ),
     )
