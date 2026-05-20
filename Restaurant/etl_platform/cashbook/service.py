@@ -3,10 +3,8 @@
 from __future__ import annotations
 
 import json
-import sqlite3
 from datetime import datetime, timezone
 from pathlib import Path
-from uuid import uuid4
 
 from .asia_legacy import AsiaKasseETL
 from .errors import CashbookErrorCode, CashbookServiceError
@@ -17,6 +15,8 @@ from .interfaces import (
     ILegacyCashbookRunner,
 )
 from .jupiter_legacy import JupiterKasseETL
+from ..shared.artifacts import write_run_meta
+from ..shared.sqlite_store import write_processed_transactions_sqlite
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from ..shared.models import ProcessedTransaction
 
@@ -201,62 +201,11 @@ def _resolve_sqlite_output_path(
 
 
 def _write_sqlite(sqlite_path: Path, rows: list[ProcessedTransaction]) -> None:
-    sqlite_path.parent.mkdir(parents=True, exist_ok=True)
-    connection = sqlite3.connect(sqlite_path)
-    try:
-        cursor = connection.cursor()
-        _ensure_cashbook_sqlite_schema(cursor)
-        run_id = str(uuid4())
-        created_at = datetime.now(timezone.utc).isoformat()
-        cursor.executemany(
-            """
-            INSERT INTO cashbook_transactions (
-                run_id, created_at, tenant_id, module_name, amount, booking_date, booking_text, bu_gkto, beleg_1
-            ) VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
-            """,
-            [
-                (
-                    run_id,
-                    created_at,
-                    row.tenant_id,
-                    row.module_name,
-                    row.amount,
-                    row.booking_date,
-                    row.booking_text,
-                    row.bu_gkto,
-                    row.beleg_1,
-                )
-                for row in rows
-            ],
-        )
-        connection.commit()
-    finally:
-        connection.close()
-
-
-def _ensure_cashbook_sqlite_schema(cursor) -> None:
-    cursor.execute(
-        """
-        CREATE TABLE IF NOT EXISTS cashbook_transactions (
-            id INTEGER PRIMARY KEY AUTOINCREMENT,
-            run_id TEXT,
-            created_at TEXT,
-            tenant_id TEXT NOT NULL,
-            module_name TEXT NOT NULL,
-            amount REAL NOT NULL,
-            booking_date TEXT NOT NULL,
-            booking_text TEXT NOT NULL,
-            bu_gkto TEXT,
-            beleg_1 TEXT
-        )
-        """
+    write_processed_transactions_sqlite(
+        sqlite_path,
+        table_name="cashbook_transactions",
+        rows=rows,
     )
-    cursor.execute("PRAGMA table_info(cashbook_transactions)")
-    columns = {row[1] for row in cursor.fetchall()}
-    if "run_id" not in columns:
-        cursor.execute("ALTER TABLE cashbook_transactions ADD COLUMN run_id TEXT")
-    if "created_at" not in columns:
-        cursor.execute("ALTER TABLE cashbook_transactions ADD COLUMN created_at TEXT")
 
 
 def _write_cashbook_run_meta(
@@ -265,18 +214,14 @@ def _write_cashbook_run_meta(
     sqlite_path: Path,
     row_count: int,
 ) -> Path:
-    run_meta_path = output_path.with_suffix(".run_meta.json")
-    run_meta_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "tenant_id": tenant_id,
-        "module_name": "cashbook",
-        "row_count": row_count,
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "artifacts": {
-            "workbook": str(output_path),
-            "sqlite": str(sqlite_path),
+    return write_run_meta(
+        tenant_id=tenant_id,
+        module_name="cashbook",
+        output_path=output_path,
+        row_count=row_count,
+        artifacts={
+            "workbook": output_path,
+            "sqlite": sqlite_path,
         },
-    }
-    run_meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    return run_meta_path
+    )
 

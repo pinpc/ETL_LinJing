@@ -4,7 +4,7 @@ from __future__ import annotations
 
 import csv
 import json
-from datetime import date, datetime, timezone
+from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +14,8 @@ from .asia_legacy import AsiaLegacyBankRunner
 from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
+from ..shared.artifacts import write_run_meta
+from ..shared.serialization import serialize_processed_transaction
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
@@ -121,7 +123,7 @@ def _write_output_csv(output_path: Path, rows) -> None:
         )
         writer.writeheader()
         for row in rows:
-            writer.writerow(_serialize_processed_row(row))
+            writer.writerow(serialize_processed_transaction(row))
 
 
 def _run_legacy_bank_pipeline(
@@ -307,22 +309,10 @@ def _normalize_header(value: Any) -> str:
     return str(value).strip().lower() if value is not None else ""
 
 
-def _serialize_processed_row(row: ProcessedTransaction) -> dict[str, Any]:
-    return {
-        "tenant_id": row.tenant_id,
-        "module_name": row.module_name,
-        "amount": row.amount,
-        "booking_date": row.booking_date,
-        "booking_text": row.booking_text,
-        "bu_gkto": row.bu_gkto,
-        "beleg_1": row.beleg_1,
-    }
-
-
 def _write_bank_canonical_json(output_path: Path, rows: list[ProcessedTransaction]) -> None:
     json_path = output_path.with_suffix(".processed.json")
     json_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = [_serialize_processed_row(row) for row in rows]
+    payload = [serialize_processed_transaction(row) for row in rows]
     json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
 
 
@@ -358,19 +348,15 @@ def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, e
 
 
 def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> Path:
-    run_meta_path = output_path.with_suffix(".run_meta.json")
-    run_meta_path.parent.mkdir(parents=True, exist_ok=True)
-    payload = {
-        "tenant_id": tenant_id,
-        "module_name": "bank",
-        "row_count": row_count,
-        "generated_at_utc": datetime.now(timezone.utc).isoformat(),
-        "artifacts": {
-            "workbook": str(output_path),
-            "processed_json": str(output_path.with_suffix(".processed.json")),
-            "diagnostics_json": str(output_path.with_suffix(".parse_diagnostics.json")),
+    return write_run_meta(
+        tenant_id=tenant_id,
+        module_name="bank",
+        output_path=output_path,
+        row_count=row_count,
+        artifacts={
+            "workbook": output_path,
+            "processed_json": output_path.with_suffix(".processed.json"),
+            "diagnostics_json": output_path.with_suffix(".parse_diagnostics.json"),
         },
-    }
-    run_meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
-    return run_meta_path
+    )
 
