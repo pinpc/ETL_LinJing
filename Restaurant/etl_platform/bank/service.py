@@ -3,7 +3,6 @@
 from __future__ import annotations
 
 import csv
-import json
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -15,6 +14,7 @@ from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.artifacts import write_run_meta
+from ..shared.jsonio import write_json_file
 from ..shared.options import first_defined
 from ..shared.serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
 from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
@@ -318,14 +318,12 @@ def _normalize_header(value: Any) -> str:
 
 def _write_bank_canonical_json(output_path: Path, rows: list[ProcessedTransaction]) -> None:
     json_path = output_path.with_suffix(".processed.json")
-    json_path.parent.mkdir(parents=True, exist_ok=True)
     payload = [serialize_processed_transaction(row) for row in rows]
-    json_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_file(json_path, payload)
 
 
 def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, exc: Exception) -> None:
     diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
-    diagnostics_path.parent.mkdir(parents=True, exist_ok=True)
 
     details: dict[str, Any] = {
         "tenant_id": tenant_id,
@@ -351,7 +349,7 @@ def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, e
             preview.append(["" if value is None else str(value).strip() for value in values])
         details["sheet_previews"][sheet_name] = preview
 
-    diagnostics_path.write_text(json.dumps(details, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_file(diagnostics_path, details)
 
 
 def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> Path:

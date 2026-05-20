@@ -10,6 +10,7 @@ from .interfaces import (
     ITenantResolver,
 )
 from .artifacts import write_run_meta
+from .jsonio import write_json_file
 from .options import first_defined
 from .sqlite_store import write_processed_transactions_sqlite
 from .serialization import (
@@ -58,6 +59,7 @@ __all__ = [
     "register_tenant_runner",
     "require_tenant_id",
     "serialize_processed_transaction",
+    "write_json_file",
     "write_processed_transactions_sqlite",
     "write_run_meta",
 ]

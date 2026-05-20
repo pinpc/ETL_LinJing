@@ -107,22 +107,14 @@ class _AsiaLegacyCashbookRunner(ILegacyCashbookRunner):
         tenant_pdf_base: Path | None,
         tenant_sheet_name: str | None,
     ) -> list[ProcessedTransaction]:
-        engine = AsiaKasseETL()
-        engine.run(
-            input_path=request.input_path,
-            output_path=request.output_path,
-            pdf_base_dir=_resolve_pdf_base_dir(
-                request,
-                tenant_pdf_base,
-                request.input_path.parents[2] if request.input_path.exists() else Path("."),
-            ),
-            sheet_name=_resolve_sheet_name(
-                request,
-                tenant_sheet_name,
-                "cashbook",
-            ),
+        return _run_legacy_cashbook_engine(
+            engine=AsiaKasseETL(),
+            request=request,
+            tenant_pdf_base=tenant_pdf_base,
+            tenant_sheet_name=tenant_sheet_name,
+            fallback_pdf_base=request.input_path.parents[2] if request.input_path.exists() else Path("."),
+            fallback_sheet_name="cashbook",
         )
-        return _result_to_processed_transactions(engine.final_rows, request.tenant_id.strip().lower(), "cashbook")
 
 
 class _JupiterLegacyCashbookRunner(ILegacyCashbookRunner):
@@ -134,22 +126,44 @@ class _JupiterLegacyCashbookRunner(ILegacyCashbookRunner):
         tenant_pdf_base: Path | None,
         tenant_sheet_name: str | None,
     ) -> list[ProcessedTransaction]:
-        engine = JupiterKasseETL()
-        engine.run(
-            input_path=request.input_path,
-            output_path=request.output_path,
-            pdf_base_dir=_resolve_pdf_base_dir(
-                request,
-                tenant_pdf_base,
-                request.input_path.parent if request.input_path.exists() else Path("."),
-            ),
-            sheet_name=_resolve_sheet_name(
-                request,
-                tenant_sheet_name,
-                None,
-            ),
+        return _run_legacy_cashbook_engine(
+            engine=JupiterKasseETL(),
+            request=request,
+            tenant_pdf_base=tenant_pdf_base,
+            tenant_sheet_name=tenant_sheet_name,
+            fallback_pdf_base=request.input_path.parent if request.input_path.exists() else Path("."),
+            fallback_sheet_name=None,
         )
-        return _result_to_processed_transactions(engine.final_rows, request.tenant_id.strip().lower(), "cashbook")
+
+
+def _run_legacy_cashbook_engine(
+    *,
+    engine,
+    request: CashbookRunRequest,
+    tenant_pdf_base: Path | None,
+    tenant_sheet_name: str | None,
+    fallback_pdf_base: Path,
+    fallback_sheet_name: str | None,
+) -> list[ProcessedTransaction]:
+    engine.run(
+        input_path=request.input_path,
+        output_path=request.output_path,
+        pdf_base_dir=_resolve_pdf_base_dir(
+            request,
+            tenant_pdf_base,
+            fallback_pdf_base,
+        ),
+        sheet_name=_resolve_sheet_name(
+            request,
+            tenant_sheet_name,
+            fallback_sheet_name,
+        ),
+    )
+    return _result_to_processed_transactions(
+        engine.final_rows,
+        canonical_tenant_id(request.tenant_id),
+        "cashbook",
+    )
 
 
 def _result_to_processed_transactions(rows: list, tenant_id: str, module_name: str) -> list[ProcessedTransaction]:

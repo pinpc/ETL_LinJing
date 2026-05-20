@@ -5,7 +5,12 @@ from __future__ import annotations
 from pathlib import Path
 
 from .interfaces import BankRunRequest, ILegacyBankRunner
-from .legacy_common import load_legacy_module, resolve_sqlite_output_path, stdlib_platform_guard
+from .legacy_common import (
+    ensure_output_exists,
+    load_legacy_module,
+    resolve_sqlite_output_path,
+    stdlib_platform_guard,
+)
 
 _JUPITER_BANK_ROOT = Path(__file__).resolve().parent / "jupiter_bank_etl"
 _JUPITER_BANK_ROOT = _JUPITER_BANK_ROOT.resolve()
@@ -32,7 +37,7 @@ class JupiterLegacyBankRunner(ILegacyBankRunner):
             raise RuntimeError(
                 f"Jupiter legacy bank ETL exited unexpectedly with code {exc.code!r}."
             ) from exc
-        _ensure_output_exists(request.output_path)
+        ensure_output_exists(request.output_path, runner_name="Jupiter")
 
 
 def run_jupiter_bank(request: BankRunRequest) -> None:
@@ -50,10 +55,3 @@ def _resolve_source_dir(request: BankRunRequest) -> Path:
 
 def _resolve_sqlite_path(request: BankRunRequest) -> Path:
     return resolve_sqlite_output_path(request.sqlite_output_path, request.output_path)
-
-
-def _ensure_output_exists(output_path: Path) -> None:
-    if not output_path.exists():
-        raise RuntimeError(
-            f"Jupiter legacy bank ETL finished without producing output workbook: {output_path}"
-        )

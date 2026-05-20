@@ -2,10 +2,11 @@
 
 from __future__ import annotations
 
-import json
 from datetime import datetime, timezone
 from pathlib import Path
 from typing import Mapping
+
+from .jsonio import write_json_file
 
 
 def write_run_meta(
@@ -18,7 +19,6 @@ def write_run_meta(
 ) -> Path:
     """Write standardized run metadata JSON beside the output workbook."""
     run_meta_path = output_path.with_suffix(".run_meta.json")
-    run_meta_path.parent.mkdir(parents=True, exist_ok=True)
     payload = {
         "tenant_id": tenant_id,
         "module_name": module_name,
@@ -29,5 +29,5 @@ def write_run_meta(
             for key, value in artifacts.items()
         },
     }
-    run_meta_path.write_text(json.dumps(payload, ensure_ascii=False, indent=2), encoding="utf-8")
+    write_json_file(run_meta_path, payload)
     return run_meta_path

@@ -18,6 +18,14 @@ def resolve_sqlite_output_path(sqlite_output_path: Path | None, output_path: Pat
     return output_path.with_suffix(".sqlite")
 
 
+def ensure_output_exists(output_path: Path, *, runner_name: str) -> None:
+    """Validate that a legacy runner produced its expected workbook output."""
+    if not output_path.exists():
+        raise RuntimeError(
+            f"{runner_name} legacy bank ETL finished without producing output workbook: {output_path}"
+        )
+
+
 def load_legacy_module(package_root: Path, module_name: str):
     """Load legacy module after adding its package parent to ``sys.path``."""
     package_parent = package_root.parent
