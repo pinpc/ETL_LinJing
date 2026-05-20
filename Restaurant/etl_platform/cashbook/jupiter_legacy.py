@@ -684,12 +684,6 @@ def _apply_excel_formatting(worksheet) -> None:
         amount_cell = worksheet.cell(row=row_idx, column=1)
         if amount_cell.value not in (None, ""):
             amount_cell.number_format = XL_EURO_NUM_FMT
-            try:
-                amount_value = float(amount_cell.value)
-            except Exception:
-                amount_value = None
-            if amount_value is not None and amount_value < 0:
-                amount_cell.font = Font(color="FF0000")
 
         if worksheet.cell(row=row_idx, column=7).value == "Gesamtbetrag":
             for col_idx in range(1, max_col + 1):
