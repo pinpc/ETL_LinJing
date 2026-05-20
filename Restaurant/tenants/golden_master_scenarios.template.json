@@ -1,0 +1,40 @@
+{
+  "cases": [
+    {
+      "id": "bank_asia",
+      "module": "bank",
+      "tenant_id": "asia",
+      "source": "${WORKSPACE_ROOT}/path/to/asia/bank/source",
+      "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_bank.xlsx",
+      "expected": "${PROJECT_ROOT}/tenants/golden/bank_asia.processed.json",
+      "ignore_fields": []
+    },
+    {
+      "id": "bank_jupiter",
+      "module": "bank",
+      "tenant_id": "jupiter",
+      "source": "${WORKSPACE_ROOT}/path/to/jupiter/bank/source",
+      "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_bank.xlsx",
+      "expected": "${PROJECT_ROOT}/tenants/golden/bank_jupiter.processed.json",
+      "ignore_fields": []
+    },
+    {
+      "id": "cashbook_asia",
+      "module": "cashbook",
+      "tenant_id": "asia",
+      "source": "${WORKSPACE_ROOT}/path/to/asia/cashbook/input.xlsx",
+      "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_cashbook.xlsx",
+      "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_asia.processed.json",
+      "ignore_fields": []
+    },
+    {
+      "id": "cashbook_jupiter",
+      "module": "cashbook",
+      "tenant_id": "jupiter",
+      "source": "${WORKSPACE_ROOT}/path/to/jupiter/cashbook/input.xlsx",
+      "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_cashbook.xlsx",
+      "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_jupiter.processed.json",
+      "ignore_fields": []
+    }
+  ]
+}

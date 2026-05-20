@@ -168,6 +168,24 @@ python -m Restaurant.apps.etl_cli.ci_smoke --module bank
 python -m Restaurant.apps.etl_cli.ci_smoke --module cashbook
 ```
 
+### Golden-master snapshot checks
+
+```bash
+python -m Restaurant.apps.etl_cli.golden_master --mode record --scenarios <scenarios.json>
+python -m Restaurant.apps.etl_cli.golden_master --mode verify --scenarios <scenarios.json>
+```
+
+Scenario template:
+
+- `tenants/golden_master_scenarios.template.json`
+- Optional per-case `ignore_fields` can suppress known non-deterministic columns.
+
+Unified dispatcher option:
+
+```bash
+python -m Restaurant.apps.etl_cli.main golden-master --mode verify --scenarios <scenarios.json>
+```
+
 ---
 
 ## Notes

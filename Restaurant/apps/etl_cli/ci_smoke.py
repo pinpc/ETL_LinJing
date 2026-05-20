@@ -51,7 +51,7 @@ def _run_bank_smoke() -> None:
         service.register_legacy_runner("ci", _StubBankRunner())
 
         original_loader = getattr(sys.modules[BankService.__module__], "_load_processed_from_bank_workbook")
-        original_json_writer = getattr(sys.modules[BankService.__module__], "_write_bank_canonical_json")
+        original_export_outputs = getattr(sys.modules[BankService.__module__], "_export_bank_outputs")
         try:
             def _fake_loader(_output_path: Path, tenant_id: str) -> list[ProcessedTransaction]:
                 return [
@@ -66,11 +66,11 @@ def _run_bank_smoke() -> None:
                     )
                 ]
 
-            def _fake_json_writer(path: Path, rows: list[ProcessedTransaction]) -> None:
+            def _fake_export_outputs(path: Path, rows: list[ProcessedTransaction]) -> None:
                 path.with_suffix(".processed.json").write_text("[]", encoding="utf-8")
 
             setattr(sys.modules[BankService.__module__], "_load_processed_from_bank_workbook", _fake_loader)
-            setattr(sys.modules[BankService.__module__], "_write_bank_canonical_json", _fake_json_writer)
+            setattr(sys.modules[BankService.__module__], "_export_bank_outputs", _fake_export_outputs)
 
             result = service.run_with_result(
                 BankRunRequest(
@@ -81,7 +81,7 @@ def _run_bank_smoke() -> None:
             )
         finally:
             setattr(sys.modules[BankService.__module__], "_load_processed_from_bank_workbook", original_loader)
-            setattr(sys.modules[BankService.__module__], "_write_bank_canonical_json", original_json_writer)
+            setattr(sys.modules[BankService.__module__], "_export_bank_outputs", original_export_outputs)
 
         if len(result.rows) != 1:
             raise RuntimeError(f"Bank CI smoke expected 1 row, got {len(result.rows)}")
