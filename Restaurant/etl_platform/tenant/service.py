@@ -23,14 +23,20 @@ class TenantResolver(ITenantResolver):
         raw_config = _read_yaml(config_path)
         if not isinstance(raw_config, dict):
             raise ValidationError(f"Tenant config must be a mapping: {config_path}")
+        manifest = _read_tenant_manifest(config_path.parent)
+        options = _merge_tenant_options(
+            tenant_id=tenant_id,
+            tenant_config=raw_config,
+            tenant_manifest=manifest,
+        )
 
         return TenantContext(
             tenant_id=tenant_id,
-            display_name=str(raw_config.get("display_name") or tenant_id),
+            display_name=str(raw_config.get("display_name") or manifest.get("display_name") or tenant_id),
             config_dir=config_path.parent,
-            bank_account=str(raw_config.get("bank_account") or ""),
-            default_kost=str(raw_config.get("default_kost") or ""),
-            options=_normalize_options(raw_config.get("options")),
+            bank_account=str(raw_config.get("bank_account") or manifest.get("bank_account") or ""),
+            default_kost=str(raw_config.get("default_kost") or manifest.get("default_kost") or ""),
+            options=options,
         )
 
     def _resolve_config_path(self, tenant_id: str) -> Path:
@@ -67,6 +73,52 @@ def _normalize_options(value: Any) -> dict[str, Any]:
     if not isinstance(value, dict):
         raise ValidationError("Tenant 'options' must be a mapping.")
     return value.copy()
+
+
+def _read_tenant_manifest(tenant_dir: Path) -> dict[str, Any]:
+    manifest_yaml = tenant_dir / "tenant_manifest.yaml"
+    manifest_yml = tenant_dir / "tenant_manifest.yml"
+    if manifest_yaml.exists():
+        loaded = _read_yaml(manifest_yaml)
+    elif manifest_yml.exists():
+        loaded = _read_yaml(manifest_yml)
+    else:
+        return {}
+
+    if not isinstance(loaded, dict):
+        raise ValidationError("Tenant manifest must be a mapping.")
+    return loaded
+
+
+def _merge_tenant_options(
+    *,
+    tenant_id: str,
+    tenant_config: dict[str, Any],
+    tenant_manifest: dict[str, Any],
+) -> dict[str, Any]:
+    merged = _normalize_options(tenant_manifest.get("options"))
+    merged.update(_normalize_options(tenant_config.get("options")))
+
+    runner_aliases = tenant_manifest.get("runner_aliases")
+    if runner_aliases is None:
+        return merged
+    if not isinstance(runner_aliases, dict):
+        raise ValidationError("Tenant manifest field 'runner_aliases' must be a mapping.")
+
+    for module_name, target_tenant in runner_aliases.items():
+        module = str(module_name).strip().lower()
+        if module not in {"bank", "cashbook"}:
+            raise ValidationError(
+                f"Tenant manifest has unsupported runner alias module '{module_name}' for tenant '{tenant_id}'."
+            )
+        target = str(target_tenant).strip().lower()
+        if not target:
+            raise ValidationError(
+                f"Tenant manifest runner alias for module '{module}' must not be empty for tenant '{tenant_id}'."
+            )
+        merged[f"{module}_runner_tenant_id"] = target
+
+    return merged
 
 
 def resolve_option_str(options: dict[str, Any], key: str) -> str | None:

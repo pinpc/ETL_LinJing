@@ -21,6 +21,7 @@ from ..shared.options import first_defined
 from ..shared.serialization import legacy_rows_to_processed_transactions
 from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
+from ..tenant.models import TenantContext
 from ..shared.models import ProcessedTransaction
 
 _DEFAULT_LEGACY_CASHBOOK_RUNNERS: dict[str, ILegacyCashbookRunner] = {}
@@ -43,6 +44,7 @@ class CashbookService(ICashbookService):
         tenant_id = canonical_tenant_id(request.tenant_id)
         try:
             tenant_context = self._tenant_resolver.resolve(tenant_id)
+            runner_tenant_id = _resolve_runner_tenant_id(tenant_context, tenant_id)
             tenant_pdf_base = resolve_option_path(tenant_context, "cashbook_pdf_base_dir")
             tenant_sheet_name = resolve_option_str(tenant_context.options, "cashbook_sheet_name")
             tenant_sqlite_output = resolve_option_path(tenant_context, "cashbook_sqlite_output_path")
@@ -52,7 +54,7 @@ class CashbookService(ICashbookService):
                 request.output_path.with_suffix(".sqlite"),
             )
 
-            runner = self._legacy_cashbook_runners.get(tenant_id)
+            runner = self._legacy_cashbook_runners.get(runner_tenant_id)
             if runner is None:
                 raise CashbookServiceError(
                     CashbookErrorCode.TENANT_UNSUPPORTED,
@@ -180,6 +182,13 @@ def _resolve_pdf_base_dir(
     fallback: Path,
 ) -> Path:
     return first_defined(request.pdf_base_dir, tenant_value, fallback)
+
+
+def _resolve_runner_tenant_id(tenant_context: TenantContext, fallback_tenant_id: str) -> str:
+    configured = resolve_option_str(tenant_context.options, "cashbook_runner_tenant_id")
+    if configured:
+        return canonical_tenant_id(configured)
+    return fallback_tenant_id
 
 
 def _resolve_sheet_name(

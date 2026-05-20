@@ -1,0 +1,15 @@
+display_name: "New Tenant Display Name"
+bank_account: "0000"
+default_kost: "TENANT"
+
+# Optional: reuse existing legacy runners by module.
+# Valid modules: bank, cashbook
+runner_aliases:
+  bank: "asia"
+  cashbook: "jupiter"
+
+# Optional defaults merged into tenant_config options.
+# tenant_config.yaml options override these values.
+options:
+  locale: "de-DE"
+  currency: "EUR"

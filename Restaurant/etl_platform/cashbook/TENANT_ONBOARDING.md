@@ -18,6 +18,16 @@ When adding a tenant implementation:
 - Ensure rows can be converted into `ProcessedTransaction`
 - Raise explicit exceptions for invalid/missing input
 
+### Manifest-based alias registration (new)
+
+You can onboard a new tenant with **zero new runner code** by reusing an existing tenant runner via tenant manifest:
+
+- Create `tenants/<new_tenant>/tenant_manifest.yaml`
+- Set:
+  - `runner_aliases.cashbook: "<existing_tenant_id>"`
+- Optional defaults in manifest (`display_name`, `bank_account`, `default_kost`, `options`) are merged with `tenant_config.yaml`
+  - `tenant_config.yaml` values override manifest defaults
+
 ## 3) Standard Errors
 
 Use `CashbookServiceError` codes from `etl_platform/cashbook/errors.py`:

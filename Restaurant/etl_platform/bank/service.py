@@ -55,9 +55,10 @@ class BankService(IBankService):
         tenant_id = canonical_tenant_id(request.tenant_id)
         try:
             tenant_context = self._tenant_resolver.resolve(tenant_id)
+            runner_tenant_id = _resolve_runner_tenant_id(tenant_context, tenant_id)
             resolved_request = _resolve_tenant_bank_request(request, tenant_context)
 
-            legacy_runner = self._legacy_bank_runners.get(tenant_id)
+            legacy_runner = self._legacy_bank_runners.get(runner_tenant_id)
             if legacy_runner is not None:
                 rows = _run_legacy_bank_pipeline(legacy_runner, resolved_request, tenant_id)
                 return _build_pipeline_result(tenant_id, resolved_request.output_path, rows)
@@ -186,6 +187,13 @@ def _resolve_tenant_bank_request(
             resolve_option_str(tenant_context.options, "bank_excel_title"),
         ),
     )
+
+
+def _resolve_runner_tenant_id(tenant_context: TenantContext, fallback_tenant_id: str) -> str:
+    configured = resolve_option_str(tenant_context.options, "bank_runner_tenant_id")
+    if configured:
+        return canonical_tenant_id(configured)
+    return fallback_tenant_id
 
 
 def _load_processed_from_bank_workbook(output_path: Path, tenant_id: str) -> list[ProcessedTransaction]:
