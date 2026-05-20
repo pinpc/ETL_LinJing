@@ -97,6 +97,7 @@ Input (typical):
 Outputs (typical):
 
 - workbook: `*.xlsx`
+- canonical json: `*.processed.json`
 - sqlite: `*.sqlite`
 - metadata: `*.run_meta.json`
 
@@ -184,6 +185,24 @@ Unified dispatcher option:
 
 ```bash
 python -m Restaurant.apps.etl_cli.main golden-master --mode verify --scenarios <scenarios.json>
+```
+
+### Artifact Contract (per ETL run)
+
+Expected artifacts after a successful run:
+
+- required: `<output>.xlsx` (or configured workbook output path)
+- required: `<output>.processed.json`
+- required: `<output>.run_meta.json`
+- optional: `<output>.sqlite` (cashbook / configured bank sqlite outputs)
+- optional: `<output>.rule_trace_summary.json` (rule-enabled bank fallback path)
+
+### Daily Regression Check
+
+```bash
+python apps/etl_cli/health_check.py
+python apps/etl_cli/rules_smoke.py
+python apps/etl_cli/golden_master.py --mode verify
 ```
 
 ---

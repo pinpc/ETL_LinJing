@@ -18,9 +18,9 @@ def _bootstrap_import_path() -> None:
 
 def _build_parser() -> argparse.ArgumentParser:
     parser = argparse.ArgumentParser(description="Validate tenant ETL config and debug path health.")
-    from Restaurant.etl_platform.tenant.service import list_available_tenant_ids
+    from Restaurant.etl_platform.tenant.registry import list_tenant_ids
 
-    discovered_tenants = list_available_tenant_ids()
+    discovered_tenants = list_tenant_ids()
     tenant_choices = sorted(set(discovered_tenants + ["all"]))
     parser.add_argument(
         "--tenant",
@@ -43,11 +43,11 @@ def main(argv: list[str] | None = None) -> int:
     if not args.namespace_only:
         from Restaurant.etl_platform.tenant.service import (
             TenantResolver,
-            list_available_tenant_ids,
             resolve_option_path_info,
         )
+        from Restaurant.etl_platform.tenant.registry import list_tenant_ids
 
-        tenants = list_available_tenant_ids() if args.tenant == "all" else [args.tenant]
+        tenants = list_tenant_ids() if args.tenant == "all" else [args.tenant]
         resolver = TenantResolver()
 
         print("== Tenant Config Checks ==")

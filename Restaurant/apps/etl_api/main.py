@@ -136,7 +136,14 @@ _INDEX_HTML = """<!doctype html>
         const tenantSelect = document.getElementById("tenant");
         tenantSelect.innerHTML = "";
         const tenants = Array.isArray(data.tenants) ? data.tenants : [];
+        const selectedModule = document.getElementById("module").value;
         for (const tenant of tenants) {
+          const supported = Array.isArray(tenant.supported_modules)
+            ? tenant.supported_modules
+            : ["bank", "cashbook"];
+          if (!supported.includes(selectedModule)) {
+            continue;
+          }
           const option = document.createElement("option");
           option.value = tenant.tenant_id;
           option.textContent = tenant.display_name
@@ -311,6 +318,7 @@ _INDEX_HTML = """<!doctype html>
     document.getElementById("startBtn").addEventListener("click", startJob);
     document.getElementById("pollBtn").addEventListener("click", pollJob);
     document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
+    document.getElementById("module").addEventListener("change", loadTenants);
     document.getElementById("browseSourceFileBtn").addEventListener("click", () =>
       pickPath("/fs/pick-file", { title: "Select source file" }, "source")
     );
@@ -514,9 +522,9 @@ def _handle_list_runs(environ, start_response):
 
 
 def _handle_list_tenants(start_response):
-    from Restaurant.etl_platform.tenant.service import list_available_tenants
+    from Restaurant.etl_platform.tenant.registry import list_tenants
 
-    tenants = list_available_tenants()
+    tenants = list_tenants()
     return _json_response(start_response, 200, {"tenants": tenants})
 
 

@@ -54,36 +54,22 @@ class TenantResolver(ITenantResolver):
 
 def list_available_tenant_ids(tenants_root: Path | None = None) -> list[str]:
     """List tenant ids discovered from tenants/*/tenant_config.yaml."""
-    root = tenants_root or Path(__file__).resolve().parents[2] / "tenants"
-    if not root.exists():
-        return []
+    from .registry import list_tenant_ids
 
-    discovered: list[str] = []
-    for child in sorted(root.iterdir(), key=lambda path: path.name.lower()):
-        if not child.is_dir():
-            continue
-        if (child / "tenant_config.yaml").exists() or (child / "tenant_config.yml").exists():
-            discovered.append(child.name.strip().lower())
-    return discovered
+    return list_tenant_ids(tenants_root=tenants_root)
 
 
 def list_available_tenants(tenants_root: Path | None = None) -> list[dict[str, str]]:
     """List available tenants with display labels for API/UI dropdowns."""
-    resolver = TenantResolver(tenants_root=tenants_root)
-    tenants: list[dict[str, str]] = []
-    for tenant_id in list_available_tenant_ids(tenants_root=tenants_root):
-        try:
-            context = resolver.resolve(tenant_id)
-            display_name = context.display_name or tenant_id
-        except Exception:
-            display_name = tenant_id
-        tenants.append(
-            {
-                "tenant_id": tenant_id,
-                "display_name": display_name,
-            }
-        )
-    return tenants
+    from .registry import list_tenants
+
+    return [
+        {
+            "tenant_id": str(item["tenant_id"]),
+            "display_name": str(item["display_name"]),
+        }
+        for item in list_tenants(tenants_root=tenants_root)
+    ]
 
 
 def _read_yaml(config_path: Path) -> dict[str, Any]:
