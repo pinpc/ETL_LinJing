@@ -66,10 +66,20 @@ class BankService(IBankService):
             )
             parsed_rows = self._parser_registry.parse(parse_request)
             context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
-            processed_rows = self._rule_pipeline.run(parsed_rows, context)
+            trace_result = self._rule_pipeline.run_with_trace(parsed_rows, context)
+            processed_rows = trace_result.rows
             _write_output_csv(resolved_request.output_path, processed_rows)
             _write_bank_canonical_json(resolved_request.output_path, processed_rows)
-            return _build_pipeline_result(tenant_id, resolved_request.output_path, processed_rows)
+            trace_summary_path = _write_rule_trace_summary(
+                resolved_request.output_path,
+                self._rule_pipeline.summarize_trace(trace_result.trace),
+            )
+            return _build_pipeline_result(
+                tenant_id,
+                resolved_request.output_path,
+                processed_rows,
+                rule_trace_summary_path=trace_summary_path,
+            )
         except BankServiceError:
             raise
         except FileNotFoundError as exc:
@@ -137,6 +147,7 @@ def _build_pipeline_result(
     tenant_id: str,
     output_path: Path,
     rows: list[ProcessedTransaction],
+    rule_trace_summary_path: Path | None = None,
 ) -> BankPipelineResult:
     run_meta_path = _write_bank_run_meta(
         tenant_id=tenant_id,
@@ -157,6 +168,7 @@ def _build_pipeline_result(
         canonical_json_path=output_path.with_suffix(".processed.json"),
         run_meta_path=run_meta_path,
         diagnostics_path=resolved_diagnostics,
+        rule_trace_summary_path=rule_trace_summary_path,
         warnings=warnings,
     )
 
@@ -364,4 +376,13 @@ def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> P
             "diagnostics_json": output_path.with_suffix(".parse_diagnostics.json"),
         },
     )
+
+
+def _write_rule_trace_summary(
+    output_path: Path,
+    summary: dict[str, dict[str, int]],
+) -> Path:
+    summary_path = output_path.with_suffix(".rule_trace_summary.json")
+    write_json_file(summary_path, summary)
+    return summary_path
 

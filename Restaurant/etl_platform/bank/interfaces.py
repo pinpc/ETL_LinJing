@@ -47,5 +47,6 @@ class BankPipelineResult:
     canonical_json_path: Path
     run_meta_path: Path | None = None
     diagnostics_path: Path | None = None
+    rule_trace_summary_path: Path | None = None
     warnings: list[str] = field(default_factory=list)
 
