@@ -1,0 +1,614 @@
+[
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1872.1,
+    "booking_date": "2026-03-02",
+    "booking_text": "Uber Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 148.5,
+    "booking_date": "2026-03-02",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 527.51,
+    "booking_date": "2026-03-02",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -37.5,
+    "booking_date": "2026-03-02",
+    "booking_text": "meistro Energie Gas",
+    "bu_gkto": "904240",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -236.0,
+    "booking_date": "2026-03-02",
+    "booking_text": "meistro Energie Gas 03 2026",
+    "bu_gkto": "904240",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -536.0,
+    "booking_date": "2026-03-02",
+    "booking_text": "meistro Energie Strom 03 2026",
+    "bu_gkto": "904240",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -454.95,
+    "booking_date": "2026-03-03",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -250.09,
+    "booking_date": "2026-03-03",
+    "booking_text": "Paulaner Getränke",
+    "bu_gkto": "3400",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1159.43,
+    "booking_date": "2026-03-03",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -43.0,
+    "booking_date": "2026-03-03",
+    "booking_text": "ovag Strom 03 2026",
+    "bu_gkto": "904240",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -360.0,
+    "booking_date": "2026-03-04",
+    "booking_text": "Landeshauptstadt München Parkberechtigungsgebühr",
+    "bu_gkto": "4390",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 248.06,
+    "booking_date": "2026-03-04",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -149.94,
+    "booking_date": "2026-03-05",
+    "booking_text": "Kloh Entsorgung",
+    "bu_gkto": "3106",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -2300.0,
+    "booking_date": "2026-03-05",
+    "booking_text": "Miete 03.2026 für Wohnung",
+    "bu_gkto": "4210",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -304.4,
+    "booking_date": "2026-03-05",
+    "booking_text": "Wittmann Entsorgungswirtschaft GmbH Absaugen Fettabscheider",
+    "bu_gkto": "904280",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 231.83,
+    "booking_date": "2026-03-05",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 314.11,
+    "booking_date": "2026-03-06",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 364.97,
+    "booking_date": "2026-03-06",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -641.12,
+    "booking_date": "2026-03-09",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1385.23,
+    "booking_date": "2026-03-09",
+    "booking_text": "Uber Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 254.11,
+    "booking_date": "2026-03-09",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -140.42,
+    "booking_date": "2026-03-10",
+    "booking_text": "allO Technology Gebühr",
+    "bu_gkto": "904930",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 687.7,
+    "booking_date": "2026-03-10",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 2000.0,
+    "booking_date": "2026-03-10",
+    "booking_text": "von Kasse",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -80.74,
+    "booking_date": "2026-03-11",
+    "booking_text": "JET Tanken",
+    "bu_gkto": "904530",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 27.74,
+    "booking_date": "2026-03-11",
+    "booking_text": "LIEFERANDO.DE Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -5000.0,
+    "booking_date": "2026-03-11",
+    "booking_text": "Miete 03.2026 für Jupiter Restaurant",
+    "bu_gkto": "4210",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 288.28,
+    "booking_date": "2026-03-11",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 23.68,
+    "booking_date": "2026-03-11",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -359.19,
+    "booking_date": "2026-03-12",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -2935.41,
+    "booking_date": "2026-03-12",
+    "booking_text": "Zhou Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 243.3,
+    "booking_date": "2026-03-12",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 357.92,
+    "booking_date": "2026-03-13",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -2481.33,
+    "booking_date": "2026-03-16",
+    "booking_text": "A.R.Z. GmbH Rg.-Nr. 28287 Küchenreinigung Dunstabzugsanlage",
+    "bu_gkto": "904280",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -389.91,
+    "booking_date": "2026-03-16",
+    "booking_text": "BGN Beitrag 2026 Q 2",
+    "bu_gkto": "4138",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 8000.0,
+    "booking_date": "2026-03-16",
+    "booking_text": "Ling Jin Ausleihen",
+    "bu_gkto": "1890",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1192.87,
+    "booking_date": "2026-03-16",
+    "booking_text": "Uber Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 249.15,
+    "booking_date": "2026-03-16",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 535.47,
+    "booking_date": "2026-03-16",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -404.47,
+    "booking_date": "2026-03-17",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 26.46,
+    "booking_date": "2026-03-17",
+    "booking_text": "LIEFERANDO.DE Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -39.9,
+    "booking_date": "2026-03-17",
+    "booking_text": "M-net Internet",
+    "bu_gkto": "904925",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 816.57,
+    "booking_date": "2026-03-17",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 338.22,
+    "booking_date": "2026-03-18",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 404.09,
+    "booking_date": "2026-03-19",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 697.52,
+    "booking_date": "2026-03-20",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -279.32,
+    "booking_date": "2026-03-23",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1663.98,
+    "booking_date": "2026-03-23",
+    "booking_text": "Uber Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 280.63,
+    "booking_date": "2026-03-23",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 884.92,
+    "booking_date": "2026-03-23",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -215.22,
+    "booking_date": "2026-03-24",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1374.54,
+    "booking_date": "2026-03-24",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -12.0,
+    "booking_date": "2026-03-25",
+    "booking_text": "Paulaner Getränke",
+    "bu_gkto": "3400",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 240.93,
+    "booking_date": "2026-03-25",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -26.72,
+    "booking_date": "2026-03-26",
+    "booking_text": "Vodafone Internet",
+    "bu_gkto": "904920",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 234.85,
+    "booking_date": "2026-03-26",
+    "booking_text": "Wolt Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 791.16,
+    "booking_date": "2026-03-26",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -659.4,
+    "booking_date": "2026-03-27",
+    "booking_text": "HAMBERGER Wareneinkauf",
+    "bu_gkto": "3300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 521.96,
+    "booking_date": "2026-03-27",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -1766.95,
+    "booking_date": "2026-03-30",
+    "booking_text": "Chen Wanyun Lohn 02.2026",
+    "bu_gkto": "1740",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -4000.0,
+    "booking_date": "2026-03-30",
+    "booking_text": "Erstattung Lohnkosten Jupiter",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -500.0,
+    "booking_date": "2026-03-30",
+    "booking_text": "Sheue-Ru Wang Ping Zhou Lohn 03.2026",
+    "bu_gkto": "1740",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1448.87,
+    "booking_date": "2026-03-30",
+    "booking_text": "Uber Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -1833.89,
+    "booking_date": "2026-03-30",
+    "booking_text": "Xie Chunlin Lohn 02.2026",
+    "bu_gkto": "1740",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 1089.03,
+    "booking_date": "2026-03-30",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -36.25,
+    "booking_date": "2026-03-31",
+    "booking_text": "Bankgebühr",
+    "bu_gkto": "4970",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 803.22,
+    "booking_date": "2026-03-31",
+    "booking_text": "allO pay",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": 2000.0,
+    "booking_date": "2026-03-31",
+    "booking_text": "von Kasse",
+    "bu_gkto": "1360",
+    "beleg_1": "01"
+  }
+]

@@ -6,5 +6,6 @@ result/
 *.xlsx
 ~$*.xlsx
 *.processed.json
+!Restaurant/tenants/golden/*.processed.json
 *.parse_diagnostics.json
 *.run_meta.json

@@ -1,0 +1,587 @@
+[
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 4.0,
+    "booking_date": "01.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z040"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 200.0,
+    "booking_date": "01.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z040"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 54.0,
+    "booking_date": "02.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z041"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 288.0,
+    "booking_date": "04.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z042"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 352.0,
+    "booking_date": "06.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z043"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 8.0,
+    "booking_date": "07.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z044"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1037.0,
+    "booking_date": "07.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z044"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 8.0,
+    "booking_date": "08.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z045"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 452.0,
+    "booking_date": "08.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z045"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 34.0,
+    "booking_date": "09.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z046"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 653.0,
+    "booking_date": "09.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z046"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 610.0,
+    "booking_date": "10.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z047"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1135.0,
+    "booking_date": "11.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z048"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 756.0,
+    "booking_date": "12.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z049"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 20.0,
+    "booking_date": "13.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z050"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1116.0,
+    "booking_date": "13.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z050"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 525.0,
+    "booking_date": "14.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z051"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 42.0,
+    "booking_date": "15.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z052"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 932.0,
+    "booking_date": "15.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z052"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 90.0,
+    "booking_date": "16.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z053"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1156.0,
+    "booking_date": "16.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z053"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 140.0,
+    "booking_date": "17.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z054"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1120.0,
+    "booking_date": "17.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z054"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1431.0,
+    "booking_date": "18.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z055"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 20.0,
+    "booking_date": "19.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z056"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1487.0,
+    "booking_date": "19.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z056"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1808.0,
+    "booking_date": "20.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z057"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -22.0,
+    "booking_date": "2026-03-01",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z040"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -54.0,
+    "booking_date": "2026-03-02",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z041"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -2200.0,
+    "booking_date": "2026-03-06",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -64.0,
+    "booking_date": "2026-03-08",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z045"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -432.0,
+    "booking_date": "2026-03-09",
+    "booking_text": "per Überweisung",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -2000.0,
+    "booking_date": "2026-03-10",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -48.0,
+    "booking_date": "2026-03-13",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z050"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -3000.0,
+    "booking_date": "2026-03-13",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -54.0,
+    "booking_date": "2026-03-14",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z051"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -56.0,
+    "booking_date": "2026-03-15",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z052"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -8.8,
+    "booking_date": "2026-03-17",
+    "booking_text": "Trinkgeld",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 8.8,
+    "booking_date": "2026-03-17",
+    "booking_text": "Trinkgeld",
+    "bu_gkto": "8000",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -4200.0,
+    "booking_date": "2026-03-17",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -4300.0,
+    "booking_date": "2026-03-20",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -401.6,
+    "booking_date": "2026-03-22",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z059"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -3200.0,
+    "booking_date": "2026-03-23",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -800.0,
+    "booking_date": "2026-03-23",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -69.0,
+    "booking_date": "2026-03-25",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z062"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -4000.0,
+    "booking_date": "2026-03-27",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -65.0,
+    "booking_date": "2026-03-28",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z065"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1150.6,
+    "booking_date": "2026-03-28",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "8000",
+    "beleg_1": "Z065"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -3.0,
+    "booking_date": "2026-03-28",
+    "booking_text": "Trinkgeld",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -44.0,
+    "booking_date": "2026-03-30",
+    "booking_text": "AllO Pay",
+    "bu_gkto": "1360",
+    "beleg_1": "Z067"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": -5000.0,
+    "booking_date": "2026-03-31",
+    "booking_text": "an Bank",
+    "bu_gkto": "1360",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1344.0,
+    "booking_date": "21.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z058"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 31.1,
+    "booking_date": "22.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z059"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 2285.0,
+    "booking_date": "22.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z059"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 624.0,
+    "booking_date": "23.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z060"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1080.0,
+    "booking_date": "24.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z061"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 11.0,
+    "booking_date": "25.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z062"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1311.0,
+    "booking_date": "25.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z062"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 280.0,
+    "booking_date": "26.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z063"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 16.5,
+    "booking_date": "27.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z064"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1438.0,
+    "booking_date": "27.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z064"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 903.0,
+    "booking_date": "29.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z066"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 12.0,
+    "booking_date": "30.03.2026",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z067"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1657.0,
+    "booking_date": "30.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z067"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "cashbook",
+    "amount": 1238.0,
+    "booking_date": "31.03.2026",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z068"
+  }
+]
