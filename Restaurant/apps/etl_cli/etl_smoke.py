@@ -73,6 +73,7 @@ def _run_cashbook(args) -> None:
     print(f"tenant={result.tenant_id}")
     print(f"rows={len(result.rows)}")
     print(f"workbook={result.output_path}")
+    print(f"canonical_json={result.canonical_json_path}")
     print(f"sqlite={result.sqlite_path}")
     print(f"run_meta={result.run_meta_path}")
     if result.warnings:

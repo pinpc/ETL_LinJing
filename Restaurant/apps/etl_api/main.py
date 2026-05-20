@@ -656,6 +656,7 @@ def _run_cashbook_job(tenant_id: str, source: Path, output: Path, payload: dict[
         "row_count": len(result.rows),
         "artifacts": {
             "workbook": str(result.output_path),
+            "canonical_json": str(result.canonical_json_path),
             "sqlite": str(result.sqlite_path),
             "run_meta": str(result.run_meta_path) if result.run_meta_path else None,
         },

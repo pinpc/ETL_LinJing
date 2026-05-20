@@ -2,8 +2,6 @@
 
 from __future__ import annotations
 
-import json
-from datetime import datetime, timezone
 from pathlib import Path
 
 from .asia_legacy import AsiaKasseETL
@@ -69,6 +67,7 @@ class CashbookService(ICashbookService):
                 module_name="cashbook",
                 rows=processed,
                 output_path=request.output_path,
+                canonical_json_path=request.output_path.with_suffix(".processed.json"),
                 sqlite_path=sqlite_path,
                 run_meta_path=run_meta_path,
             )

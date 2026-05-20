@@ -48,6 +48,7 @@ class CashbookPipelineResult:
     module_name: str
     rows: list[ProcessedTransaction]
     output_path: Path
+    canonical_json_path: Path
     sqlite_path: Path
     run_meta_path: Path | None = None
     warnings: list[str] = field(default_factory=list)
