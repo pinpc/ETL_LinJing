@@ -1,0 +1,15 @@
+# Local-only tenant overrides (do not commit tenant-specific machine paths).
+#
+# Usage:
+# 1) Copy this file into a tenant folder, e.g. tenants/asia/tenant_local.yaml
+# 2) Put machine-specific paths in options below.
+# 3) tenant_local.yaml overrides tenant_config.yaml options at runtime.
+#
+# Typical local run-path overrides:
+# options:
+#   bank_statement_pdf: "C:/local/path/to/statement.pdf"
+#   bank_sqlite_output_path: "${WORKSPACE_ROOT}/asia_bank_etl_debug.sqlite"
+#   cashbook_pdf_base_dir: "C:/local/path/to/cashbook/base"
+#   cashbook_sqlite_output_path: "${WORKSPACE_ROOT}/asia_kasse_etl_debug.sqlite"
+
+options: {}

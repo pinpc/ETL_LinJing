@@ -53,10 +53,7 @@ _INDEX_HTML = """<!doctype html>
     </select>
 
     <label for="tenant">Tenant</label>
-    <select id="tenant">
-      <option value="asia">asia</option>
-      <option value="jupiter">jupiter</option>
-    </select>
+    <select id="tenant"></select>
 
     <label for="source">Source</label>
     <div class="input-row">
@@ -125,6 +122,38 @@ _INDEX_HTML = """<!doctype html>
 
     function setResult(data) {
       resultBox.value = JSON.stringify(data, null, 2);
+    }
+
+    async function loadTenants() {
+      try {
+        const res = await fetch("/etl/tenants");
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus("tenant_load_failed");
+          setResult(data);
+          return;
+        }
+        const tenantSelect = document.getElementById("tenant");
+        tenantSelect.innerHTML = "";
+        const tenants = Array.isArray(data.tenants) ? data.tenants : [];
+        for (const tenant of tenants) {
+          const option = document.createElement("option");
+          option.value = tenant.tenant_id;
+          option.textContent = tenant.display_name
+            ? `${tenant.tenant_id} (${tenant.display_name})`
+            : tenant.tenant_id;
+          tenantSelect.appendChild(option);
+        }
+        if (!tenants.length) {
+          const option = document.createElement("option");
+          option.value = "";
+          option.textContent = "no tenants found";
+          tenantSelect.appendChild(option);
+        }
+      } catch (err) {
+        setStatus("tenant_load_error");
+        setResult({ error: String(err) });
+      }
     }
 
     function buildPayload() {
@@ -299,6 +328,7 @@ _INDEX_HTML = """<!doctype html>
       );
     });
     loadHistory();
+    loadTenants();
   </script>
 </body>
 </html>
@@ -384,6 +414,9 @@ def create_app():
 
         if method == "GET" and path == "/etl/runs":
             return _handle_list_runs(environ, start_response)
+
+        if method == "GET" and path == "/etl/tenants":
+            return _handle_list_tenants(start_response)
 
         if method == "GET" and path.startswith("/etl/run/"):
             job_id = path.removeprefix("/etl/run/").strip()
@@ -478,6 +511,13 @@ def _handle_list_runs(environ, start_response):
         )
     records = _job_store_list(limit=limit)
     return _json_response(start_response, 200, {"runs": [record.to_dict() for record in records]})
+
+
+def _handle_list_tenants(start_response):
+    from Restaurant.etl_platform.tenant.service import list_available_tenants
+
+    tenants = list_available_tenants()
+    return _json_response(start_response, 200, {"tenants": tenants})
 
 
 def _handle_pick_file(environ, start_response):

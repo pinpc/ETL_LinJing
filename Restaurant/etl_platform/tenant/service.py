@@ -23,11 +23,13 @@ class TenantResolver(ITenantResolver):
         raw_config = _read_yaml(config_path)
         if not isinstance(raw_config, dict):
             raise ValidationError(f"Tenant config must be a mapping: {config_path}")
+        local_config = _read_tenant_local_config(config_path.parent)
         manifest = _read_tenant_manifest(config_path.parent)
         options = _merge_tenant_options(
             tenant_id=tenant_id,
             tenant_config=raw_config,
             tenant_manifest=manifest,
+            tenant_local_config=local_config,
         )
 
         return TenantContext(
@@ -48,6 +50,40 @@ class TenantResolver(ITenantResolver):
         if yml_path.exists():
             return yml_path
         raise ConfigurationError(f"Missing tenant config for '{tenant_id}' in {tenant_dir}")
+
+
+def list_available_tenant_ids(tenants_root: Path | None = None) -> list[str]:
+    """List tenant ids discovered from tenants/*/tenant_config.yaml."""
+    root = tenants_root or Path(__file__).resolve().parents[2] / "tenants"
+    if not root.exists():
+        return []
+
+    discovered: list[str] = []
+    for child in sorted(root.iterdir(), key=lambda path: path.name.lower()):
+        if not child.is_dir():
+            continue
+        if (child / "tenant_config.yaml").exists() or (child / "tenant_config.yml").exists():
+            discovered.append(child.name.strip().lower())
+    return discovered
+
+
+def list_available_tenants(tenants_root: Path | None = None) -> list[dict[str, str]]:
+    """List available tenants with display labels for API/UI dropdowns."""
+    resolver = TenantResolver(tenants_root=tenants_root)
+    tenants: list[dict[str, str]] = []
+    for tenant_id in list_available_tenant_ids(tenants_root=tenants_root):
+        try:
+            context = resolver.resolve(tenant_id)
+            display_name = context.display_name or tenant_id
+        except Exception:
+            display_name = tenant_id
+        tenants.append(
+            {
+                "tenant_id": tenant_id,
+                "display_name": display_name,
+            }
+        )
+    return tenants
 
 
 def _read_yaml(config_path: Path) -> dict[str, Any]:
@@ -90,14 +126,31 @@ def _read_tenant_manifest(tenant_dir: Path) -> dict[str, Any]:
     return loaded
 
 
+def _read_tenant_local_config(tenant_dir: Path) -> dict[str, Any]:
+    local_yaml = tenant_dir / "tenant_local.yaml"
+    local_yml = tenant_dir / "tenant_local.yml"
+    if local_yaml.exists():
+        loaded = _read_yaml(local_yaml)
+    elif local_yml.exists():
+        loaded = _read_yaml(local_yml)
+    else:
+        return {}
+
+    if not isinstance(loaded, dict):
+        raise ValidationError("Tenant local config must be a mapping.")
+    return loaded
+
+
 def _merge_tenant_options(
     *,
     tenant_id: str,
     tenant_config: dict[str, Any],
     tenant_manifest: dict[str, Any],
+    tenant_local_config: dict[str, Any],
 ) -> dict[str, Any]:
     merged = _normalize_options(tenant_manifest.get("options"))
     merged.update(_normalize_options(tenant_config.get("options")))
+    merged.update(_normalize_options(tenant_local_config.get("options")))
 
     runner_aliases = tenant_manifest.get("runner_aliases")
     if runner_aliases is None:

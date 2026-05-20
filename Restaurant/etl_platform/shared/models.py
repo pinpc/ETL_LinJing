@@ -7,6 +7,7 @@ from datetime import datetime
 from pathlib import Path
 from typing import Any
 
+from ..tenant.models import TenantContext
 
 @dataclass(slots=True)
 class ParsedTransaction:
@@ -62,17 +63,6 @@ class RuleContext:
 
     tenant_id: str
     module_name: str
-    options: dict[str, Any] = field(default_factory=dict)
-
-
-@dataclass(slots=True)
-class TenantContext:
-    """Resolved tenant context used across modules."""
-
-    tenant_id: str
-    display_name: str
-    bank_account: str = ""
-    default_kost: str = ""
     options: dict[str, Any] = field(default_factory=dict)
 
 

@@ -9,3 +9,5 @@ result/
 !Restaurant/tenants/golden/*.processed.json
 *.parse_diagnostics.json
 *.run_meta.json
+Restaurant/tenants/*/tenant_local.yaml
+Restaurant/tenants/*/tenant_local.yml
