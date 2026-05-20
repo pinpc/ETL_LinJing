@@ -12,6 +12,12 @@ from .interfaces import (
 from .artifacts import write_run_meta
 from .jsonio import write_json_file
 from .options import first_defined
+from .export_pipeline import (
+    ProcessedExportTargets,
+    export_processed_rows,
+    sidecar_json_path,
+    write_sidecar_json,
+)
 from .sqlite_store import write_processed_transactions_sqlite
 from .serialization import (
     PROCESSED_TRANSACTION_FIELDS,
@@ -53,6 +59,10 @@ __all__ = [
     "TenantContext",
     "PROCESSED_TRANSACTION_FIELDS",
     "canonical_tenant_id",
+    "ProcessedExportTargets",
+    "export_processed_rows",
+    "sidecar_json_path",
+    "write_sidecar_json",
     "first_defined",
     "legacy_rows_to_processed_transactions",
     "list_registered_tenant_ids",

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-import csv
 from datetime import date, datetime
 from pathlib import Path
 from typing import Any
@@ -15,9 +14,13 @@ from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..rule_engine.interfaces import RuleExplainSummary
 from ..shared.artifacts import write_run_meta
-from ..shared.jsonio import write_json_file
+from ..shared.export_pipeline import (
+    ProcessedExportTargets,
+    export_processed_rows,
+    sidecar_json_path,
+    write_sidecar_json,
+)
 from ..shared.options import first_defined
-from ..shared.serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
 from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
@@ -69,8 +72,7 @@ class BankService(IBankService):
             context = RuleContext(tenant_id=resolved_request.tenant_id, module_name="bank")
             trace_result = self._rule_pipeline.run_with_trace(parsed_rows, context)
             processed_rows = trace_result.rows
-            _write_output_csv(resolved_request.output_path, processed_rows)
-            _write_bank_canonical_json(resolved_request.output_path, processed_rows)
+            _export_bank_outputs(resolved_request.output_path, processed_rows)
             trace_summary_path = _write_rule_trace_summary(resolved_request.output_path, trace_result.explain)
             return _build_pipeline_result(
                 tenant_id,
@@ -118,18 +120,6 @@ def _resolve_source_file(source_dir: Path) -> Path:
     return csv_files[0]
 
 
-def _write_output_csv(output_path: Path, rows) -> None:
-    output_path.parent.mkdir(parents=True, exist_ok=True)
-    with output_path.open("w", encoding="utf-8", newline="") as file:
-        writer = csv.DictWriter(
-            file,
-            fieldnames=list(PROCESSED_TRANSACTION_FIELDS),
-        )
-        writer.writeheader()
-        for row in rows:
-            writer.writerow(serialize_processed_transaction(row))
-
-
 def _run_legacy_bank_pipeline(
     runner: ILegacyBankRunner,
     request: BankRunRequest,
@@ -137,7 +127,7 @@ def _run_legacy_bank_pipeline(
 ) -> list[ProcessedTransaction]:
     runner.run(request)
     rows = _load_processed_from_bank_workbook(request.output_path, tenant_id)
-    _write_bank_canonical_json(request.output_path, rows)
+    _export_bank_outputs(request.output_path, rows)
     return rows
 
 
@@ -152,7 +142,7 @@ def _build_pipeline_result(
         output_path=output_path,
         row_count=len(rows),
     )
-    diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
+    diagnostics_path = sidecar_json_path(output_path, ".parse_diagnostics.json")
     warnings: list[str] = []
     resolved_diagnostics: Path | None = None
     if diagnostics_path.exists():
@@ -326,15 +316,17 @@ def _normalize_header(value: Any) -> str:
     return str(value).strip().lower() if value is not None else ""
 
 
-def _write_bank_canonical_json(output_path: Path, rows: list[ProcessedTransaction]) -> None:
-    json_path = output_path.with_suffix(".processed.json")
-    payload = [serialize_processed_transaction(row) for row in rows]
-    write_json_file(json_path, payload)
+def _export_bank_outputs(output_path: Path, rows: list[ProcessedTransaction]) -> None:
+    export_processed_rows(
+        rows,
+        ProcessedExportTargets(
+            csv_output_path=output_path,
+            json_output_path=output_path.with_suffix(".processed.json"),
+        ),
+    )
 
 
 def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, exc: Exception) -> None:
-    diagnostics_path = output_path.with_suffix(".parse_diagnostics.json")
-
     details: dict[str, Any] = {
         "tenant_id": tenant_id,
         "output_path": str(output_path),
@@ -359,7 +351,7 @@ def _write_bank_parse_diagnostics(output_path: Path, workbook, tenant_id: str, e
             preview.append(["" if value is None else str(value).strip() for value in values])
         details["sheet_previews"][sheet_name] = preview
 
-    write_json_file(diagnostics_path, details)
+    write_sidecar_json(output_path, ".parse_diagnostics.json", details)
 
 
 def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> Path:
@@ -370,8 +362,8 @@ def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> P
         row_count=row_count,
         artifacts={
             "workbook": output_path,
-            "processed_json": output_path.with_suffix(".processed.json"),
-            "diagnostics_json": output_path.with_suffix(".parse_diagnostics.json"),
+            "processed_json": sidecar_json_path(output_path, ".processed.json"),
+            "diagnostics_json": sidecar_json_path(output_path, ".parse_diagnostics.json"),
         },
     )
 
@@ -380,7 +372,5 @@ def _write_rule_trace_summary(
     output_path: Path,
     summary: RuleExplainSummary,
 ) -> Path:
-    summary_path = output_path.with_suffix(".rule_trace_summary.json")
-    write_json_file(summary_path, summary.to_dict())
-    return summary_path
+    return write_sidecar_json(output_path, ".rule_trace_summary.json", summary.to_dict())
 

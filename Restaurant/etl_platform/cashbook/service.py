@@ -16,9 +16,9 @@ from .interfaces import (
 )
 from .jupiter_legacy import JupiterKasseETL
 from ..shared.artifacts import write_run_meta
+from ..shared.export_pipeline import ProcessedExportTargets, export_processed_rows
 from ..shared.options import first_defined
 from ..shared.serialization import legacy_rows_to_processed_transactions
-from ..shared.sqlite_store import write_processed_transactions_sqlite
 from ..shared.tenancy import canonical_tenant_id, list_registered_tenant_ids, register_tenant_runner
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from ..shared.models import ProcessedTransaction
@@ -199,10 +199,12 @@ def _resolve_sqlite_output_path(
 
 
 def _write_sqlite(sqlite_path: Path, rows: list[ProcessedTransaction]) -> None:
-    write_processed_transactions_sqlite(
-        sqlite_path,
-        table_name="cashbook_transactions",
-        rows=rows,
+    export_processed_rows(
+        rows,
+        ProcessedExportTargets(
+            sqlite_output_path=sqlite_path,
+            sqlite_table_name="cashbook_transactions",
+        ),
     )
 
 
