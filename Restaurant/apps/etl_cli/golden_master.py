@@ -122,11 +122,13 @@ def _run_bank_case(case: GoldenCase) -> list[dict[str, Any]]:
     from Restaurant.etl_platform.bank.service import BankService
     from Restaurant.etl_platform.shared.serialization import serialize_processed_transaction
 
+    output_path = _expand_path(case.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     result = BankService().run_with_result(
         BankRunRequest(
             tenant_id=case.tenant_id,
             source_dir=_expand_path(case.source),
-            output_path=_expand_path(case.output),
+            output_path=output_path,
             statement_pdf=_expand_path(case.statement_pdf) if case.statement_pdf else None,
             agenda_file=_expand_path(case.agenda_file) if case.agenda_file else None,
             sqlite_output_path=_expand_path(case.sqlite_output) if case.sqlite_output else None,
@@ -141,11 +143,13 @@ def _run_cashbook_case(case: GoldenCase) -> list[dict[str, Any]]:
     from Restaurant.etl_platform.cashbook.service import CashbookService
     from Restaurant.etl_platform.shared.serialization import serialize_processed_transaction
 
+    output_path = _expand_path(case.output)
+    output_path.parent.mkdir(parents=True, exist_ok=True)
     result = CashbookService().run_with_result(
         CashbookRunRequest(
             tenant_id=case.tenant_id,
             input_path=_expand_path(case.source),
-            output_path=_expand_path(case.output),
+            output_path=output_path,
             pdf_base_dir=_expand_path(case.pdf_base_dir) if case.pdf_base_dir else None,
             sheet_name=case.sheet_name,
             sqlite_output_path=_expand_path(case.sqlite_output) if case.sqlite_output else None,
