@@ -65,22 +65,3 @@ class RuleContext:
     module_name: str
     options: dict[str, Any] = field(default_factory=dict)
 
-
-@dataclass(slots=True)
-class BankRunRequest:
-    """Input for bank use case."""
-
-    tenant_id: str
-    source_dir: Path
-    output_path: Path
-    statement_pdf: Path | None = None
-
-
-@dataclass(slots=True)
-class CashbookRunRequest:
-    """Input for cashbook use case."""
-
-    tenant_id: str
-    input_path: Path
-    output_path: Path
-

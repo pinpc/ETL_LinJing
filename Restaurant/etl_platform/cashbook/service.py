@@ -62,7 +62,7 @@ class CashbookService(ICashbookService):
                 )
 
             processed = runner.run(request, tenant_pdf_base, tenant_sheet_name)
-            _write_sqlite(sqlite_path, processed)
+            _export_cashbook_sidecars(request.output_path, sqlite_path, processed)
             run_meta_path = _write_cashbook_run_meta(tenant_id, request.output_path, sqlite_path, len(processed))
             return CashbookPipelineResult(
                 tenant_id=tenant_id,
@@ -207,10 +207,15 @@ def _resolve_sqlite_output_path(
     return first_defined(request.sqlite_output_path, tenant_value, fallback)
 
 
-def _write_sqlite(sqlite_path: Path, rows: list[ProcessedTransaction]) -> None:
+def _export_cashbook_sidecars(
+    output_path: Path,
+    sqlite_path: Path,
+    rows: list[ProcessedTransaction],
+) -> None:
     export_processed_rows(
         rows,
         ProcessedExportTargets(
+            json_output_path=output_path.with_suffix(".processed.json"),
             sqlite_output_path=sqlite_path,
             sqlite_table_name="cashbook_transactions",
         ),
@@ -230,6 +235,7 @@ def _write_cashbook_run_meta(
         row_count=row_count,
         artifacts={
             "workbook": output_path,
+            "processed_json": output_path.with_suffix(".processed.json"),
             "sqlite": sqlite_path,
         },
     )

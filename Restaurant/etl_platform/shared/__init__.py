@@ -32,8 +32,6 @@ from .tenancy import (
 )
 from .models import (
     AuditEvent,
-    BankRunRequest,
-    CashbookRunRequest,
     ParseRequest,
     ParsedTransaction,
     ProcessedTransaction,
@@ -43,8 +41,6 @@ from .models import (
 
 __all__ = [
     "AuditEvent",
-    "BankRunRequest",
-    "CashbookRunRequest",
     "IAuditStore",
     "IBankService",
     "ICashbookService",

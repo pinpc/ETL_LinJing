@@ -2,18 +2,20 @@
 
 from __future__ import annotations
 
-from typing import Protocol
+from typing import Protocol, TYPE_CHECKING
 
+from ..tenant.models import TenantContext
 from .models import (
     AuditEvent,
-    BankRunRequest,
-    CashbookRunRequest,
     ParseRequest,
     ParsedTransaction,
     ProcessedTransaction,
     RuleContext,
-    TenantContext,
 )
+
+if TYPE_CHECKING:
+    from ..bank.interfaces import BankRunRequest
+    from ..cashbook.interfaces import CashbookRunRequest
 
 
 class IParser(Protocol):
@@ -53,14 +55,14 @@ class ITenantResolver(Protocol):
 class IBankService(Protocol):
     """Contract for bank ETL orchestration."""
 
-    def run(self, request: BankRunRequest) -> list[ProcessedTransaction]:
+    def run(self, request: "BankRunRequest") -> list[ProcessedTransaction]:
         """Run bank ETL flow."""
 
 
 class ICashbookService(Protocol):
     """Contract for cashbook ETL orchestration."""
 
-    def run(self, request: CashbookRunRequest) -> list[ProcessedTransaction]:
+    def run(self, request: "CashbookRunRequest") -> list[ProcessedTransaction]:
         """Run cashbook ETL flow."""
 
 

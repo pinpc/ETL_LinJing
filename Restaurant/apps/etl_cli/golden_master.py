@@ -5,6 +5,7 @@ from __future__ import annotations
 import argparse
 import difflib
 import json
+import sqlite3
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -207,6 +208,20 @@ def _validate_case_artifacts(case: GoldenCase, output_path: Path) -> None:
         raise ValueError(
             f"Case '{case.case_id}' missing sidecar artifact: {run_meta_json}"
         )
+    run_meta_payload = json.loads(run_meta_json.read_text(encoding="utf-8"))
+    artifacts = run_meta_payload.get("artifacts") if isinstance(run_meta_payload, dict) else None
+    if case.module == "cashbook":
+        sqlite_path_text = (
+            artifacts.get("sqlite")
+            if isinstance(artifacts, dict)
+            else None
+        )
+        if not isinstance(sqlite_path_text, str) or not sqlite_path_text.strip():
+            raise ValueError(f"Case '{case.case_id}' run_meta has no sqlite artifact path.")
+        sqlite_path = Path(sqlite_path_text.strip())
+        if not sqlite_path.exists():
+            raise ValueError(f"Case '{case.case_id}' missing sqlite artifact: {sqlite_path}")
+        _validate_sqlite_has_rows(case.case_id, sqlite_path)
 
 
 def _record_case(case: GoldenCase) -> None:
@@ -271,6 +286,24 @@ def _normalize_rows(rows: Any, *, ignore_fields: list[str] | None) -> list[dict[
             str(row.get("amount", "")),
         ),
     )
+
+
+def _validate_sqlite_has_rows(case_id: str, sqlite_path: Path) -> None:
+    connection = sqlite3.connect(sqlite_path)
+    try:
+        cursor = connection.cursor()
+        tables = [row[0] for row in cursor.execute("SELECT name FROM sqlite_master WHERE type='table'")]
+        if "cashbook_transactions" not in tables:
+            raise ValueError(
+                f"Case '{case_id}' sqlite missing expected table 'cashbook_transactions': {sqlite_path}"
+            )
+        row_count = cursor.execute("SELECT COUNT(*) FROM cashbook_transactions").fetchone()[0]
+        if not isinstance(row_count, int) or row_count <= 0:
+            raise ValueError(
+                f"Case '{case_id}' sqlite table 'cashbook_transactions' is empty: {sqlite_path}"
+            )
+    finally:
+        connection.close()
 
 
 def main(argv: list[str] | None = None) -> None:
