@@ -36,3 +36,27 @@ class IRulePipeline(Protocol):
     ) -> list[ProcessedTransaction]:
         """Transform parsed rows into processed rows."""
 
+    def run_with_trace(
+        self,
+        rows: list[ParsedTransaction],
+        context: RuleContext,
+    ) -> "RulePipelineResult":
+        """Transform rows and return optional rule-application trace."""
+
+
+@dataclass(slots=True)
+class RuleTraceEntry:
+    """Trace entry for one rule application attempt."""
+
+    row_index: int
+    rule_id: str
+    changed: bool
+
+
+@dataclass(slots=True)
+class RulePipelineResult:
+    """Rule pipeline result with optional trace details."""
+
+    rows: list[ProcessedTransaction]
+    trace: list[RuleTraceEntry] = field(default_factory=list)
+
