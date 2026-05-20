@@ -15,7 +15,7 @@ from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.artifacts import write_run_meta
-from ..shared.serialization import serialize_processed_transaction
+from ..shared.serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
@@ -111,15 +111,7 @@ def _write_output_csv(output_path: Path, rows) -> None:
     with output_path.open("w", encoding="utf-8", newline="") as file:
         writer = csv.DictWriter(
             file,
-            fieldnames=[
-                "tenant_id",
-                "module_name",
-                "amount",
-                "booking_date",
-                "booking_text",
-                "bu_gkto",
-                "beleg_1",
-            ],
+            fieldnames=list(PROCESSED_TRANSACTION_FIELDS),
         )
         writer.writeheader()
         for row in rows:

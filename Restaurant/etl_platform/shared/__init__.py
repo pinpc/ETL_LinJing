@@ -11,7 +11,7 @@ from .interfaces import (
 )
 from .artifacts import write_run_meta
 from .sqlite_store import write_processed_transactions_sqlite
-from .serialization import serialize_processed_transaction
+from .serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
 from .models import (
     AuditEvent,
     BankRunRequest,
@@ -39,6 +39,7 @@ __all__ = [
     "ProcessedTransaction",
     "RuleContext",
     "TenantContext",
+    "PROCESSED_TRANSACTION_FIELDS",
     "serialize_processed_transaction",
     "write_processed_transactions_sqlite",
     "write_run_meta",
