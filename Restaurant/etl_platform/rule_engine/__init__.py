@@ -1,6 +1,14 @@
 """Rule engine module for transformation and mapping rules."""
 
-from .interfaces import IRule, IRulePipeline, RuleContext, RulePipelineResult, RuleTraceEntry
+from .interfaces import (
+    IRule,
+    IRulePipeline,
+    RuleContext,
+    RuleExplainStats,
+    RuleExplainSummary,
+    RulePipelineResult,
+    RuleTraceEntry,
+)
 from .registry import IdentityRule, RulePipeline, RuleSetRegistry, YamlRule
 
 __all__ = [
@@ -8,6 +16,8 @@ __all__ = [
     "IRulePipeline",
     "IdentityRule",
     "RuleContext",
+    "RuleExplainStats",
+    "RuleExplainSummary",
     "RulePipeline",
     "RulePipelineResult",
     "RuleSetRegistry",

@@ -54,9 +54,49 @@ class RuleTraceEntry:
 
 
 @dataclass(slots=True)
+class RuleExplainStats:
+    """Aggregated rule evaluation counters for one rule id."""
+
+    evaluated: int = 0
+    changed: int = 0
+
+    def to_dict(self) -> dict[str, int]:
+        """Serialize explain stats into a stable JSON-friendly shape."""
+        return {
+            "evaluated": self.evaluated,
+            "changed": self.changed,
+        }
+
+
+@dataclass(slots=True)
+class RuleExplainSummary:
+    """Aggregated explain payload for a complete rule pipeline run."""
+
+    by_rule: dict[str, RuleExplainStats] = field(default_factory=dict)
+    total_rows: int = 0
+    total_evaluations: int = 0
+    total_changes: int = 0
+
+    def to_dict(self) -> dict[str, Any]:
+        """Serialize explain summary into a stable JSON-friendly payload."""
+        return {
+            "by_rule": {
+                rule_id: stats.to_dict()
+                for rule_id, stats in self.by_rule.items()
+            },
+            "totals": {
+                "rows": self.total_rows,
+                "evaluations": self.total_evaluations,
+                "changes": self.total_changes,
+            },
+        }
+
+
+@dataclass(slots=True)
 class RulePipelineResult:
     """Rule pipeline result with optional trace details."""
 
     rows: list[ProcessedTransaction]
     trace: list[RuleTraceEntry] = field(default_factory=list)
+    explain: RuleExplainSummary = field(default_factory=RuleExplainSummary)
 

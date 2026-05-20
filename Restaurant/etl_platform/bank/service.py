@@ -13,6 +13,7 @@ from .asia_legacy import AsiaLegacyBankRunner
 from .errors import BankErrorCode, BankServiceError
 from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
+from ..rule_engine.interfaces import RuleExplainSummary
 from ..shared.artifacts import write_run_meta
 from ..shared.jsonio import write_json_file
 from ..shared.options import first_defined
@@ -70,10 +71,7 @@ class BankService(IBankService):
             processed_rows = trace_result.rows
             _write_output_csv(resolved_request.output_path, processed_rows)
             _write_bank_canonical_json(resolved_request.output_path, processed_rows)
-            trace_summary_path = _write_rule_trace_summary(
-                resolved_request.output_path,
-                self._rule_pipeline.summarize_trace(trace_result.trace),
-            )
+            trace_summary_path = _write_rule_trace_summary(resolved_request.output_path, trace_result.explain)
             return _build_pipeline_result(
                 tenant_id,
                 resolved_request.output_path,
@@ -380,9 +378,9 @@ def _write_bank_run_meta(tenant_id: str, output_path: Path, row_count: int) -> P
 
 def _write_rule_trace_summary(
     output_path: Path,
-    summary: dict[str, dict[str, int]],
+    summary: RuleExplainSummary,
 ) -> Path:
     summary_path = output_path.with_suffix(".rule_trace_summary.json")
-    write_json_file(summary_path, summary)
+    write_json_file(summary_path, summary.to_dict())
     return summary_path
 

@@ -9,7 +9,15 @@ from typing import Any
 
 from ..shared.errors import ConfigurationError, ValidationError
 from ..shared.models import ParsedTransaction, ProcessedTransaction
-from .interfaces import IRule, IRulePipeline, RuleContext, RulePipelineResult, RuleTraceEntry
+from .interfaces import (
+    IRule,
+    IRulePipeline,
+    RuleContext,
+    RuleExplainStats,
+    RuleExplainSummary,
+    RulePipelineResult,
+    RuleTraceEntry,
+)
 
 
 class RuleSetRegistry:
@@ -79,19 +87,29 @@ class RulePipeline(IRulePipeline):
         rules = self._rule_registry.resolve(context.tenant_id, context.module_name)
         processed: list[ProcessedTransaction] = []
         trace: list[RuleTraceEntry] = []
+        explain_by_rule: dict[str, RuleExplainStats] = {}
+        total_evaluations = 0
+        total_changes = 0
         for row in rows:
             current = row
             row_idx = len(processed)
             for rule in rules:
                 before = current
                 current = rule.apply(current, context)
+                changed = not _parsed_transactions_equal(before, current)
                 trace.append(
                     RuleTraceEntry(
                         row_index=row_idx,
                         rule_id=rule.rule_id,
-                        changed=not _parsed_transactions_equal(before, current),
+                        changed=changed,
                     )
                 )
+                stats = explain_by_rule.setdefault(rule.rule_id, RuleExplainStats())
+                stats.evaluated += 1
+                total_evaluations += 1
+                if changed:
+                    stats.changed += 1
+                    total_changes += 1
             metadata = dict(current.metadata)
             processed.append(
                 ProcessedTransaction(
@@ -105,19 +123,16 @@ class RulePipeline(IRulePipeline):
                     metadata=metadata,
                 )
             )
-        return RulePipelineResult(rows=processed, trace=trace)
-
-    @staticmethod
-    def summarize_trace(trace: list[RuleTraceEntry]) -> dict[str, dict[str, int]]:
-        """Summarize rule trace by rule id with total/applied counters."""
-        summary: dict[str, dict[str, int]] = {}
-        for entry in trace:
-            stats = summary.setdefault(entry.rule_id, {"evaluated": 0, "changed": 0})
-            stats["evaluated"] += 1
-            if entry.changed:
-                stats["changed"] += 1
-        return summary
-
+        return RulePipelineResult(
+            rows=processed,
+            trace=trace,
+            explain=RuleExplainSummary(
+                by_rule=explain_by_rule,
+                total_rows=len(processed),
+                total_evaluations=total_evaluations,
+                total_changes=total_changes,
+            ),
+        )
 
 @dataclass(slots=True)
 class IdentityRule(IRule):
