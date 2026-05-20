@@ -17,6 +17,7 @@ from .interfaces import (
 from .jupiter_legacy import JupiterKasseETL
 from ..shared.artifacts import write_run_meta
 from ..shared.sqlite_store import write_processed_transactions_sqlite
+from ..shared.tenancy import canonical_tenant_id, require_tenant_id
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
 from ..shared.models import ProcessedTransaction
 
@@ -37,7 +38,7 @@ class CashbookService(ICashbookService):
         return self.run_with_result(request).rows
 
     def run_with_result(self, request: CashbookRunRequest) -> CashbookPipelineResult:
-        tenant_id = request.tenant_id.strip().lower()
+        tenant_id = canonical_tenant_id(request.tenant_id)
         try:
             tenant_context = self._tenant_resolver.resolve(tenant_id)
             tenant_pdf_base = resolve_option_path(tenant_context, "cashbook_pdf_base_dir")
@@ -83,9 +84,10 @@ class CashbookService(ICashbookService):
 
     def register_legacy_runner(self, tenant_id: str, runner: ILegacyCashbookRunner) -> None:
         """Register or override a tenant-specific legacy cashbook runner."""
-        normalized = tenant_id.strip().lower()
-        if not normalized:
-            raise ValueError("tenant_id must not be empty when registering a legacy cashbook runner.")
+        normalized = require_tenant_id(
+            tenant_id,
+            field_name="tenant_id",
+        )
         self._legacy_cashbook_runners[normalized] = runner
 
     def list_registered_tenants(self) -> list[str]:

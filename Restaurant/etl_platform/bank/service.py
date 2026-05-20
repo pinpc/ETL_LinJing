@@ -16,6 +16,7 @@ from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..shared.artifacts import write_run_meta
 from ..shared.serialization import PROCESSED_TRANSACTION_FIELDS, serialize_processed_transaction
+from ..shared.tenancy import canonical_tenant_id, require_tenant_id
 from ..shared.models import ParseRequest, ProcessedTransaction, RuleContext
 from ..tenant.models import TenantContext
 from ..tenant.service import TenantResolver, resolve_option_path, resolve_option_str
@@ -46,7 +47,7 @@ class BankService(IBankService):
         return self.run_with_result(request).rows
 
     def run_with_result(self, request: BankRunRequest) -> BankPipelineResult:
-        tenant_id = request.tenant_id.strip().lower()
+        tenant_id = canonical_tenant_id(request.tenant_id)
         try:
             tenant_context = self._tenant_resolver.resolve(tenant_id)
             resolved_request = _resolve_tenant_bank_request(request, tenant_context)
@@ -86,9 +87,10 @@ class BankService(IBankService):
 
     def register_legacy_runner(self, tenant_id: str, runner: ILegacyBankRunner) -> None:
         """Register or override a tenant-specific legacy runner implementation."""
-        normalized = tenant_id.strip().lower()
-        if not normalized:
-            raise ValueError("tenant_id must not be empty when registering a legacy runner.")
+        normalized = require_tenant_id(
+            tenant_id,
+            field_name="tenant_id",
+        )
         self._legacy_bank_runners[normalized] = runner
 
     def list_registered_tenants(self) -> list[str]:
