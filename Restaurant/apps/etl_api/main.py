@@ -44,7 +44,7 @@ _INDEX_HTML = """<!doctype html>
 </head>
 <body>
   <h1>Restaurant ETL Runner</h1>
-  <div class="muted">Run bank or cashbook jobs and poll status.</div>
+  <div class="muted">Run bank or cashbook jobs and poll status. Paths are pre-filled from tenants/*/tenant_local.yaml.</div>
   <div class="grid">
     <label for="module">Module</label>
     <select id="module">
@@ -162,8 +162,55 @@ _INDEX_HTML = """<!doctype html>
           option.textContent = "no tenants available";
           tenantSelect.appendChild(option);
         }
+        await loadFormDefaults();
       } catch (err) {
         setStatus("tenant_load_error");
+        setResult({ error: String(err) });
+      }
+    }
+
+    const FORM_FIELD_MAP = [
+      ["source", "source"],
+      ["output", "output"],
+      ["statement_pdf", "statementPdf"],
+      ["agenda_file", "agendaFile"],
+      ["pdf_base_dir", "pdfBaseDir"],
+      ["sheet_name", "sheetName"],
+      ["sqlite_output", "sqliteOutput"],
+      ["excel_title", "excelTitle"],
+    ];
+
+    function applyFormDefaults(defaults) {
+      for (const [apiKey, domId] of FORM_FIELD_MAP) {
+        const field = document.getElementById(domId);
+        if (defaults[apiKey]) {
+          field.value = defaults[apiKey];
+        } else {
+          field.value = "";
+        }
+      }
+    }
+
+    async function loadFormDefaults() {
+      const tenant = document.getElementById("tenant").value.trim();
+      const module = document.getElementById("module").value;
+      if (!tenant) {
+        applyFormDefaults({});
+        return;
+      }
+      try {
+        const params = new URLSearchParams({ tenant_id: tenant, module });
+        const res = await fetch(`/etl/defaults?${params.toString()}`);
+        const data = await res.json();
+        if (!res.ok) {
+          setStatus("defaults_load_failed");
+          setResult(data);
+          return;
+        }
+        applyFormDefaults(data.defaults || {});
+        setStatus("ready");
+      } catch (err) {
+        setStatus("defaults_load_error");
         setResult({ error: String(err) });
       }
     }
@@ -324,6 +371,7 @@ _INDEX_HTML = """<!doctype html>
     document.getElementById("pollBtn").addEventListener("click", pollJob);
     document.getElementById("refreshHistoryBtn").addEventListener("click", loadHistory);
     document.getElementById("module").addEventListener("change", loadTenants);
+    document.getElementById("tenant").addEventListener("change", loadFormDefaults);
     document.getElementById("browseSourceFileBtn").addEventListener("click", () =>
       pickPath("/fs/pick-file", { title: "Select source file" }, "source")
     );
@@ -431,6 +479,9 @@ def create_app():
         if method == "GET" and path == "/etl/tenants":
             return _handle_list_tenants(start_response)
 
+        if method == "GET" and path == "/etl/defaults":
+            return _handle_get_defaults(environ, start_response)
+
         if method == "GET" and path.startswith("/etl/run/"):
             job_id = path.removeprefix("/etl/run/").strip()
             return _handle_get_job(job_id, start_response)
@@ -531,6 +582,53 @@ def _handle_list_tenants(start_response):
 
     tenants = list_tenants()
     return _json_response(start_response, 200, {"tenants": tenants})
+
+
+def _handle_get_defaults(environ, start_response):
+    from Restaurant.etl_platform.shared.errors import ValidationError
+    from Restaurant.etl_platform.tenant.service import resolve_gui_form_defaults
+
+    query = parse_qs(environ.get("QUERY_STRING", ""), keep_blank_values=False)
+    tenant_id = str(query.get("tenant_id", [""])[0]).strip().lower()
+    module = str(query.get("module", [""])[0]).strip().lower()
+
+    if not tenant_id:
+        return _json_response(
+            start_response,
+            400,
+            {"error": {"code": "BAD_REQUEST", "message": "Query parameter 'tenant_id' is required."}},
+        )
+    if module not in {"bank", "cashbook"}:
+        return _json_response(
+            start_response,
+            400,
+            {"error": {"code": "BAD_REQUEST", "message": "Query parameter 'module' must be one of: bank, cashbook."}},
+        )
+
+    try:
+        defaults = resolve_gui_form_defaults(tenant_id, module)
+    except ValidationError as exc:
+        return _json_response(
+            start_response,
+            400,
+            {"error": {"code": "BAD_REQUEST", "message": str(exc)}},
+        )
+    except Exception as exc:
+        return _json_response(
+            start_response,
+            500,
+            {"error": {"code": "DEFAULTS_ERROR", "message": str(exc)}},
+        )
+
+    return _json_response(
+        start_response,
+        200,
+        {
+            "tenant_id": tenant_id,
+            "module": module,
+            "defaults": defaults,
+        },
+    )
 
 
 def _handle_pick_file(environ, start_response):

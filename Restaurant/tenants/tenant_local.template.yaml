@@ -5,11 +5,17 @@
 # 2) Put machine-specific paths in options below.
 # 3) tenant_local.yaml overrides tenant_config.yaml options at runtime.
 #
-# Typical local run-path overrides:
+# Typical local run-path overrides (also pre-fill the GUI on load):
 # options:
+#   bank_source_dir: "C:/local/path/to/Asia Konto 04.2026"
+#   bank_output_path: "${WORKSPACE_ROOT}/asia_bank_etl_0426.xlsx"
 #   bank_statement_pdf: "C:/local/path/to/statement.pdf"
-#   bank_sqlite_output_path: "${WORKSPACE_ROOT}/asia_bank_etl_debug.sqlite"
+#   bank_agenda_file: "C:/local/path/to/agenda.xlsx"
+#   bank_sqlite_output_path: "${WORKSPACE_ROOT}/asia_bank_etl_0426.sqlite"
+#   bank_excel_title: "Kontoauszug Export 04/2026"
+#   cashbook_input_path: "C:/local/path/to/cashbook.xlsx"
+#   cashbook_output_path: "${WORKSPACE_ROOT}/asia_kasse_etl_0426.xlsx"
 #   cashbook_pdf_base_dir: "C:/local/path/to/cashbook/base"
-#   cashbook_sqlite_output_path: "${WORKSPACE_ROOT}/asia_kasse_etl_debug.sqlite"
+#   cashbook_sqlite_output_path: "${WORKSPACE_ROOT}/asia_kasse_etl_0426.sqlite"
 
 options: {}

@@ -191,6 +191,47 @@ def resolve_option_path_info(context: TenantContext, key: str) -> tuple[Path | N
     return (context.config_dir / candidate).resolve(), "tenant_relative_or_template"
 
 
+_BANK_GUI_OPTION_MAP: dict[str, str] = {
+    "source": "bank_source_dir",
+    "output": "bank_output_path",
+    "statement_pdf": "bank_statement_pdf",
+    "agenda_file": "bank_agenda_file",
+    "sqlite_output": "bank_sqlite_output_path",
+    "excel_title": "bank_excel_title",
+}
+
+_CASHBOOK_GUI_OPTION_MAP: dict[str, str] = {
+    "source": "cashbook_input_path",
+    "output": "cashbook_output_path",
+    "pdf_base_dir": "cashbook_pdf_base_dir",
+    "sheet_name": "cashbook_sheet_name",
+    "sqlite_output": "cashbook_sqlite_output_path",
+}
+
+
+def resolve_gui_form_defaults(tenant_id: str, module: str) -> dict[str, str]:
+    """Resolve GUI form defaults from merged tenant options in tenant_local.yaml."""
+    normalized_module = module.strip().lower()
+    if normalized_module not in {"bank", "cashbook"}:
+        raise ValidationError("Field 'module' must be one of: bank, cashbook.")
+
+    context = TenantResolver().resolve(tenant_id)
+    option_map = (
+        _BANK_GUI_OPTION_MAP if normalized_module == "bank" else _CASHBOOK_GUI_OPTION_MAP
+    )
+
+    defaults: dict[str, str] = {}
+    for gui_key, option_key in option_map.items():
+        if gui_key in {"excel_title", "sheet_name"}:
+            value = resolve_option_str(context.options, option_key)
+        else:
+            resolved_path = resolve_option_path(context, option_key)
+            value = str(resolved_path) if resolved_path is not None else None
+        if value:
+            defaults[gui_key] = value.replace("\\", "/")
+    return defaults
+
+
 _ENV_PATTERN = re.compile(r"\$\{ENV:([A-Za-z_][A-Za-z0-9_]*)\}")
 
 
