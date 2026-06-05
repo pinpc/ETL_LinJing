@@ -39,6 +39,16 @@ def map_booking(
                     return kto, f"{label} {mon} {yr}"
                 return kto, label
 
+            if label == "Nebenkosten Jupiter":
+                m_year = re.search(r"Nebenkosten\s+(\d{4})", beschr, re.I)
+                year = m_year.group(1) if m_year else ""
+                if not year:
+                    d = tx.get("bu_tag")
+                    year = str(d.year) if d else ""
+                if re.search(r"Wasser/Abwasser", beschr, re.I):
+                    return kto, f"Nebenkosten {year} Wasser/Abwasser".strip()
+                return kto, f"Nebenkosten {year}".strip()
+
             if label == "ovag Strom":
                 d = tx.get("bu_tag")
                 if d:

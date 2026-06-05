@@ -5,23 +5,6 @@ from .mapping import map_booking
 _WOLT_SPLIT_EPS = 0.05
 
 
-def _manual_split_rows(tx: dict) -> list[tuple]:
-    """Historische manuelle Splits, die nicht aus Rechnungen extrahiert werden."""
-    beschr = str(tx.get("beschreibung") or "")
-    betrag = float(tx.get("betrag") or 0.0)
-    datum = tx.get("bu_tag")
-
-    # Hard-coded historical split from `etl_bank_Jupiter_2602_1.xlsx` (Feb 2026):
-    # METRO purchase split into 7%/19% components.
-    if abs(round(betrag, 2)) == 391.07 and "METRO SAGT DANKE" in beschr.upper():
-        return [
-            (round(-298.25, 2), "3300", datum, "METRO WE 7%"),
-            (round(-92.82, 2), "3400", datum, "METRO WE 19%"),
-        ]
-
-    return []
-
-
 def _unpack_wolt_split(data: str) -> tuple[float, float, float, float, float, str]:
     """WOLT_SPLIT Nutzlast: umsatz|rabatt|provision7|[provision19]|gebühr|tf (5 Felder = alt ohne provision19)."""
     parts = data.split("|")
@@ -42,10 +25,6 @@ def single_row_from_statement(tx: dict, rechnung_map: dict) -> list[tuple]:
 
 
 def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
-    manual_rows = _manual_split_rows(tx)
-    if manual_rows:
-        return manual_rows
-
     key = round(abs(tx["betrag"]), 2)
     datum = tx["bu_tag"]
     beschr = tx["beschreibung"]

@@ -195,9 +195,7 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) ->
                 and isinstance(rechnung_map[key][0], str)
                 and rechnung_map[key][0].endswith("_SPLIT")
             )
-            has_manual_split = abs(round(float(betrag), 2)) == 391.07 and "METRO SAGT DANKE" in str(txt).upper()
-
-            if has_invoice_split or has_manual_split:
+            if has_invoice_split:
                 tx = {"betrag": float(betrag), "bu_tag": datum, "beschreibung": txt}
                 expanded_rows = expand_transaction(tx, rechnung_map)
                 if len(expanded_rows) > 1:
