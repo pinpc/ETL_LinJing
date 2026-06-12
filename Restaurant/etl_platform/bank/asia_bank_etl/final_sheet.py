@@ -82,14 +82,20 @@ def erstelle_final_blatt(workbook_path: str) -> None:
             else:
                 datum = str(datum_cell.value).strip() if datum_cell.value else ""
 
-            # Sonderfall: Edeka EW im Final-Blatt in drei Zeilen splitten.
-            # Nur die erste Zeile behält den Betrag; die Folgezeilen haben leeren Umsatz.
-            if text.startswith(("Edeka EW", "Edeka WE")):
+            # Sonderfall: Edeka im Final-Blatt in drei Zeilen splitten.
+            # Beträge kommen aus der Agenda (Rechnungsauswertung); ohne Agenda nur WE 7 % mit Gesamtbetrag.
+            if text in ("Edeka WE", "Edeka EW"):
                 split_rows = [
                     ("3300", "Edeka WE 7 %", True),
                     ("3400", "Edeka WE 19 %", False),
                     ("904250", "Edeka Reinigung", False),
                 ]
+                logger.warning(
+                    "Edeka %s (%.2f EUR): struktureller Split ohne Rechnungsauswertung – "
+                    "Agenda-Datei mit WE 7%%/19%%/Reinigung angeben.",
+                    datum,
+                    betrag if isinstance(betrag, (int, float)) else 0,
+                )
                 for _, (bu_gkto, buch_text, keep_amount) in enumerate(split_rows):
                     for col in range(1, ws_buchungen.max_column + 1):
                         val = ws_buchungen.cell(src_row, col).value

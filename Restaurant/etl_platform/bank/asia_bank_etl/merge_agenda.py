@@ -11,6 +11,31 @@ from .text_normalize import kuerze_stripe_text
 
 logger = logging.getLogger(__name__)
 
+_EDEKA_PAYMENT_MARKERS = ("Union SB-Grosmarkt", "Grosmarkt Sudbayern")
+_AMOUNT_TOLERANCE = 0.02
+
+
+def _is_edeka_payment(text: str) -> bool:
+    normalized = text.casefold()
+    return any(marker.casefold() in normalized for marker in _EDEKA_PAYMENT_MARKERS)
+
+
+def _edeka_split_rows_from_agenda(
+    df_agenda: pd.DataFrame,
+    datum: str,
+    payment_amount: float,
+) -> pd.DataFrame | None:
+    day_rows = df_agenda[df_agenda["Datum"] == datum]
+    edeka_rows = day_rows[day_rows["Buchungstext"].str.contains("Edeka", case=False, na=False)]
+    if edeka_rows.empty:
+        return None
+
+    grouped_sum = round(float(edeka_rows["Umsatz Euro"].sum()), 2)
+    if abs(grouped_sum - round(payment_amount, 2)) > _AMOUNT_TOLERANCE:
+        return None
+
+    return edeka_rows.sort_values("Buchungstext").reset_index(drop=True)
+
 
 def lade_agenda(agenda_path: str, sheet: str) -> pd.DataFrame:
     """Lädt Agenda aus Excel-Datei und bereinigt Datentypen."""
@@ -93,6 +118,36 @@ def merge_mit_agenda_und_split(
                 )
                 beleg_counter += 1
             continue
+
+        if _is_edeka_payment(text):
+            edeka_split = _edeka_split_rows_from_agenda(df_agenda, datum, gesamt)
+            if edeka_split is not None:
+                logger.info(
+                    "Edeka-Rechnungsauswertung aus Agenda: %s (%.2f EUR) -> %s Zeilen",
+                    datum,
+                    gesamt,
+                    len(edeka_split),
+                )
+                for _, teil in edeka_split.iterrows():
+                    output_rows.append(
+                        {
+                            "Umsatz Euro": teil["Umsatz Euro"],
+                            "BU Gkto": teil["BU Gkto"],
+                            "Beleg 1": beleg_counter,
+                            "Datum": teil["Datum"],
+                            "KOST 1": config["KOST"],
+                            "Bank": config["BANK_KONTO"],
+                            "Buchungstext": teil["Buchungstext"],
+                        }
+                    )
+                    beleg_counter += 1
+                continue
+            logger.warning(
+                "Edeka %s (%.2f EUR): keine passende Rechnungsauswertung in Agenda – "
+                "Final-Split ohne Beträge für WE 19%%/Reinigung.",
+                datum,
+                gesamt,
+            )
 
         key = (datum, gesamt)
         if key in agenda_by_key:
