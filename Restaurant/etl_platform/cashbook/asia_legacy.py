@@ -6,6 +6,7 @@ from decimal import Decimal, InvalidOperation
 import os
 from pathlib import Path
 import re
+import sys
 from typing import Any, Iterable
 
 from openpyxl import Workbook, load_workbook
@@ -30,6 +31,14 @@ BU_GKTO_POSITIVE = "8000"
 BU_GKTO_NEGATIVE = "1360"
 BU_GKTO_ALLOPAY_19 = "8400"
 BU_GKTO_ALLOPAY_7 = "8300"
+BU_GKTO_TIPS_0 = "4140"
+
+BOOKING_TEXT_ALLO_PAY = "AllO Pay"
+BOOKING_TEXT_TIPS = "Trinkgeld"
+BOOKING_TEXT_TIPS_0 = "Umsatz 0 %"
+BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
+BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
+BOOKING_TEXT_BANK = "an Bank"
 
 MERGE_TOLERANCE = Decimal("0.01")
 XL_EURO_NUM_FMT = "#,##0.00"
@@ -139,6 +148,20 @@ def parse_date(value: Any) -> str:
     return text
 
 
+def format_buchungstext_date_short(value: str) -> str:
+    text = as_text(value)
+    if text == "":
+        return ""
+
+    for fmt in ("%Y-%m-%d", "%d.%m.%Y", "%Y/%m/%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(text, fmt).strftime("%d.%m.%y")
+        except ValueError:
+            pass
+
+    return text
+
+
 def format_beleg(value: Any) -> str:
     text = as_text(value)
     if text == "":
@@ -172,6 +195,44 @@ def date_sort_key(value: str) -> tuple[int, int, int, str]:
 
 def sort_rows_by_date(rows: Iterable[BuchungRow]) -> list[BuchungRow]:
     return sorted(rows, key=lambda row: (date_sort_key(row.datum), row.beleg_1, row.buchungstext))
+
+
+def trinkgeld_sum_by_date(buchung_rows: Iterable[BuchungRow]) -> dict[tuple[int, int, int], Decimal]:
+    totals: dict[tuple[int, int, int], Decimal] = {}
+    for row in buchung_rows:
+        if row.buchungstext.strip().lower() != BOOKING_TEXT_TIPS.lower():
+            continue
+        key = date_sort_key(row.datum)[:3]
+        totals[key] = totals.get(key, Decimal("0")) + row.umsatz_euro
+    return totals
+
+
+def is_allopay_income_row(row: BuchungRow) -> bool:
+    return row.umsatz_euro > 0 and BOOKING_TEXT_ALLO_PAY.lower() in row.buchungstext.lower()
+
+
+def build_trinkgeld_final_row(
+    trinkgeld_net: Decimal,
+    allopay_rows_for_date: list[BuchungRow],
+    income_row: BuchungRow,
+) -> BuchungRow | None:
+    if trinkgeld_net >= Decimal("0"):
+        return None
+
+    template = allopay_rows_for_date[0] if allopay_rows_for_date else income_row
+    return BuchungRow(
+        umsatz_euro=(-trinkgeld_net).quantize(Decimal("0.01")),
+        bu_gkto=BU_GKTO_TIPS_0,
+        beleg_1=template.beleg_1 or income_row.beleg_1,
+        datum=template.datum or income_row.datum,
+        kost_1=STANDARD_KOST,
+        bank=STANDARD_BANK,
+        buchungstext=BOOKING_TEXT_TIPS_0,
+    )
+
+
+def _warn_allopay_merge_failure(message: str) -> None:
+    print(f"WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar {message}", file=sys.stderr)
 
 
 def _find_header_row(ws, min_nonempty: int = 4, scan_rows: int = 30) -> int:
@@ -265,7 +326,13 @@ def read_cashbook_rows(input_xlsx: Path, sheet_name: str = "cashbook") -> list[B
 
         beleg = format_beleg(get("Beleg 1"))
         subject = as_text(get("主题"))
-        buchungstext = "AllO Pay" if beleg.upper().startswith("Z") else subject
+        if beleg.upper().startswith("Z"):
+            date_suffix = format_buchungstext_date_short(datum)
+            buchungstext = (
+                f"{BOOKING_TEXT_ALLO_PAY} {date_suffix}" if date_suffix else BOOKING_TEXT_ALLO_PAY
+            )
+        else:
+            buchungstext = subject
         bu_gkto = BU_GKTO_POSITIVE if amount >= 0 else BU_GKTO_NEGATIVE
 
         rows.append(
@@ -381,7 +448,7 @@ def read_allopay_rows(pdf_base_dir: Path) -> list[BuchungRow]:
                     datum=data.datum,
                     kost_1=STANDARD_KOST,
                     bank=STANDARD_BANK,
-                    buchungstext="Umsatz 19 %",
+                    buchungstext=BOOKING_TEXT_UMSATZ_19,
                 )
             )
 
@@ -394,7 +461,7 @@ def read_allopay_rows(pdf_base_dir: Path) -> list[BuchungRow]:
                     datum=data.datum,
                     kost_1=STANDARD_KOST,
                     bank=STANDARD_BANK,
-                    buchungstext="Umsatz 7 %",
+                    buchungstext=BOOKING_TEXT_UMSATZ_7,
                 )
             )
 
@@ -512,17 +579,24 @@ class AsiaKasseETL:
     def merge_final_rows(self, buchung_rows: list[BuchungRow], allopay_rows: list[BuchungRow]) -> list[BuchungRow]:
         def normalize_final_text(row: BuchungRow) -> BuchungRow:
             if row.buchungstext.strip().lower() == "bankeinzahlung":
-                return replace(row, buchungstext="an Bank")
+                return replace(row, buchungstext=BOOKING_TEXT_BANK)
             return row
 
         if not buchung_rows:
             return []
 
         if not allopay_rows:
+            for row in buchung_rows:
+                if is_allopay_income_row(row):
+                    _warn_allopay_merge_failure(
+                        f"({row.datum}): keine Allopay-PDF-Zeilen geladen; "
+                        f"Kasse bleibt {row.umsatz_euro} EUR."
+                    )
             return sort_rows_by_date([normalize_final_text(row) for row in buchung_rows])
 
         allopay_by_date: dict[tuple[int, int, int], list[BuchungRow]] = {}
         allopay_sum_by_date: dict[tuple[int, int, int], Decimal] = {}
+        trinkgeld_by_date = trinkgeld_sum_by_date(buchung_rows)
 
         for row in allopay_rows:
             key = date_sort_key(row.datum)[:3]
@@ -532,13 +606,37 @@ class AsiaKasseETL:
         final_rows: list[BuchungRow] = []
         for row in buchung_rows:
             key = date_sort_key(row.datum)[:3]
-            is_allopay_income = row.umsatz_euro > 0 and "allo" in row.buchungstext.lower()
 
-            if is_allopay_income and key in allopay_sum_by_date:
-                diff = abs(allopay_sum_by_date[key] - row.umsatz_euro)
-                if diff <= MERGE_TOLERANCE:
-                    final_rows.extend(normalize_final_text(allopay_row) for allopay_row in allopay_by_date[key])
-                    continue
+            if is_allopay_income_row(row):
+                pdf_umsatz_sum = allopay_sum_by_date.get(key)
+                if pdf_umsatz_sum is not None:
+                    trinkgeld = trinkgeld_by_date.get(key, Decimal("0"))
+                    adjusted_income = (row.umsatz_euro + trinkgeld).quantize(Decimal("0.01"))
+                    diff = abs(pdf_umsatz_sum - adjusted_income)
+                    if diff <= MERGE_TOLERANCE:
+                        final_rows.extend(
+                            normalize_final_text(allopay_row) for allopay_row in allopay_by_date[key]
+                        )
+                        trinkgeld_row = build_trinkgeld_final_row(trinkgeld, allopay_by_date[key], row)
+                        if trinkgeld_row is not None:
+                            final_rows.append(trinkgeld_row)
+                        continue
+
+                    tip_hint = (
+                        f", Trinkgeld {trinkgeld} EUR, netto {adjusted_income} EUR"
+                        if trinkgeld != Decimal("0")
+                        else ""
+                    )
+                    _warn_allopay_merge_failure(
+                        f"({row.datum}): Kasse {row.umsatz_euro} EUR{tip_hint} vs. Summe PDF "
+                        f"({BOOKING_TEXT_UMSATZ_19} + {BOOKING_TEXT_UMSATZ_7}) {pdf_umsatz_sum} EUR "
+                        f"(|Diff|={diff}, Toleranz {MERGE_TOLERANCE})."
+                    )
+                else:
+                    _warn_allopay_merge_failure(
+                        f"({row.datum}): keine PDF-Umsatzzeilen (19 %/7 %) für dieses Datum; "
+                        f"Kasse bleibt {row.umsatz_euro} EUR."
+                    )
 
             final_rows.append(normalize_final_text(row))
 
