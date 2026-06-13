@@ -3,23 +3,31 @@
 from __future__ import annotations
 
 import logging
+import os
 import re
 from pathlib import Path
 
 import pdfplumber
 
+try:
+    from .money_utils import parse_german_euro_amount
+except ImportError:
+    from money_utils import parse_german_euro_amount
+
 logger = logging.getLogger(__name__)
 
+DEFAULT_OCR_DPI = 250
 _EURO_TOKEN = re.compile(r"(-?[\d.]+,\d{2,3})\s*(?:€|&|\u20ac)?")
 
 
-def parse_german_euro_amount(text: str, *, round_to: int = 2) -> float:
-    """Parse German-formatted amounts such as ``1.234,56`` or ``12,345`` (3 decimals)."""
-    normalized = str(text).replace(".", "").replace(" ", "")
-    if re.match(r"^-?\d+,\d{3}$", normalized):
-        normalized = normalized[:-1]
-    value = float(normalized.replace(",", "."))
-    return round(value, round_to) if round_to >= 0 else value
+def resolve_ocr_dpi(override: int | None = None) -> int:
+    """OCR-Auflösung: Parameter > ``EDEKA_OCR_DPI`` > ``DEFAULT_OCR_DPI`` (250)."""
+    if override is not None:
+        return override
+    raw = os.environ.get("EDEKA_OCR_DPI", "").strip()
+    if raw:
+        return int(raw)
+    return DEFAULT_OCR_DPI
 
 
 def last_german_euro_amounts(line: str) -> list[float]:
@@ -27,7 +35,12 @@ def last_german_euro_amounts(line: str) -> list[float]:
     return [parse_german_euro_amount(match.group(1)) for match in _EURO_TOKEN.finditer(line)]
 
 
-def extract_pdf_text(filepath: Path, *, log_prefix: str = "PDF") -> str:
+def extract_pdf_text(
+    filepath: Path,
+    *,
+    log_prefix: str = "PDF",
+    ocr_dpi: int | None = None,
+) -> str:
     """Read PDF text layer; fall back to OCR for scanned documents."""
     parts: list[str] = []
     with pdfplumber.open(str(filepath)) as pdf:
@@ -49,7 +62,8 @@ def extract_pdf_text(filepath: Path, *, log_prefix: str = "PDF") -> str:
         )
         return ""
 
-    logger.info("%s %s: OCR (gescanntes PDF)", log_prefix, filepath.name)
-    images = convert_from_path(str(filepath), dpi=300)
+    dpi = resolve_ocr_dpi(ocr_dpi)
+    logger.info("%s %s: OCR (gescanntes PDF, %s dpi)", log_prefix, filepath.name, dpi)
+    images = convert_from_path(str(filepath), dpi=dpi)
     ocr_parts = [pytesseract.image_to_string(image, lang="deu+eng") for image in images]
     return "\n".join(ocr_parts)

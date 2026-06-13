@@ -297,9 +297,8 @@ def erstelle_final_blatt(workbook_path: str) -> None:
             wb.remove(wb["Final"])
         ws_final = wb.create_sheet("Final")
 
-        for row in [1, 2]:
-            for col in range(1, ws_buchungen.max_column + 1):
-                ws_final.cell(row, col, ws_buchungen.cell(row, col).value)
+        for col in range(1, ws_buchungen.max_column + 1):
+            ws_final.cell(1, col, ws_buchungen.cell(1, col).value)
 
         allopay_items: list[dict[str, Any]] = []
         for row in range(2, ws_allopay.max_row + 1):
@@ -339,12 +338,12 @@ def erstelle_final_blatt(workbook_path: str) -> None:
                 "EDEKA-Blatt vorhanden, aber keine parse-OK Zeilen – Edeka-Split nur strukturell."
             )
 
-        target_row = 3
+        target_row = 2
         replacements = 0
         edeka_splits = 0
         edeka_merge_failed = 0
 
-        for src_row in range(3, ws_buchungen.max_row + 1):
+        for src_row in range(2, ws_buchungen.max_row + 1):
             src_sum_cell = ws_buchungen.cell(src_row, 1)
             if (
                 isinstance(src_sum_cell.value, str)
@@ -455,7 +454,7 @@ def erstelle_final_blatt(workbook_path: str) -> None:
             )
 
         removed_edeka_rows, last_data_row = _remove_empty_edeka_final_rows(
-            ws_final, start_row=3, end_row=target_row - 1
+            ws_final, start_row=2, end_row=target_row - 1
         )
         if removed_edeka_rows:
             logger.info(
@@ -466,9 +465,9 @@ def erstelle_final_blatt(workbook_path: str) -> None:
         summary_row = last_data_row + 1
 
         ws_final.cell(summary_row, 7, "GESAMT")
-        ws_final.cell(summary_row, 1, f"=SUM(A3:A{last_data_row})")
+        ws_final.cell(summary_row, 1, f"=SUM(A2:A{last_data_row})")
 
-        for r in range(3, summary_row + 1):
+        for r in range(2, summary_row + 1):
             ca = ws_final.cell(r, 1)
             v = ca.value
             if isinstance(v, (int, float)) or (

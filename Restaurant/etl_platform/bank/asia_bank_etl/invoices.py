@@ -66,39 +66,39 @@ class EdekaInvoiceRow:
         }
 
 
-def load_invoices(source_dir: str | Path) -> list[EdekaInvoiceRow]:
+def load_invoices(source_dir: str | Path, *, ocr_dpi: int | None = None) -> list[EdekaInvoiceRow]:
     """Scan *source_dir* and parse all supported supplier invoice PDFs."""
     root = Path(source_dir)
     if not root.is_dir():
         return []
 
     rows: list[EdekaInvoiceRow] = []
-    rows.extend(_scan_edeka_cc_invoices(root))
+    rows.extend(_scan_edeka_cc_invoices(root, ocr_dpi=ocr_dpi))
     logger.info("Asia invoices: %s Rechnung(en) aus %s", len(rows), root)
     return rows
 
 
-def scan_edeka_invoices(source_dir: str | Path) -> list[EdekaInvoiceRow]:
+def scan_edeka_invoices(source_dir: str | Path, *, ocr_dpi: int | None = None) -> list[EdekaInvoiceRow]:
     """Backward-compatible alias for C+C / EDEKA Grossmarkt invoices only."""
     root = Path(source_dir)
     if not root.is_dir():
         return []
-    rows = _scan_edeka_cc_invoices(root)
+    rows = _scan_edeka_cc_invoices(root, ocr_dpi=ocr_dpi)
     logger.info("EDEKA: %s Rechnung(en) aus %s", len(rows), root)
     return rows
 
 
-def parse_edeka_invoice(filepath: Path) -> EdekaInvoiceRow:
+def parse_edeka_invoice(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaInvoiceRow:
     """Public entry for a single C+C / EDEKA Grossmarkt PDF."""
-    return _parse_edeka_cc(filepath)
+    return _parse_edeka_cc(filepath, ocr_dpi=ocr_dpi)
 
 
-def _scan_edeka_cc_invoices(root: Path) -> list[EdekaInvoiceRow]:
+def _scan_edeka_cc_invoices(root: Path, *, ocr_dpi: int | None = None) -> list[EdekaInvoiceRow]:
     files = sorted(root.glob(_EDEKA_CC_GLOB), key=lambda path: path.name.lower())
-    return [_parse_edeka_cc(path) for path in files]
+    return [_parse_edeka_cc(path, ocr_dpi=ocr_dpi) for path in files]
 
 
-def _parse_edeka_cc(filepath: Path) -> EdekaInvoiceRow:
+def _parse_edeka_cc(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaInvoiceRow:
     """Parst eine C+C-Grossmarkt-Rechnung."""
     name = filepath.name
     empty_row = EdekaInvoiceRow(
@@ -116,7 +116,7 @@ def _parse_edeka_cc(filepath: Path) -> EdekaInvoiceRow:
     )
 
     try:
-        text = extract_pdf_text(filepath, log_prefix="EDEKA")
+        text = extract_pdf_text(filepath, log_prefix="EDEKA", ocr_dpi=ocr_dpi)
     except Exception as exc:
         logger.error("EDEKA %s: Lesefehler %s", name, exc)
         empty_row.hinweis = f"Lesefehler: {exc}"

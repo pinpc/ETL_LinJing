@@ -2,16 +2,12 @@
 
 from datetime import date, datetime
 
+try:
+    from ..money_utils import de_float
+except ImportError:
+    from money_utils import de_float
 
-def de_float(s):
-    if s is None:
-        return 0.0
-    s = str(s).strip().replace("\xa0", "").replace(" ", "").replace('"', "")
-    s = s.replace(".", "").replace(",", ".")
-    try:
-        return float(s)
-    except Exception:
-        return 0.0
+__all__ = ["de_float", "parse_date", "stripe_float", "datum_iso"]
 
 
 def parse_date(s):

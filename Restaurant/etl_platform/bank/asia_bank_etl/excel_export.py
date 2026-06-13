@@ -37,7 +37,6 @@ def exportiere_excel(
     output_path: str,
     config: dict[str, Any],
     *,
-    titel_zeile: str = "Kontoauszug Export  ·  Sparkasse Allgäu  ·  01/2026",
     edeka_rows: list[dict[str, Any]] | None = None,
 ) -> None:
     """Exportiert Buchungen, Allopay, optional EDEKA-Rechnungen und Parser Ref."""
@@ -56,13 +55,11 @@ def exportiere_excel(
     ws = wb.active
     ws.title = "Kontoauszug"
 
-    ws["A1"] = titel_zeile
-
     for ci, col in enumerate(cols, 1):
-        ws.cell(2, ci, col)
+        ws.cell(1, ci, col)
 
     for ri, row in enumerate(rows_buchungen):
-        er = ri + 3
+        er = ri + 2
         umsatz = umsatz_zwei_nachkommastellen(row["Umsatz Euro"])
         bu = row["BU Gkto"]
 
@@ -75,10 +72,10 @@ def exportiere_excel(
         ws.cell(er, 6, config["BANK_KONTO"])
         ws.cell(er, 7, row["Buchungstext"])
 
-    last = len(rows_buchungen) + 2
+    last = len(rows_buchungen) + 1
     sr = last + 1
     ws.cell(sr, 7, "GESAMT")
-    c_sum = ws.cell(sr, 1, f"=SUM(A3:A{last})")
+    c_sum = ws.cell(sr, 1, f"=SUM(A2:A{last})")
     c_sum.number_format = UMSATZ_EURO_NUMBERFORMAT
 
     ws2 = wb.create_sheet("Allopay")

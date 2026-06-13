@@ -28,10 +28,8 @@ def run_etl(config: AsiaEtlConfig, *, excel_titel: str | None = None) -> None:
     ``AGENDA_FILE`` ist optional: fehlt die Datei, werden Buchungen ohne Agenda-Zuordnung exportiert
     (BU Gkto leer außer Stripe-Kürzung).
     """
+    _ = excel_titel  # API-kompatibel; Kontoauszug-Blatt hat keine Titelzeile mehr
     cfg = as_legacy_dict(config)
-    titel = excel_titel or (
-        "Kontoauszug Export  ·  Sparkasse Allgäu  ·  01/2026"
-    )
 
     if not cfg["PDF_FILE"] or not Path(cfg["PDF_FILE"]).exists():
         msg = f"PDF-Datei fehlt oder existiert nicht: {cfg.get('PDF_FILE')!r}"
@@ -115,7 +113,6 @@ def run_etl(config: AsiaEtlConfig, *, excel_titel: str | None = None) -> None:
                 allopay_rows,
                 cfg["OUTPUT_FILE"],
                 cfg,
-                titel_zeile=titel,
                 edeka_rows=edeka_rows,
             )
             erstelle_final_blatt(cfg["OUTPUT_FILE"])
