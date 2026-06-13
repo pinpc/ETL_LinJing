@@ -8,6 +8,7 @@ from pathlib import Path
 from typing import Any
 
 from .config import AsiaEtlConfig, as_legacy_dict
+from .invoices import load_invoices
 from .excel_export import exportiere_excel
 from .final_sheet import erstelle_final_blatt
 from .sql_export import exportiere_sql_skript, exportiere_sqlite
@@ -85,10 +86,12 @@ def run_etl(config: AsiaEtlConfig, *, excel_titel: str | None = None) -> None:
         apply_buchungs_mapping(buchungen_rows)
 
         verzeichnis = str(Path(cfg["PDF_FILE"]).parent)
+        edeka_rows = [row.as_excel_dict() for row in load_invoices(verzeichnis)]
         allopay_rows = verarbeite_stripe_csvs(verzeichnis, cfg)
         logger.info(
             "%s Zeilen aus Stripe-CSVs für Allopay erzeugt", len(allopay_rows)
         )
+        logger.info("Blatt 'EDEKA': %s Rechnung(en)", len(edeka_rows))
 
         out_path = Path(cfg["OUTPUT_FILE"])
         suf = out_path.suffix.lower()
@@ -113,6 +116,7 @@ def run_etl(config: AsiaEtlConfig, *, excel_titel: str | None = None) -> None:
                 cfg["OUTPUT_FILE"],
                 cfg,
                 titel_zeile=titel,
+                edeka_rows=edeka_rows,
             )
             erstelle_final_blatt(cfg["OUTPUT_FILE"])
 

@@ -4,7 +4,8 @@
       "id": "bank_asia",
       "module": "bank",
       "tenant_id": "asia",
-      "source": "C:/temp_cursor/LinJing/01_Asia/Asia Konto 03.2026",
+      "source": "C:/temp_cursor/LinJing/01_Asia/Asia Buchhaltung 04.2026/Asia Konto 04.2026",
+      "statement_pdf": "C:/temp_cursor/LinJing/01_Asia/Asia Buchhaltung 04.2026/Asia Konto 04.2026/01b Kontoauszug 2026_04.pdf",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_bank.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/bank_asia.processed.json",
       "ignore_fields": []
@@ -13,7 +14,8 @@
       "id": "bank_jupiter",
       "module": "bank",
       "tenant_id": "jupiter",
-      "source": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Konto 03.2026",
+      "source": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 04.2026/Jupiter Konto 04.2026",
+      "statement_pdf": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 04.2026/Jupiter Konto 04.2026/00b Nr.004 Kontoauszug 2026.04.30.pdf",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_bank.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/bank_jupiter.processed.json",
       "ignore_fields": []
@@ -22,7 +24,8 @@
       "id": "cashbook_asia",
       "module": "cashbook",
       "tenant_id": "asia",
-      "source": "C:/temp_cursor/LinJing/01_Asia/Asia Kasse 03.2026/01 allO现金簿导出2026.03/cashbook_china_restaurant_asia__01_03_2026_31_03_2026.xlsx",
+      "source": "C:/temp_cursor/LinJing/01_Asia/Asia Buchhaltung 04.2026/Asia Kasse 04.2026/01 allO 现金簿导出2026-04/cashbook_china_restaurant_asia__01_04_2026_30_04_2026.xlsx",
+      "pdf_base_dir": "C:/temp_cursor/LinJing/01_Asia/Asia Buchhaltung 04.2026/Asia Kasse 04.2026",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_cashbook.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_asia.processed.json",
       "ignore_fields": []
@@ -31,7 +34,8 @@
       "id": "cashbook_jupiter",
       "module": "cashbook",
       "tenant_id": "jupiter",
-      "source": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 03.2026/Jupiter Kasse 03.2026/02b Kassenbuch_Jupiter 03.2026.xlsx",
+      "source": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 04.2026/Jupiter Kasse 04.2026/01a 仅对照参考 现金账 Jupiter 04.2026.xlsx",
+      "pdf_base_dir": "C:/temp_cursor/LinJing/02_Jupiter/Buchhaltung Jupiter 04.2026/Jupiter Kasse 04.2026",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_cashbook.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_jupiter.processed.json",
       "ignore_fields": []

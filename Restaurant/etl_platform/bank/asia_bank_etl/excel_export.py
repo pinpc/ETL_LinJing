@@ -38,8 +38,9 @@ def exportiere_excel(
     config: dict[str, Any],
     *,
     titel_zeile: str = "Kontoauszug Export  ·  Sparkasse Allgäu  ·  01/2026",
+    edeka_rows: list[dict[str, Any]] | None = None,
 ) -> None:
-    """Exportiert Buchungen, Allopay und Referenzblatt „Parser Ref“ (Mapping-Regeln)."""
+    """Exportiert Buchungen, Allopay, optional EDEKA-Rechnungen und Parser Ref."""
     wb = Workbook()
 
     cols = [
@@ -114,5 +115,40 @@ def exportiere_excel(
         ws_ref.cell(ri, 1, suchtext)
         ws_ref.cell(ri, 2, bu_gkto if bu_gkto is not None else "")
         ws_ref.cell(ri, 3, kuerzel)
+
+    if edeka_rows:
+        edeka_cols = [
+            "Datei",
+            "Rechnung-Nr",
+            "Rechnungsdatum",
+            "WE 7 % Gesamt",
+            "WE 19 % Gesamt",
+            "WE 19 % ohne Reinigung",
+            "Reinigung Wash/Putz",
+            "Gesamtbetrag",
+            "Summe 7 % + 19 %",
+            "Parse OK",
+            "Hinweis",
+        ]
+        ws_edeka = wb.create_sheet("EDEKA")
+        for ci, name in enumerate(edeka_cols, 1):
+            ws_edeka.cell(1, ci, name)
+        euro_cols = {
+            "WE 7 % Gesamt",
+            "WE 19 % Gesamt",
+            "WE 19 % ohne Reinigung",
+            "Reinigung Wash/Putz",
+            "Gesamtbetrag",
+            "Summe 7 % + 19 %",
+        }
+        for ri, row in enumerate(edeka_rows, start=2):
+            for ci, col in enumerate(edeka_cols, 1):
+                val = row.get(col)
+                if col in euro_cols and val is not None and val != "":
+                    val = umsatz_zwei_nachkommastellen(val)
+                    cell = ws_edeka.cell(ri, ci, val)
+                    cell.number_format = UMSATZ_EURO_NUMBERFORMAT
+                else:
+                    ws_edeka.cell(ri, ci, val if val not in ("", None) else None)
 
     wb.save(output_path)

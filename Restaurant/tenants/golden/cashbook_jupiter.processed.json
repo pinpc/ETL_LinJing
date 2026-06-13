@@ -2,89 +2,35 @@
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 63.1,
-    "booking_date": "01.03.2026",
+    "amount": 111.0,
+    "booking_date": "2026-04-01",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z288"
+    "beleg_1": "Z314"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 447.2,
-    "booking_date": "01.03.2026",
+    "amount": 446.2,
+    "booking_date": "2026-04-01",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z288"
+    "beleg_1": "Z314"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -341.4,
-    "booking_date": "01.03.2026",
-    "booking_text": "alloPay 01.03.2026",
+    "amount": -498.9,
+    "booking_date": "2026-04-01",
+    "booking_text": "alloPay 01.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z288"
+    "beleg_1": "Z314"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 54.2,
-    "booking_date": "03.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z289"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 631.4,
-    "booking_date": "03.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z289"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -250.9,
-    "booking_date": "03.03.2026",
-    "booking_text": "alloPay 03.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z289"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 37.2,
-    "booking_date": "04.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z290"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 207.2,
-    "booking_date": "04.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z290"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -234.7,
-    "booking_date": "04.03.2026",
-    "booking_text": "alloPay 04.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z290"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -157.3,
-    "booking_date": "05.03.2026",
+    "amount": -206.7,
+    "booking_date": "2026-04-02",
     "booking_text": "Fisch Food",
     "bu_gkto": "3300",
     "beleg_1": ""
@@ -92,314 +38,224 @@
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 48.7,
-    "booking_date": "05.03.2026",
+    "amount": 38.8,
+    "booking_date": "2026-04-02",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z291"
+    "beleg_1": "Z315"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 379.9,
-    "booking_date": "05.03.2026",
+    "amount": 1108.0,
+    "booking_date": "2026-04-02",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z291"
+    "beleg_1": "Z315"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -369.3,
-    "booking_date": "05.03.2026",
-    "booking_text": "alloPay 05.03.2026",
+    "amount": -386.8,
+    "booking_date": "2026-04-02",
+    "booking_text": "alloPay 02.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z291"
+    "beleg_1": "Z315"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 45.6,
-    "booking_date": "06.03.2026",
+    "amount": 130.9,
+    "booking_date": "2026-04-03",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z292"
+    "beleg_1": "Z316"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 280.6,
-    "booking_date": "06.03.2026",
+    "amount": 1134.0,
+    "booking_date": "2026-04-03",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z292"
+    "beleg_1": "Z316"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -257.0,
-    "booking_date": "06.03.2026",
-    "booking_text": "alloPay 06.03.2026",
+    "amount": -474.3,
+    "booking_date": "2026-04-03",
+    "booking_text": "alloPay 03.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z292"
+    "beleg_1": "Z316"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 63.4,
-    "booking_date": "07.03.2026",
+    "amount": 115.2,
+    "booking_date": "2026-04-04",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z293"
+    "beleg_1": "Z317"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 499.6,
-    "booking_date": "07.03.2026",
+    "amount": 803.7,
+    "booking_date": "2026-04-04",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z293"
+    "beleg_1": "Z317"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -429.6,
-    "booking_date": "07.03.2026",
-    "booking_text": "alloPay 07.03.2026",
+    "amount": -654.8,
+    "booking_date": "2026-04-04",
+    "booking_text": "alloPay 04.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z293"
+    "beleg_1": "Z317"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 77.7,
-    "booking_date": "08.03.2026",
+    "amount": 113.9,
+    "booking_date": "2026-04-05",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z294"
+    "beleg_1": "Z318"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 421.0,
-    "booking_date": "08.03.2026",
+    "amount": 389.4,
+    "booking_date": "2026-04-05",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z294"
+    "beleg_1": "Z318"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -265.7,
-    "booking_date": "08.03.2026",
-    "booking_text": "alloPay 08.03.2026",
+    "amount": -394.6,
+    "booking_date": "2026-04-05",
+    "booking_text": "alloPay 05.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z294"
+    "beleg_1": "Z318"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -2000.0,
-    "booking_date": "10.03.2026",
-    "booking_text": "An Bank",
-    "bu_gkto": "1360",
-    "beleg_1": ""
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 45.3,
-    "booking_date": "10.03.2026",
+    "amount": 62.1,
+    "booking_date": "2026-04-07",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z295"
+    "beleg_1": "Z319"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 630.5,
-    "booking_date": "10.03.2026",
+    "amount": 586.7,
+    "booking_date": "2026-04-07",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z295"
+    "beleg_1": "Z319"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -24.0,
-    "booking_date": "10.03.2026",
-    "booking_text": "alloPay 10.03.2026",
+    "amount": -472.7,
+    "booking_date": "2026-04-07",
+    "booking_text": "alloPay 07.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z295"
+    "beleg_1": "Z319"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 24.3,
-    "booking_date": "11.03.2026",
+    "amount": 20.9,
+    "booking_date": "2026-04-08",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z296"
+    "beleg_1": "Z320"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 248.8,
-    "booking_date": "11.03.2026",
+    "amount": 188.6,
+    "booking_date": "2026-04-08",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z296"
+    "beleg_1": "Z320"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -246.0,
-    "booking_date": "11.03.2026",
-    "booking_text": "alloPay 11.03.2026",
+    "amount": -185.94,
+    "booking_date": "2026-04-08",
+    "booking_text": "allO Pay + Food Behälter",
     "bu_gkto": "1360",
-    "beleg_1": "Z296"
+    "beleg_1": "Z320"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 81.2,
-    "booking_date": "12.03.2026",
+    "amount": 32.7,
+    "booking_date": "2026-04-09",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z297"
+    "beleg_1": "Z321"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 557.7,
-    "booking_date": "12.03.2026",
+    "amount": 386.7,
+    "booking_date": "2026-04-09",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z297"
+    "beleg_1": "Z321"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -362.0,
-    "booking_date": "12.03.2026",
-    "booking_text": "alloPay 12.03.2026",
+    "amount": -362.3,
+    "booking_date": "2026-04-09",
+    "booking_text": "alloPay 09.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z297"
+    "beleg_1": "Z321"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 99.5,
-    "booking_date": "13.03.2026",
+    "amount": 148.6,
+    "booking_date": "2026-04-10",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z298"
+    "beleg_1": "Z322"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 929.3,
-    "booking_date": "13.03.2026",
+    "amount": 824.8,
+    "booking_date": "2026-04-10",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z298"
+    "beleg_1": "Z322"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -541.6,
-    "booking_date": "13.03.2026",
-    "booking_text": "alloPay 13.03.2026",
+    "amount": -971.5,
+    "booking_date": "2026-04-10",
+    "booking_text": "alloPay 10.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z298"
+    "beleg_1": "Z322"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 163.4,
-    "booking_date": "14.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z299"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 661.3,
-    "booking_date": "14.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z299"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -587.8,
-    "booking_date": "14.03.2026",
-    "booking_text": "alloPay 14.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z299"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 62.8,
-    "booking_date": "15.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z300"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 380.0,
-    "booking_date": "15.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z300"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -237.6,
-    "booking_date": "15.03.2026",
-    "booking_text": "alloPay 15.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z300"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 69.0,
-    "booking_date": "17.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z301"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 555.5,
-    "booking_date": "17.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z301"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -342.2,
-    "booking_date": "17.03.2026",
-    "booking_text": "alloPay 17.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z301"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -310.4,
-    "booking_date": "18.03.2026",
+    "amount": -240.5,
+    "booking_date": "2026-04-11",
     "booking_text": "Fisch Food",
     "bu_gkto": "3300",
     "beleg_1": ""
@@ -407,305 +263,152 @@
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 34.2,
-    "booking_date": "18.03.2026",
+    "amount": 66.3,
+    "booking_date": "2026-04-11",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z302"
+    "beleg_1": "Z323"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 482.9,
-    "booking_date": "18.03.2026",
+    "amount": 442.5,
+    "booking_date": "2026-04-11",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z302"
+    "beleg_1": "Z323"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -408.7,
-    "booking_date": "18.03.2026",
-    "booking_text": "alloPay 18.03.2026",
+    "amount": -518.9,
+    "booking_date": "2026-04-11",
+    "booking_text": "alloPay 11.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z302"
+    "beleg_1": "Z323"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 86.6,
-    "booking_date": "19.03.2026",
+    "amount": 172.8,
+    "booking_date": "2026-04-12",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z303"
+    "beleg_1": "Z324"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 676.3,
-    "booking_date": "19.03.2026",
+    "amount": 998.3,
+    "booking_date": "2026-04-12",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z303"
+    "beleg_1": "Z324"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -704.8,
-    "booking_date": "19.03.2026",
-    "booking_text": "alloPay 19.03.2026",
+    "amount": -861.2,
+    "booking_date": "2026-04-12",
+    "booking_text": "alloPay 12.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z303"
+    "beleg_1": "Z324"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 188.2,
-    "booking_date": "20.03.2026",
+    "amount": 25.8,
+    "booking_date": "2026-04-14",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z304"
+    "beleg_1": "Z325"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 997.4,
-    "booking_date": "20.03.2026",
+    "amount": 460.4,
+    "booking_date": "2026-04-14",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z304"
+    "beleg_1": "Z325"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -894.3,
-    "booking_date": "20.03.2026",
-    "booking_text": "alloPay 20.03.2026",
+    "amount": -231.9,
+    "booking_date": "2026-04-14",
+    "booking_text": "alloPay 14.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z304"
+    "beleg_1": "Z325"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 160.8,
-    "booking_date": "21.03.2026",
+    "amount": -259.2,
+    "booking_date": "2026-04-15",
+    "booking_text": "Fisch Food",
+    "bu_gkto": "3300",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 48.6,
+    "booking_date": "2026-04-15",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z305"
+    "beleg_1": "Z326"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 1264.8,
-    "booking_date": "21.03.2026",
+    "amount": 321.0,
+    "booking_date": "2026-04-15",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z305"
+    "beleg_1": "Z326"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -1030.5,
-    "booking_date": "21.03.2026",
-    "booking_text": "alloPay 21.03.2026",
+    "amount": -342.3,
+    "booking_date": "2026-04-15",
+    "booking_text": "alloPay 15.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z305"
+    "beleg_1": "Z326"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 65.5,
-    "booking_date": "22.03.2026",
+    "amount": 103.0,
+    "booking_date": "2026-04-16",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z306"
+    "beleg_1": "Z327"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 536.2,
-    "booking_date": "22.03.2026",
+    "amount": 543.8,
+    "booking_date": "2026-04-16",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z306"
+    "beleg_1": "Z327"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -358.8,
-    "booking_date": "22.03.2026",
-    "booking_text": "alloPay 22.03.2026",
+    "amount": -542.8,
+    "booking_date": "2026-04-16",
+    "booking_text": "alloPay 16.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z306"
+    "beleg_1": "Z327"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 31.2,
-    "booking_date": "24.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z307"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 556.3,
-    "booking_date": "24.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z307"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -243.7,
-    "booking_date": "24.03.2026",
-    "booking_text": "alloPay 24.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z307"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 100.0,
-    "booking_date": "25.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z308"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 693.8,
-    "booking_date": "25.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z308"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -799.9,
-    "booking_date": "25.03.2026",
-    "booking_text": "alloPay 25.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z308"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 91.8,
-    "booking_date": "26.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z309"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 518.8,
-    "booking_date": "26.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z309"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -527.7,
-    "booking_date": "26.03.2026",
-    "booking_text": "alloPay 26.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z309"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 263.7,
-    "booking_date": "27.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z310"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 995.9,
-    "booking_date": "27.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z310"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -1100.6,
-    "booking_date": "27.03.2026",
-    "booking_text": "alloPay 27.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z310"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 39.3,
-    "booking_date": "28.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z311"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 302.0,
-    "booking_date": "28.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z311"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -268.1,
-    "booking_date": "28.03.2026",
-    "booking_text": "alloPay 28.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z311"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 112.0,
-    "booking_date": "29.03.2026",
-    "booking_text": "Umsatz 19 %",
-    "bu_gkto": "8400",
-    "beleg_1": "Z312"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": 489.1,
-    "booking_date": "29.03.2026",
-    "booking_text": "Umsatz 7 %",
-    "bu_gkto": "8300",
-    "beleg_1": "Z312"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -543.7,
-    "booking_date": "29.03.2026",
-    "booking_text": "alloPay 29.03.2026",
-    "bu_gkto": "1360",
-    "beleg_1": "Z312"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "cashbook",
-    "amount": -2000.0,
-    "booking_date": "31.03.2026",
+    "amount": -3000.0,
+    "booking_date": "2026-04-17",
     "booking_text": "An Bank",
     "bu_gkto": "1360",
     "beleg_1": ""
@@ -713,28 +416,334 @@
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 61.7,
-    "booking_date": "31.03.2026",
+    "amount": 90.4,
+    "booking_date": "2026-04-17",
     "booking_text": "Umsatz 19 %",
     "bu_gkto": "8400",
-    "beleg_1": "Z313"
+    "beleg_1": "Z328"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": 896.9,
-    "booking_date": "31.03.2026",
+    "amount": 566.7,
+    "booking_date": "2026-04-17",
     "booking_text": "Umsatz 7 %",
     "bu_gkto": "8300",
-    "beleg_1": "Z313"
+    "beleg_1": "Z328"
   },
   {
     "tenant_id": "jupiter",
     "module_name": "cashbook",
-    "amount": -408.2,
-    "booking_date": "31.03.2026",
-    "booking_text": "alloPay 31.03.2026",
+    "amount": -670.45,
+    "booking_date": "2026-04-17",
+    "booking_text": "alloPay 17.04.2026",
     "bu_gkto": "1360",
-    "beleg_1": "Z313"
+    "beleg_1": "Z328"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 106.1,
+    "booking_date": "2026-04-18",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z329"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 457.4,
+    "booking_date": "2026-04-18",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z329"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -483.5,
+    "booking_date": "2026-04-18",
+    "booking_text": "alloPay 18.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z329"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 87.5,
+    "booking_date": "2026-04-19",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z330"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 660.2,
+    "booking_date": "2026-04-19",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z330"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -485.6,
+    "booking_date": "2026-04-19",
+    "booking_text": "alloPay 19.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z330"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 46.5,
+    "booking_date": "2026-04-21",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z331"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 377.4,
+    "booking_date": "2026-04-21",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z331"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -363.3,
+    "booking_date": "2026-04-21",
+    "booking_text": "alloPay 21.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z331"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 47.5,
+    "booking_date": "2026-04-22",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z332"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 545.6,
+    "booking_date": "2026-04-22",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z332"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -546.9,
+    "booking_date": "2026-04-22",
+    "booking_text": "alloPay 22.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z332"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -65.5,
+    "booking_date": "2026-04-23",
+    "booking_text": "Fisch Food",
+    "bu_gkto": "3300",
+    "beleg_1": ""
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 82.1,
+    "booking_date": "2026-04-23",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z333"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 578.5,
+    "booking_date": "2026-04-23",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z333"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -480.4,
+    "booking_date": "2026-04-23",
+    "booking_text": "alloPay 23.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z333"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 150.5,
+    "booking_date": "2026-04-24",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z334"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 1229.0,
+    "booking_date": "2026-04-24",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z334"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -1183.9,
+    "booking_date": "2026-04-24",
+    "booking_text": "alloPay 24.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z334"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 135.4,
+    "booking_date": "2026-04-25",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z335"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 1190.5,
+    "booking_date": "2026-04-25",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z335"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -986.2,
+    "booking_date": "2026-04-25",
+    "booking_text": "alloPay 25.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z335"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 101.1,
+    "booking_date": "2026-04-26",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z336"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 621.7,
+    "booking_date": "2026-04-26",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z336"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -657.6,
+    "booking_date": "2026-04-26",
+    "booking_text": "alloPay 26.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z336"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 47.1,
+    "booking_date": "2026-04-28",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z337"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 585.3,
+    "booking_date": "2026-04-28",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z337"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -184.9,
+    "booking_date": "2026-04-28",
+    "booking_text": "alloPay 28.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z337"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 41.3,
+    "booking_date": "2026-04-29",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z338"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 564.6,
+    "booking_date": "2026-04-29",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z338"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -79.6,
+    "booking_date": "2026-04-29",
+    "booking_text": "alloPay 29.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z338"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 25.0,
+    "booking_date": "2026-04-30",
+    "booking_text": "Umsatz 19 %",
+    "bu_gkto": "8400",
+    "beleg_1": "Z339"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": 242.4,
+    "booking_date": "2026-04-30",
+    "booking_text": "Umsatz 7 %",
+    "bu_gkto": "8300",
+    "beleg_1": "Z339"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "cashbook",
+    "amount": -273.9,
+    "booking_date": "2026-04-30",
+    "booking_text": "alloPay 30.04.2026",
+    "bu_gkto": "1360",
+    "beleg_1": "Z339"
   }
 ]

@@ -4,6 +4,7 @@ from __future__ import annotations
 
 from typing import Any
 
+from .dates import normalize_booking_date
 from .models import ProcessedTransaction
 
 PROCESSED_TRANSACTION_FIELDS: tuple[str, ...] = (
@@ -23,7 +24,7 @@ def serialize_processed_transaction(row: ProcessedTransaction) -> dict[str, Any]
         "tenant_id": row.tenant_id,
         "module_name": row.module_name,
         "amount": row.amount,
-        "booking_date": row.booking_date,
+        "booking_date": normalize_booking_date(row.booking_date),
         "booking_text": row.booking_text,
         "bu_gkto": row.bu_gkto,
         "beleg_1": row.beleg_1,
@@ -42,7 +43,7 @@ def legacy_rows_to_processed_transactions(
             tenant_id=tenant_id,
             module_name=module_name,
             amount=float(getattr(row, "umsatz_euro")),
-            booking_date=str(getattr(row, "datum")),
+            booking_date=normalize_booking_date(getattr(row, "datum")),
             booking_text=str(getattr(row, "buchungstext")),
             bu_gkto=str(getattr(row, "bu_gkto")),
             beleg_1=str(getattr(row, "beleg_1")),

@@ -2,7 +2,6 @@
 
 from __future__ import annotations
 
-from datetime import date, datetime
 from pathlib import Path
 from typing import Any
 
@@ -14,6 +13,7 @@ from ..parser.registry import CsvParser, ParserRegistry
 from ..rule_engine.registry import IdentityRule, RulePipeline, RuleSetRegistry
 from ..rule_engine.interfaces import RuleExplainSummary
 from ..shared.artifacts import write_run_meta
+from ..shared.dates import normalize_booking_date
 from ..shared.export_pipeline import (
     ProcessedExportTargets,
     export_processed_rows,
@@ -277,11 +277,7 @@ def _find_header_row(worksheet) -> int | None:
 
 
 def _as_date_text(value) -> str:
-    if isinstance(value, datetime):
-        return value.date().isoformat()
-    if isinstance(value, date):
-        return value.isoformat()
-    return str(value).strip() if value is not None else ""
+    return normalize_booking_date(value)
 
 
 def _as_clean_text(value: Any) -> str:

@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import logging
 import sqlite3
 import threading
 from dataclasses import dataclass, field
@@ -12,6 +13,8 @@ from typing import Any
 from urllib.parse import parse_qs
 from uuid import uuid4
 from wsgiref.simple_server import make_server
+
+logger = logging.getLogger(__name__)
 
 _INDEX_HTML = """<!doctype html>
 <html lang="en">
@@ -691,7 +694,7 @@ def _run_job(job_id: str, payload: dict[str, Any]) -> None:
         _job_store_mark_succeeded(job_id, result)
     except Exception as exc:  # safety net for worker thread
         error_code, public_message = _map_job_error(exc)
-        print(f"[JOB FAILED] {job_id} {type(exc).__name__}: {exc}")
+        logger.exception("[JOB FAILED] %s %s", job_id, type(exc).__name__)
         _job_store_mark_failed(
             job_id=job_id,
             error={

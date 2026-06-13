@@ -5,6 +5,7 @@
       "module": "bank",
       "tenant_id": "asia",
       "source": "${WORKSPACE_ROOT}/path/to/asia/bank/source",
+      "statement_pdf": "${WORKSPACE_ROOT}/path/to/asia/bank/kontoauszug.pdf",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_bank.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/bank_asia.processed.json",
       "ignore_fields": []
@@ -14,6 +15,7 @@
       "module": "bank",
       "tenant_id": "jupiter",
       "source": "${WORKSPACE_ROOT}/path/to/jupiter/bank/source",
+      "statement_pdf": "${WORKSPACE_ROOT}/path/to/jupiter/bank/kontoauszug.pdf",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_bank.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/bank_jupiter.processed.json",
       "ignore_fields": []
@@ -23,6 +25,7 @@
       "module": "cashbook",
       "tenant_id": "asia",
       "source": "${WORKSPACE_ROOT}/path/to/asia/cashbook/input.xlsx",
+      "pdf_base_dir": "${WORKSPACE_ROOT}/path/to/asia/cashbook/pdf-base",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/asia_cashbook.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_asia.processed.json",
       "ignore_fields": []
@@ -32,6 +35,7 @@
       "module": "cashbook",
       "tenant_id": "jupiter",
       "source": "${WORKSPACE_ROOT}/path/to/jupiter/cashbook/input.xlsx",
+      "pdf_base_dir": "${WORKSPACE_ROOT}/path/to/jupiter/cashbook/pdf-base",
       "output": "${WORKSPACE_ROOT}/.golden/tmp/jupiter_cashbook.xlsx",
       "expected": "${PROJECT_ROOT}/tenants/golden/cashbook_jupiter.processed.json",
       "ignore_fields": []
