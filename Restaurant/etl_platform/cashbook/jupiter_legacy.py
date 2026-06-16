@@ -24,7 +24,6 @@ def _load_config() -> dict:
 _CONFIG = _load_config()
 _DEFAULTS = _CONFIG["defaults"]
 _ACCOUNTS = _CONFIG["accounts"]
-_PATHS = _CONFIG["paths"]
 
 TARGET_COLUMNS = list(_CONFIG["target_columns"])
 COLUMN_WIDTHS = {key: int(value) for key, value in _CONFIG["column_widths"].items()}
@@ -35,16 +34,23 @@ STANDARD_BANK = int(_DEFAULTS["standard_bank"])
 BU_GKTO_ALLOPAY_EXPENSE = int(_ACCOUNTS["allopay_expense"])
 BU_GKTO_BAUMARKT_EXPENSE = int(_ACCOUNTS["baumarkt_expense"])
 BU_GKTO_FISCH_FOOD = int(_ACCOUNTS["fisch_food"])
+BU_GKTO_PERSONALZIMMER = int(_ACCOUNTS["personalzimmer"])
 BU_GKTO_INCOME = int(_ACCOUNTS["income"])
 BU_GKTO_ALLOPAY_19 = int(_ACCOUNTS["allopay_19"])
 BU_GKTO_ALLOPAY_7 = int(_ACCOUNTS["allopay_7"])
+BU_GKTO_TIPS_0 = int(_ACCOUNTS.get("tips_0", 4140))
 
 MERGE_TOLERANCE = Decimal(str(_DEFAULTS["merge_tolerance"]))
 XL_EURO_NUM_FMT = str(_DEFAULTS["xl_euro_num_fmt"])
-
-DEFAULT_BASE_PATH = Path(_PATHS["base_path"])
-DEFAULT_CASHBOOK_CANDIDATES = [Path(path) for path in _PATHS["cashbook_candidates"]]
-DEFAULT_OUTPUT_PATH = Path(_PATHS["output_path"])
+XL_DATE_FMT = "DD.MM.YYYY"
+BOOKING_TEXT_ALLO_PAY = "AllO Pay"
+BOOKING_TEXT_TIPS = "Trinkgeld"
+BOOKING_TEXT_TIPS_0 = "Umsatz 0 %"
+BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
+BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
+BOOKING_TEXT_FISHFOOD_EW_7 = "Fishfood EW 7%"
+BOOKING_TEXT_AN_BANK = "an Bank"
+BOOKING_TEXT_BANK_DEPOSIT = "Bankeinzahlung"
 
 
 @dataclass(frozen=True)
@@ -73,7 +79,6 @@ class AllopayPdfData:
     umsatz_7: Decimal
     umsatz_19: Decimal
     allopay_payment_sum: Decimal
-    dateiname: str
 
 
 @dataclass(frozen=True)
@@ -191,7 +196,7 @@ def parse_date(value: Any) -> str:
     if text == "":
         return ""
 
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
+    for fmt in ("%d.%m.%Y", "%d.%m.%y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
         try:
             return datetime.strptime(text, fmt).strftime("%d.%m.%Y")
         except ValueError:
@@ -200,12 +205,22 @@ def parse_date(value: Any) -> str:
     return text
 
 
+def datum_to_excel_date(value: str) -> datetime | str:
+    text = parse_date(value)
+    if text == "":
+        return ""
+    try:
+        return datetime.strptime(text, "%d.%m.%Y")
+    except ValueError:
+        return text
+
+
 def date_sort_key(value: str) -> tuple[int, int, int, str]:
     text = as_text(value)
     if text == "":
         return (9999, 12, 31, text)
 
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y"):
+    for fmt in ("%d.%m.%Y", "%d.%m.%y", "%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y"):
         try:
             dt = datetime.strptime(text, fmt)
             return (dt.year, dt.month, dt.day, text)
@@ -217,6 +232,111 @@ def date_sort_key(value: str) -> tuple[int, int, int, str]:
 
 def sort_rows_by_date(rows: Iterable[BuchungRow]) -> list[BuchungRow]:
     return sorted(rows, key=lambda row: (date_sort_key(row.datum), row.beleg_1, row.buchungstext))
+
+
+def _date_group_key(datum: str) -> tuple[int, int, int]:
+    return date_sort_key(datum)[:3]
+
+
+def _buchungstext_lower(text: str) -> str:
+    return text.strip().lower()
+
+
+def trinkgeld_sum_by_date(buchung_rows: Iterable[BuchungRow]) -> dict[tuple[int, int, int], Decimal]:
+    totals: dict[tuple[int, int, int], Decimal] = {}
+    tips_text = BOOKING_TEXT_TIPS.lower()
+    for row in buchung_rows:
+        if _buchungstext_lower(row.buchungstext) != tips_text:
+            continue
+        key = _date_group_key(row.datum)
+        totals[key] = totals.get(key, Decimal("0")) + row.umsatz_euro
+    return totals
+
+
+def is_allopay_income_row(row: BuchungRow) -> bool:
+    return row.umsatz_euro > 0 and BOOKING_TEXT_ALLO_PAY.lower() in _buchungstext_lower(row.buchungstext)
+
+
+def _is_fish_buchungstext(text: str) -> bool:
+    text_lower = _buchungstext_lower(text)
+    return "fisch" in text_lower or "fish" in text_lower
+
+
+def _is_baumarkt_buchungstext(text: str) -> bool:
+    return "baumarkt" in _buchungstext_lower(text)
+
+
+def _is_personalzimmer_buchungstext(text: str) -> bool:
+    return "personalzimmer" in _buchungstext_lower(text)
+
+
+def normalize_final_row(row: BuchungRow) -> BuchungRow:
+    normalized = replace(
+        row,
+        datum=parse_date(row.datum),
+        bu_gkto=get_bu_gkto(row.umsatz_euro, row.buchungstext),
+    )
+    text_lower = _buchungstext_lower(normalized.buchungstext)
+
+    if _is_fish_buchungstext(text_lower):
+        return replace(normalized, buchungstext=BOOKING_TEXT_FISHFOOD_EW_7)
+    if text_lower == BOOKING_TEXT_BANK_DEPOSIT.lower():
+        return replace(normalized, buchungstext=BOOKING_TEXT_AN_BANK)
+    return normalized
+
+
+def _index_allopay_by_date(
+    allopay_rows: list[BuchungRow],
+) -> tuple[dict[tuple[int, int, int], list[BuchungRow]], dict[tuple[int, int, int], Decimal]]:
+    by_date: dict[tuple[int, int, int], list[BuchungRow]] = {}
+    sum_by_date: dict[tuple[int, int, int], Decimal] = {}
+    for row in allopay_rows:
+        key = _date_group_key(row.datum)
+        by_date.setdefault(key, []).append(row)
+        sum_by_date[key] = sum_by_date.get(key, Decimal("0")) + row.umsatz_euro
+    return by_date, sum_by_date
+
+
+def _build_safe_allopay_beleg_by_date(allopay_rows: list[BuchungRow]) -> dict[str, str]:
+    belege_by_date: dict[str, set[str]] = {}
+    for row in allopay_rows:
+        beleg = row.beleg_1.strip()
+        if beleg == "" or beleg == "Z000":
+            continue
+        belege_by_date.setdefault(row.datum, set()).add(beleg)
+
+    return {
+        datum: next(iter(belege)) if len(belege) == 1 else ""
+        for datum, belege in belege_by_date.items()
+    }
+
+
+def _finalize_final_rows(rows: Iterable[BuchungRow]) -> list[BuchungRow]:
+    return sort_rows_by_date(normalize_final_row(row) for row in rows)
+
+
+def build_trinkgeld_final_row(
+    trinkgeld_net: Decimal,
+    allopay_rows_for_date: list[BuchungRow],
+    income_row: BuchungRow,
+) -> BuchungRow | None:
+    if trinkgeld_net >= Decimal("0"):
+        return None
+
+    template = allopay_rows_for_date[0] if allopay_rows_for_date else income_row
+    return BuchungRow(
+        umsatz_euro=(-trinkgeld_net).quantize(Decimal("0.01")),
+        bu_gkto=BU_GKTO_TIPS_0,
+        beleg_1=template.beleg_1 or income_row.beleg_1,
+        datum=template.datum or income_row.datum,
+        kost_1=STANDARD_KOST,
+        bank=STANDARD_BANK,
+        buchungstext=BOOKING_TEXT_TIPS_0,
+    )
+
+
+def _warn_allopay_merge_failure(message: str) -> None:
+    print(f"WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar {message}", file=sys.stderr)
 
 
 def _contains_any(text: str, tokens: tuple[str, ...]) -> bool:
@@ -266,18 +386,182 @@ def _should_stop_row(values: list[Any]) -> bool:
     return _contains_any(row_text, ("summe", "unterschrift", "bestand", "收入总额"))
 
 
-def _read_excel_transactions(input_path: Path, sheet_name: str | None = None) -> list[CashbookTransaction]:
-    workbook = load_workbook(input_path, data_only=True)
+def _norm_header(value: Any) -> str:
+    return as_text(value)
 
-    if sheet_name:
+
+def _resolve_excel_sheet(workbook, sheet_name: str | None):
+    if sheet_name and str(sheet_name).strip():
+        wanted = str(sheet_name).strip()
         name_map = {name.lower(): name for name in workbook.sheetnames}
-        resolved = name_map.get(sheet_name.lower(), sheet_name)
+        resolved = name_map.get(wanted.lower(), wanted)
         if resolved not in workbook.sheetnames:
             raise ValueError(f"Sheet '{sheet_name}' not found. Available: {workbook.sheetnames}")
-        worksheet = workbook[resolved]
-    else:
-        worksheet = next(workbook[name] for name in workbook.sheetnames if not name.startswith("__"))
+        return workbook[resolved]
 
+    name_map = {name.lower(): name for name in workbook.sheetnames}
+    for candidate in ("cashbook", "kasse"):
+        if candidate in name_map:
+            return workbook[name_map[candidate]]
+    return next(workbook[name] for name in workbook.sheetnames if not name.startswith("__"))
+
+
+def _find_allo_export_header_row(ws, min_nonempty: int = 4, scan_rows: int = 30) -> int:
+    best_row = 1
+    best_score = -1
+
+    for row_idx in range(1, min(ws.max_row, scan_rows) + 1):
+        values = [_norm_header(cell.value) for cell in ws[row_idx]]
+        nonempty = sum(1 for value in values if value != "")
+        score = nonempty
+
+        wanted = {"datum", "date", "umsatz", "amount", "betrag", "金额", "交易日期", "识别号", "主题"}
+        if any(value in wanted or value.lower() in wanted for value in values):
+            score += 5
+        if any(value == "金额" for value in values):
+            score += 5
+        if any(value == "交易日期" for value in values):
+            score += 5
+
+        raw_values = [cell.value for cell in ws[row_idx]]
+        numericish = sum(
+            1
+            for value in raw_values
+            if isinstance(value, (int, float, Decimal, datetime))
+            or (
+                isinstance(value, str)
+                and value.strip().lstrip("-").replace(".", "").replace(",", "").isdigit()
+            )
+        )
+        if numericish >= 2:
+            score -= 4
+
+        if score > best_score and nonempty >= min_nonempty:
+            best_score = score
+            best_row = row_idx
+
+    return best_row
+
+
+def _map_allo_export_columns(headers: list[str]) -> dict[str, int]:
+    exact = {header: idx for idx, header in enumerate(headers)}
+    lower = {header.lower(): idx for idx, header in enumerate(headers)}
+
+    def pick(*candidates: str) -> int | None:
+        for candidate in candidates:
+            if candidate in exact:
+                return exact[candidate]
+        for candidate in candidates:
+            if candidate.lower() in lower:
+                return lower[candidate.lower()]
+        for candidate in candidates:
+            token = candidate.lower()
+            for header, idx in lower.items():
+                if token in header:
+                    return idx
+        return None
+
+    mapping: dict[str, int] = {}
+    amount_idx = pick("金额", "Umsatz Euro", "Umsatz", "Amount", "Betrag")
+    beleg_idx = pick("识别号", "Beleg 1", "Beleg", "Receipt", "Bon")
+    datum_idx = pick("交易日期", "Datum", "Date")
+    subject_idx = pick("主题", "Subject", "Betreff")
+    if amount_idx is not None:
+        mapping["amount"] = amount_idx
+    if beleg_idx is not None:
+        mapping["beleg"] = beleg_idx
+    if datum_idx is not None:
+        mapping["datum"] = datum_idx
+    if subject_idx is not None:
+        mapping["subject"] = subject_idx
+    return mapping
+
+
+def _format_beleg(value: Any) -> str:
+    text = as_text(value)
+    if text == "":
+        return ""
+
+    if text.upper().startswith("Z") and any(ch.isdigit() for ch in text):
+        digits = "".join(ch for ch in text if ch.isdigit())
+        if digits:
+            return f"Z{int(digits):03d}"
+
+    digits = "".join(ch for ch in text if ch.isdigit())
+    if digits == "":
+        return text.upper() if text.upper().startswith("Z") else text
+    return f"Z{int(digits):03d}"
+
+
+def _format_buchungstext_date_short(value: str) -> str:
+    text = as_text(value)
+    if text == "":
+        return ""
+
+    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%Y/%m/%d", "%d/%m/%Y"):
+        try:
+            return datetime.strptime(text, fmt).strftime("%d.%m.%y")
+        except ValueError:
+            pass
+
+    return text
+
+
+def _worksheet_is_allo_export(worksheet) -> bool:
+    header_row = _find_allo_export_header_row(worksheet)
+    headers = [_norm_header(cell.value) for cell in worksheet[header_row]]
+    col_map = _map_allo_export_columns(headers)
+    return "amount" in col_map and "datum" in col_map
+
+
+def _read_allo_export_rows_from_worksheet(worksheet) -> list[BuchungRow]:
+    header_row = _find_allo_export_header_row(worksheet)
+    headers = [_norm_header(cell.value) for cell in worksheet[header_row]]
+    col_map = _map_allo_export_columns(headers)
+
+    rows: list[BuchungRow] = []
+    for row_idx in range(header_row + 1, worksheet.max_row + 1):
+        values = [cell.value for cell in worksheet[row_idx]]
+        if all(value is None or str(value).strip() == "" for value in values):
+            continue
+
+        def get(column_name: str) -> Any:
+            idx = col_map.get(column_name)
+            return values[idx] if idx is not None and idx < len(values) else None
+
+        amount = parse_money_amount(get("amount"))
+        datum = parse_date(get("datum"))
+        if datum == "" and amount == 0:
+            continue
+
+        beleg = _format_beleg(get("beleg"))
+        subject = as_text(get("subject"))
+        if beleg.upper().startswith("Z"):
+            date_suffix = _format_buchungstext_date_short(datum)
+            buchungstext = (
+                f"{BOOKING_TEXT_ALLO_PAY} {date_suffix}"
+                if date_suffix
+                else BOOKING_TEXT_ALLO_PAY
+            )
+        else:
+            buchungstext = subject
+
+        rows.append(
+            BuchungRow(
+                umsatz_euro=amount.quantize(Decimal("0.01")),
+                bu_gkto=get_bu_gkto(amount, buchungstext or subject),
+                beleg_1=beleg,
+                datum=datum,
+                kost_1=STANDARD_KOST,
+                bank=STANDARD_BANK,
+                buchungstext=buchungstext,
+            )
+        )
+
+    return sort_rows_by_date(rows)
+
+
+def _read_reference_excel_transactions(worksheet) -> list[CashbookTransaction]:
     header_row = _find_header_row(worksheet)
     headers = [str(cell.value).strip() if cell.value is not None else "" for cell in worksheet[header_row]]
     col_map = _map_excel_columns(headers)
@@ -316,101 +600,22 @@ def _read_excel_transactions(input_path: Path, sheet_name: str | None = None) ->
     return transactions
 
 
-def _read_pdf_transactions(pdf_path: Path) -> list[CashbookTransaction]:
-    transactions: list[CashbookTransaction] = []
-
-    with pdfplumber.open(str(pdf_path)) as pdf:
-        page = pdf.pages[0]
-        tables = page.extract_tables()
-        if not tables:
-            return []
-
-        table = tables[0]
-        header_row_idx = -1
-        col_datum_idx = -1
-        col_einnahmen_idx = -1
-        col_ausgaben_idx = -1
-        col_text_idx = -1
-
-        for row_idx, row in enumerate(table):
-            row_text = str(row).lower()
-            if "beleg" in row_text or "datum" in row_text or "einnahmen" in row_text:
-                header_row_idx = row_idx
-                for col_idx, cell in enumerate(row):
-                    if cell is None:
-                        continue
-                    cell_text = str(cell).lower()
-                    if "datum" in cell_text:
-                        col_datum_idx = col_idx
-                    elif "einnahmen" in cell_text or "rechts" in cell_text or "收入" in cell_text:
-                        col_einnahmen_idx = col_idx
-                    elif "ausgaben" in cell_text or "links" in cell_text or "支出" in cell_text:
-                        col_ausgaben_idx = col_idx
-                    elif "geschäfts" in cell_text or "用途" in cell_text:
-                        col_text_idx = col_idx
-                break
-
-        if header_row_idx == -1:
-            return []
-
-        if col_datum_idx == -1:
-            col_datum_idx = 1
-        if col_einnahmen_idx == -1:
-            col_einnahmen_idx = 2
-        if col_ausgaben_idx == -1:
-            col_ausgaben_idx = 3
-        if col_text_idx == -1:
-            col_text_idx = 5
-
-        for row in table[header_row_idx + 1 :]:
-            if not row or all(cell is None or str(cell).strip() == "" for cell in row):
-                continue
-            row_text = str(row).lower()
-            if _contains_any(row_text, ("summe", "unterschrift", "bestand", "收入总额")):
-                break
-
-            datum = ""
-            if col_datum_idx < len(row) and row[col_datum_idx]:
-                datum = parse_date(str(row[col_datum_idx]).strip())
-
-            if not re.match(r"\d{2}\.\d{2}\.\d{4}", datum):
-                continue
-
-            einnahmen = (
-                convert_german_number(row[col_einnahmen_idx])
-                if col_einnahmen_idx < len(row)
-                else Decimal("0")
-            )
-            ausgaben = (
-                convert_german_number(row[col_ausgaben_idx])
-                if col_ausgaben_idx < len(row)
-                else Decimal("0")
-            )
-            text = str(row[col_text_idx]).strip() if col_text_idx < len(row) and row[col_text_idx] else ""
-
-            if einnahmen > 0 or ausgaben > 0:
-                transactions.append(
-                    CashbookTransaction(
-                        datum=datum,
-                        einnahmen=einnahmen,
-                        ausgaben=ausgaben,
-                        buchungstext=text,
-                    )
-                )
-
-    return transactions
-
-
 def get_bu_gkto(umsatz: Decimal, text: str) -> int:
-    text_lower = text.lower()
+    text_lower = _buchungstext_lower(text)
 
-    if umsatz < 0:
-        if "allo" in text_lower or "bankeinzahlung" in text_lower:
-            return BU_GKTO_ALLOPAY_EXPENSE
-        if "baumarkt" in text_lower or "v-baumarkt" in text_lower:
-            return BU_GKTO_BAUMARKT_EXPENSE
-        return BU_GKTO_BAUMARKT_EXPENSE
-    return BU_GKTO_INCOME
+    if umsatz >= 0:
+        return BU_GKTO_INCOME
+    if text_lower == BOOKING_TEXT_TIPS.lower():
+        return BU_GKTO_ALLOPAY_EXPENSE
+    if _is_fish_buchungstext(text_lower):
+        return BU_GKTO_FISCH_FOOD
+    if _is_baumarkt_buchungstext(text_lower):
+        return BU_GKTO_ALLOPAY_EXPENSE
+    if _is_personalzimmer_buchungstext(text_lower):
+        return BU_GKTO_PERSONALZIMMER
+    if "allo" in text_lower or text_lower == BOOKING_TEXT_BANK_DEPOSIT.lower():
+        return BU_GKTO_ALLOPAY_EXPENSE
+    return BU_GKTO_BAUMARKT_EXPENSE
 
 
 def _build_buchung_rows(transactions: list[CashbookTransaction]) -> list[BuchungRow]:
@@ -460,13 +665,17 @@ def _build_buchung_rows(transactions: list[CashbookTransaction]) -> list[Buchung
 
 def read_cashbook_rows(input_path: Path, sheet_name: str | None = None) -> list[BuchungRow]:
     suffix = input_path.suffix.lower()
-    if suffix == ".pdf":
-        transactions = _read_pdf_transactions(input_path)
-    elif suffix in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
-        transactions = _read_excel_transactions(input_path, sheet_name=sheet_name)
-    else:
+    if suffix not in {".xlsx", ".xlsm", ".xltx", ".xltm"}:
         raise ValueError(f"Unsupported cashbook format: {input_path.suffix}")
 
+    workbook = load_workbook(input_path, data_only=True)
+    try:
+        worksheet = _resolve_excel_sheet(workbook, sheet_name)
+        if _worksheet_is_allo_export(worksheet):
+            return _read_allo_export_rows_from_worksheet(worksheet)
+        transactions = _read_reference_excel_transactions(worksheet)
+    finally:
+        workbook.close()
     return _build_buchung_rows(transactions)
 
 
@@ -576,7 +785,6 @@ def _extract_allopay_from_pdf(pdf_path: Path) -> AllopayPdfData:
         umsatz_7=umsatz_7,
         umsatz_19=umsatz_19,
         allopay_payment_sum=allopay_payment_sum,
-        dateiname=pdf_path.name,
     )
 
 
@@ -629,14 +837,16 @@ def build_allopay_rows(allopay_pdf_data: list[AllopayPdfData]) -> list[BuchungRo
 def _append_sheet(workbook: Workbook, rows: list[BuchungRow], sheet_name: str) -> int:
     worksheet = workbook.create_sheet(sheet_name)
     worksheet.append(TARGET_COLUMNS)
+    use_excel_dates = sheet_name == "Final"
 
     for row in rows:
+        datum_value = datum_to_excel_date(row.datum) if use_excel_dates else row.datum
         worksheet.append(
             [
                 float(row.umsatz_euro),
                 row.bu_gkto,
                 row.beleg_1,
-                row.datum,
+                datum_value,
                 row.kost_1,
                 row.bank,
                 row.buchungstext,
@@ -656,11 +866,11 @@ def _append_sheet(workbook: Workbook, rows: list[BuchungRow], sheet_name: str) -
             ]
         )
 
-    _apply_excel_formatting(worksheet)
+    _apply_excel_formatting(worksheet, use_excel_dates=use_excel_dates)
     return len(rows)
 
 
-def _apply_excel_formatting(worksheet) -> None:
+def _apply_excel_formatting(worksheet, *, use_excel_dates: bool = False) -> None:
     max_row = worksheet.max_row
     max_col = len(TARGET_COLUMNS)
     thin_border = Border(
@@ -684,6 +894,11 @@ def _apply_excel_formatting(worksheet) -> None:
         amount_cell = worksheet.cell(row=row_idx, column=1)
         if amount_cell.value not in (None, ""):
             amount_cell.number_format = XL_EURO_NUM_FMT
+
+        if use_excel_dates:
+            date_cell = worksheet.cell(row=row_idx, column=4)
+            if isinstance(date_cell.value, datetime):
+                date_cell.number_format = XL_DATE_FMT
 
         if worksheet.cell(row=row_idx, column=7).value == "Gesamtbetrag":
             for col_idx in range(1, max_col + 1):
@@ -755,49 +970,63 @@ class JupiterKasseETL:
 
         if not allopay_rows:
             for row in umsatz_rows:
-                if row.umsatz_euro > 0 and "allo" in row.buchungstext.lower():
-                    print(
-                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
-                        f"({row.datum}): keine Allopay-PDF-Zeilen geladen; Kasse bleibt {row.umsatz_euro} EUR.",
-                        file=sys.stderr,
+                if is_allopay_income_row(row):
+                    _warn_allopay_merge_failure(
+                        f"({row.datum}): keine Allopay-PDF-Zeilen geladen; "
+                        f"Kasse bleibt {row.umsatz_euro} EUR."
                     )
-            return sort_rows_by_date([replace(row, beleg_1="") for row in umsatz_rows])
+            return _finalize_final_rows(replace(row, beleg_1="") for row in umsatz_rows)
 
-        allopay_by_date: dict[str, list[BuchungRow]] = {}
-        allopay_sum_by_date = {}
-        safe_allopay_beleg_by_date = self._build_safe_allopay_beleg_by_date(allopay_rows)
-
-        for row in allopay_rows:
-            allopay_by_date.setdefault(row.datum, []).append(row)
-            allopay_sum_by_date[row.datum] = allopay_sum_by_date.get(row.datum, 0) + row.umsatz_euro
+        allopay_by_date, allopay_sum_by_date = _index_allopay_by_date(allopay_rows)
+        trinkgeld_by_date = trinkgeld_sum_by_date(umsatz_rows)
+        safe_allopay_beleg_by_date = _build_safe_allopay_beleg_by_date(allopay_rows)
 
         final_rows: list[BuchungRow] = []
+        merged_allopay_income_keys: set[tuple[int, int, int]] = set()
+
         for row in umsatz_rows:
-            is_allopay_income = row.umsatz_euro > 0 and "allo" in row.buchungstext.lower()
-            if is_allopay_income:
-                pdf_umsatz_sum = allopay_sum_by_date.get(row.datum)
-                if pdf_umsatz_sum is not None:
-                    diff = abs(pdf_umsatz_sum - row.umsatz_euro)
-                    if diff < MERGE_TOLERANCE:
-                        final_rows.extend(
-                            replace(allopay_row, beleg_1=safe_allopay_beleg_by_date.get(row.datum, ""))
-                            for allopay_row in allopay_by_date[row.datum]
-                        )
-                        continue
-                    print(
-                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
-                        f"({row.datum}): Kasse {row.umsatz_euro} EUR vs. Summe PDF "
-                        f"(Umsatz 19 % + Umsatz 7 %) {pdf_umsatz_sum} EUR "
-                        f"(|Diff|={diff}, Toleranz {MERGE_TOLERANCE}).",
-                        file=sys.stderr,
-                    )
-                else:
-                    print(
-                        "WARNUNG [Blatt Final]: Allopay-Auflösung nicht mergebar "
-                        f"({row.datum}): keine PDF-Umsatzzeilen (19 %/7 %) für dieses Datum; "
-                        f"Kasse bleibt {row.umsatz_euro} EUR.",
-                        file=sys.stderr,
-                    )
+            if not is_allopay_income_row(row):
+                continue
+            key = _date_group_key(row.datum)
+            pdf_umsatz_sum = allopay_sum_by_date.get(key)
+            if pdf_umsatz_sum is None:
+                _warn_allopay_merge_failure(
+                    f"({row.datum}): keine PDF-Umsatzzeilen (19 %/7 %) für dieses Datum; "
+                    f"Kasse bleibt {row.umsatz_euro} EUR."
+                )
+                continue
+
+            trinkgeld = trinkgeld_by_date.get(key, Decimal("0"))
+            adjusted_income = (row.umsatz_euro + trinkgeld).quantize(Decimal("0.01"))
+            diff = abs(pdf_umsatz_sum - adjusted_income)
+            if diff <= MERGE_TOLERANCE:
+                safe_beleg = safe_allopay_beleg_by_date.get(row.datum, "")
+                final_rows.extend(
+                    replace(allopay_row, beleg_1=safe_beleg)
+                    for allopay_row in allopay_by_date[key]
+                )
+                trinkgeld_row = build_trinkgeld_final_row(trinkgeld, allopay_by_date[key], row)
+                if trinkgeld_row is not None:
+                    final_rows.append(trinkgeld_row)
+                merged_allopay_income_keys.add(key)
+                continue
+
+            tip_hint = (
+                f", Trinkgeld {trinkgeld} EUR, netto {adjusted_income} EUR"
+                if trinkgeld != Decimal("0")
+                else ""
+            )
+            _warn_allopay_merge_failure(
+                f"({row.datum}): Kasse {row.umsatz_euro} EUR{tip_hint} vs. Summe PDF "
+                f"({BOOKING_TEXT_UMSATZ_19} + {BOOKING_TEXT_UMSATZ_7}) {pdf_umsatz_sum} EUR "
+                f"(|Diff|={diff}, Toleranz {MERGE_TOLERANCE})."
+            )
+
+        for row in umsatz_rows:
+            key = _date_group_key(row.datum)
+
+            if is_allopay_income_row(row) and key in merged_allopay_income_keys:
+                continue
 
             split_rows = self._split_compound_final_row(
                 row,
@@ -810,20 +1039,7 @@ class JupiterKasseETL:
 
             final_rows.append(self._assign_final_beleg(row, safe_allopay_beleg_by_date))
 
-        return sort_rows_by_date(final_rows)
-
-    def _build_safe_allopay_beleg_by_date(self, allopay_rows: list[BuchungRow]) -> dict[str, str]:
-        belege_by_date: dict[str, set[str]] = {}
-        for row in allopay_rows:
-            beleg = row.beleg_1.strip()
-            if beleg == "" or beleg == "Z000":
-                continue
-            belege_by_date.setdefault(row.datum, set()).add(beleg)
-
-        return {
-            datum: next(iter(belege)) if len(belege) == 1 else ""
-            for datum, belege in belege_by_date.items()
-        }
+        return _finalize_final_rows(final_rows)
 
     def _split_compound_final_row(
         self,
@@ -831,7 +1047,7 @@ class JupiterKasseETL:
         allopay_payment_sum_by_date: dict[str, Decimal],
         safe_allopay_beleg_by_date: dict[str, str],
     ) -> list[BuchungRow] | None:
-        text_lower = row.buchungstext.lower()
+        text_lower = _buchungstext_lower(row.buchungstext)
         is_compound_row = row.umsatz_euro < 0 and "+" in row.buchungstext and "allo" in text_lower
         if not is_compound_row:
             return None
@@ -858,26 +1074,26 @@ class JupiterKasseETL:
         if remainder_expense <= 0:
             return split_rows
 
-        if "fisch" in text_lower:
+        if _is_fish_buchungstext(text_lower):
             split_rows.append(
                 replace(
                     row,
                     umsatz_euro=-remainder_expense,
                     bu_gkto=BU_GKTO_FISCH_FOOD,
                     beleg_1="",
-                    buchungstext="Fisch Food",
+                    buchungstext=BOOKING_TEXT_FISHFOOD_EW_7,
                 )
             )
             return split_rows
 
-        if "bank" in text_lower:
+        if BOOKING_TEXT_BANK_DEPOSIT.lower() in text_lower or text_lower == BOOKING_TEXT_AN_BANK.lower():
             split_rows.append(
                 replace(
                     row,
                     umsatz_euro=-remainder_expense,
                     bu_gkto=BU_GKTO_ALLOPAY_EXPENSE,
                     beleg_1="",
-                    buchungstext="An Bank",
+                    buchungstext=BOOKING_TEXT_AN_BANK,
                 )
             )
             return split_rows
@@ -889,7 +1105,7 @@ class JupiterKasseETL:
         row: BuchungRow,
         safe_allopay_beleg_by_date: dict[str, str],
     ) -> BuchungRow:
-        text_lower = row.buchungstext.lower()
+        text_lower = _buchungstext_lower(row.buchungstext)
         if text_lower == "allo pay":
             return replace(
                 row,
@@ -937,17 +1153,3 @@ class JupiterKasseETL:
             final_count=final_count,
             pdf_base_dir=pdf_base_dir,
         )
-
-
-def run_cli(
-    input_path: Path,
-    output_path: Path,
-    pdf_base_dir: Path | None = None,
-    sheet_name: str | None = None,
-) -> PipelineResult:
-    return JupiterKasseETL().run(
-        input_path=input_path,
-        output_path=output_path,
-        pdf_base_dir=pdf_base_dir,
-        sheet_name=sheet_name,
-    )
