@@ -537,6 +537,30 @@ def wolt_resolution_warning_lines(wolt_audit: list | None) -> list[str]:
     return out
 
 
+def _parse_xxl_gastro(filepath: str, rm: dict) -> None:
+    """XXL Gastro Rechnung → Betrag + Kürzel (Klarna-Zahlung im Kontoauszug)."""
+    try:
+        with pdfplumber.open(filepath) as pdf:
+            txt = "\n".join((page.extract_text() or "") for page in pdf.pages)
+    except Exception:
+        return
+
+    if not txt.strip():
+        return
+
+    total_match = re.search(r"Gesamt\s*€\s*([\d.]+,\d{2})", txt)
+    if not total_match:
+        total_match = re.search(r"Gesamt\s+([\d.]+,\d{2})\s*€", txt)
+    if not total_match:
+        return
+
+    total = round(de_float(total_match.group(1)), 2)
+    if total <= 0:
+        return
+
+    rm[total] = ("", "XXL Gastro Anlagen")
+
+
 def load_invoices(
     source_dir: str,
     rechnung_map: dict,
@@ -570,6 +594,9 @@ def load_invoices(
                     ok += 1
                 elif "takeaway" in fl:
                     _parse_takeaway(fpath, rechnung_map)
+                    ok += 1
+                elif "xxl" in fl and "gastro" in fl:
+                    _parse_xxl_gastro(fpath, rechnung_map)
                     ok += 1
                 else:
                     skip += 1

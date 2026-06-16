@@ -67,6 +67,9 @@ FIBU_RULES = [
     (re.compile(r"\bLohn\b", re.I), "S", "1740", "Lohn"),
     (re.compile(r"Zhou Import", re.I), "S", "3300", "Zhou Wareneinkauf"),
     (re.compile(r"Sheue.Ru Wang.+Lohn|Wang Ping Zhou", re.I), "S", "1740", "Lohn"),
+    # Kürzel ohne BU (Sachkonto manuell nachbuchen); vor Bankgebühr.
+    (re.compile(r"KreuterMedeleSch[aä]fer", re.I), "S", "", "MB Fzg. Werkstatt"),
+    (re.compile(r"Klarna Bank AB|xxlgastro|XXL\s*Gastro", re.I), "S", "", "XXL Gastro Anlagen"),
     (re.compile(r"Abschluss|Kontoführung", re.I), "S", "4970", "Bankgebühr"),
 ]
 
