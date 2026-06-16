@@ -5,16 +5,7 @@ from __future__ import annotations
 from dataclasses import dataclass, field
 from typing import Any, Protocol
 
-from ..shared.models import ParsedTransaction, ProcessedTransaction
-
-
-@dataclass(slots=True)
-class RuleContext:
-    """Context passed through rule execution."""
-
-    tenant_id: str
-    module_name: str
-    options: dict[str, Any] = field(default_factory=dict)
+from ..shared.models import ParsedTransaction, ProcessedTransaction, RuleContext
 
 
 class IRule(Protocol):
