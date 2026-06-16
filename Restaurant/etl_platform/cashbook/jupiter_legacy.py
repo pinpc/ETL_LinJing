@@ -604,6 +604,12 @@ def get_bu_gkto(umsatz: Decimal, text: str) -> int:
     text_lower = _buchungstext_lower(text)
 
     if umsatz >= 0:
+        if text_lower == BOOKING_TEXT_UMSATZ_19.lower():
+            return BU_GKTO_ALLOPAY_19
+        if text_lower == BOOKING_TEXT_UMSATZ_7.lower():
+            return BU_GKTO_ALLOPAY_7
+        if text_lower == BOOKING_TEXT_TIPS_0.lower():
+            return BU_GKTO_TIPS_0
         return BU_GKTO_INCOME
     if text_lower == BOOKING_TEXT_TIPS.lower():
         return BU_GKTO_ALLOPAY_EXPENSE
@@ -613,7 +619,11 @@ def get_bu_gkto(umsatz: Decimal, text: str) -> int:
         return BU_GKTO_ALLOPAY_EXPENSE
     if _is_personalzimmer_buchungstext(text_lower):
         return BU_GKTO_PERSONALZIMMER
-    if "allo" in text_lower or text_lower == BOOKING_TEXT_BANK_DEPOSIT.lower():
+    if (
+        "allo" in text_lower
+        or text_lower == BOOKING_TEXT_BANK_DEPOSIT.lower()
+        or text_lower == BOOKING_TEXT_AN_BANK.lower()
+    ):
         return BU_GKTO_ALLOPAY_EXPENSE
     return BU_GKTO_BAUMARKT_EXPENSE
 
