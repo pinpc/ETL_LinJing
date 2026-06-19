@@ -1,0 +1,4 @@
+display_name: "D.O.G. Holding GmbH"
+konto_nr: "1200"   # TODO: Kontonummer DOG Holding in Agenda anpassen
+source_dir: "C:/temp_cursor/DOG/2026/DOG Holding/Fibu 04 2026/Kontoauszüge"
+output_path: "C:/temp_cursor/DOG/2026/DOG Holding/Fibu 04 2026/Kontoauszug_DOG_Holding_04_2026.xlsx"

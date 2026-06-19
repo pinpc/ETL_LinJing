@@ -1,0 +1,84 @@
+# Buchungstext-Regeln für CTM Cloud Terminology Management GmbH
+# pattern: Regex auf Buchungstext (case-insensitiv)  — einfache Anführungszeichen verwenden!
+# gegenkonto: Kontierungsnummer (leer = manuell vergeben)
+# kuerzel: Kurzbezeichnung
+rules:
+  - pattern: 'Nürnberger Lebensversicherung|NLV LEBENSVERS'
+    gegenkonto: "6330"
+    kuerzel: "NLV Lebensversicherung"
+
+  - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto'
+    gegenkonto: "6815"
+    kuerzel: "Telekom Mobil"
+
+  - pattern: 'Telekom Deutschland'
+    gegenkonto: "6815"
+    kuerzel: "Telekom"
+
+  - pattern: 'Klarna'
+    gegenkonto: "1400"
+    kuerzel: "Klarna"
+
+  - pattern: 'STRATO'
+    gegenkonto: "6815"
+    kuerzel: "Strato Hosting"
+
+  - pattern: 'Finanzamt.*LOHNST|LOHNST.*Finanzamt|070/050'
+    gegenkonto: "1740"
+    kuerzel: "Lohnsteuer"
+
+  - pattern: 'ECOVIS|RTS.*Steuerberatung|Steuerberatungsgesell'
+    gegenkonto: "6825"
+    kuerzel: "Steuerberatung RTS"
+
+  - pattern: 'BARMER'
+    gegenkonto: "6120"
+    kuerzel: "BARMER Krankenkasse"
+
+  - pattern: 'hkk Beitraege|hkk\b'
+    gegenkonto: "6120"
+    kuerzel: "hkk Krankenkasse"
+
+  - pattern: 'Knappschaft'
+    gegenkonto: "6120"
+    kuerzel: "Knappschaft"
+
+  - pattern: 'ebase|European Bank.*Verm|Vermögenswirksame'
+    gegenkonto: "6060"
+    kuerzel: "VWL ebase"
+
+  - pattern: 'Ping Zhou'
+    gegenkonto: "6825"
+    kuerzel: "Ping Zhou Honorar"
+
+  - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
+    gegenkonto: "6010"
+    kuerzel: "Gehalt Xiao"
+
+  - pattern: 'Francois Massion.*Gehalt|Gehalt.*Massion'
+    gegenkonto: "6010"
+    kuerzel: "Gehalt Massion"
+
+  - pattern: 'Peter Massion.*Gehalt|Lohn.*Peter Massion'
+    gegenkonto: "6010"
+    kuerzel: "Gehalt P. Massion"
+
+  - pattern: 'Boris Artes.*Lohn|Lohn.*Boris'
+    gegenkonto: "6010"
+    kuerzel: "Lohn Artes"
+
+  - pattern: 'Larissa Weiss'
+    gegenkonto: "6800"
+    kuerzel: "Larissa Weiss"
+
+  - pattern: 'TX-Kommunikation|TX Servicepauschale'
+    gegenkonto: "6815"
+    kuerzel: "TX Kommunikation"
+
+  - pattern: 'Entgeltabrechnung|Kontoführung Mindest|EBICS'
+    gegenkonto: "6855"
+    kuerzel: "Bankgebühren"
+
+  - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
+    gegenkonto: "10401"
+    kuerzel: "D.O.G. Überweisung"

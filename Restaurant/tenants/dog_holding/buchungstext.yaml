@@ -1,0 +1,89 @@
+# Buchungstext-Regeln für D.O.G. Holding GmbH
+rules:
+  - pattern: 'Entgeltabrechnung|Kontoführung Mindest|EBICS'
+    gegenkonto: "6855"
+    kuerzel: "Bankgebühren"
+
+  - pattern: 'D\.O\.G\. Dokumentation|DOG.*Dokumentation|ctm.*Büro'
+    gegenkonto: "1210"
+    kuerzel: "Miete/Verrech. DOG"
+
+  - pattern: 'Francois Massion.*Haushalts|monatliche.*Haushalt'
+    gegenkonto: "1890"
+    kuerzel: "Haushaltsgeld Massion"
+
+  - pattern: 'Ping Zhou'
+    gegenkonto: "6825"
+    kuerzel: "Ping Zhou Honorar"
+
+  - pattern: 'Abfallgebühr|Abfallgeb'
+    gegenkonto: "6830"
+    kuerzel: "Abfallgebühren"
+
+  - pattern: 'Ingo Mattes|Metallbau'
+    gegenkonto: "6400"
+    kuerzel: "Reparatur Metallbau"
+
+  - pattern: 'MetaComp|WAN Umstellung'
+    gegenkonto: "6815"
+    kuerzel: "MetaComp IT"
+
+  - pattern: 'Ordnungsgeld|Bundesamt.*Justiz'
+    gegenkonto: "6900"
+    kuerzel: "Ordnungsgeld"
+
+  - pattern: 'IHK'
+    gegenkonto: "6835"
+    kuerzel: "IHK Beitrag"
+
+  - pattern: 'BARMER'
+    gegenkonto: "6120"
+    kuerzel: "BARMER Krankenkasse"
+
+  - pattern: 'hkk\b|hkk Beitraege'
+    gegenkonto: "6120"
+    kuerzel: "hkk Krankenkasse"
+
+  - pattern: 'Finanzamt.*LOHNST|LOHNST'
+    gegenkonto: "1740"
+    kuerzel: "Lohnsteuer"
+
+  - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
+    gegenkonto: "1770"
+    kuerzel: "Umsatzsteuer"
+
+  - pattern: 'Abfallwirtschaftsbetrieb|AWB.*Calw|Calw.*AWB'
+    gegenkonto: "6830"
+    kuerzel: "Abfallgebühren Calw"
+
+  - pattern: 'Energie Calw|EnBW|NEW.*Energie|Niederrhein Energie'
+    gegenkonto: "6830"
+    kuerzel: "Energie"
+
+  - pattern: 'Vodafone'
+    gegenkonto: "6815"
+    kuerzel: "Vodafone Telefon"
+
+  - pattern: 'Softwareüberlassung|Monatspreis Software|entgeltfreie Buchung'
+    gegenkonto: "6815"
+    kuerzel: "Software Lizenz"
+
+  - pattern: 'Bundeskasse.*EHUG|EHUG'
+    gegenkonto: "6900"
+    kuerzel: "Bundesjustizamt EHUG"
+
+  - pattern: 'Francois Massion.*Vorsorge|Vorsorgebezug.*Massion'
+    gegenkonto: "6030"
+    kuerzel: "Vorsorgebezug Massion"
+
+  - pattern: 'May-Lin Chen.*Versorgung|Versorgungsbezug.*Chen'
+    gegenkonto: "6030"
+    kuerzel: "Versorgungsbezug Chen"
+
+  - pattern: 'Ramtel12.*Auszahlung|Auszahlung.*Ramtel'
+    gegenkonto: "1890"
+    kuerzel: "Auszahlung Ramtel12"
+
+  - pattern: 'Institut.*Management.*Kommun|Institut.*Kommun'
+    gegenkonto: "6825"
+    kuerzel: "Institut Mgmt Kommunikation"

@@ -1,0 +1,109 @@
+# Buchungstext-Regeln für Ramtel12 Grundstücks GmbH
+rules:
+  - pattern: 'Stadtwerke Leonberg'
+    gegenkonto: "6830"
+    kuerzel: "Stadtwerke Wasser/Abwasser"
+
+  - pattern: 'Entgeltabrechnung|Kontoführung Mindest|EBICS'
+    gegenkonto: "6855"
+    kuerzel: "Bankgebühren"
+
+  - pattern: 'D\.O\.G\. Dokumentation|DOG.*Dokumentation|ctm.*Reinigung'
+    gegenkonto: "1210"
+    kuerzel: "Miete/NK DOG"
+
+  - pattern: 'Hirotec'
+    gegenkonto: "1211"
+    kuerzel: "Miete Hirotec"
+
+  - pattern: 'CleanFix|Winterdienst'
+    gegenkonto: "6400"
+    kuerzel: "CleanFix Winterdienst"
+
+  - pattern: 'IHK'
+    gegenkonto: "6835"
+    kuerzel: "IHK Beitrag"
+
+  - pattern: 'Abfallgebühr|Abfallgeb'
+    gegenkonto: "6830"
+    kuerzel: "Abfallgebühren"
+
+  - pattern: 'SHHS|Heizung|Ausdehnungsgef'
+    gegenkonto: "6400"
+    kuerzel: "SHHS Heizung"
+
+  - pattern: 'Ping Zhou'
+    gegenkonto: "6825"
+    kuerzel: "Ping Zhou Honorar"
+
+  - pattern: 'Finanzamt.*LOHNST|LOHNST'
+    gegenkonto: "1740"
+    kuerzel: "Lohnsteuer"
+
+  - pattern: 'Darlehensrate|Darlehn'
+    gegenkonto: "3150"
+    kuerzel: "Darlehensrate"
+
+  - pattern: 'Zinsen|Guthabenzins|Zinsabschluss'
+    gegenkonto: "2650"
+    kuerzel: "Zinsen Geldmarktkonto"
+
+  - pattern: 'Abrechnung.*Geldmark|Waiblingen Geldmark|Geldmarktkonto'
+    gegenkonto: "6855"
+    kuerzel: "Bankgebühren Geldmarktkonto"
+
+  - pattern: 'BERNHARD BRUCHMANN|BRUCHMANN.*MIETE'
+    gegenkonto: "1211"
+    kuerzel: "Miete Bruchmann"
+
+  - pattern: 'D\.O\.G\. HOLDING.*Auszahlung|Auszahlung.*gem\. de'
+    gegenkonto: "1890"
+    kuerzel: "Auszahlung D.O.G. Holding"
+
+  - pattern: 'Haftpflichtkasse|VVaG Guthaben'
+    gegenkonto: "6330"
+    kuerzel: "Haftpflichtkasse Rückzahlung"
+
+  - pattern: 'Elb-Immobilien|Restmiete'
+    gegenkonto: "1211"
+    kuerzel: "Elb-Immobilien Miete"
+
+  - pattern: 'Köhler GmbH|Ingenieurbüro.*Elek'
+    gegenkonto: "6400"
+    kuerzel: "Köhler Elektroarbeiten"
+
+  - pattern: 'Systemgruppe|integrated solutions'
+    gegenkonto: "6815"
+    kuerzel: "Systemgruppe IT"
+
+  - pattern: 'EnBW.*Gas|Gas Abschl'
+    gegenkonto: "6830"
+    kuerzel: "EnBW Gas"
+
+  - pattern: 'EnBW.*Strom|Strom Absc'
+    gegenkonto: "6830"
+    kuerzel: "EnBW Strom"
+
+  - pattern: 'Telekom Deutschland'
+    gegenkonto: "6815"
+    kuerzel: "Telekom"
+
+  - pattern: 'WEG.*Hofmann|Hofmannstr'
+    gegenkonto: "6835"
+    kuerzel: "WEG Hausgeld"
+
+  - pattern: 'ACTIV WERBETECHNIK'
+    gegenkonto: "6840"
+    kuerzel: "Activ Werbetechnik"
+
+  - pattern: 'Bundeskasse.*EHUG|EHUG'
+    gegenkonto: "6900"
+    kuerzel: "Bundesjustizamt EHUG"
+
+  - pattern: 'May-Lin Chen.*Darlehen|Rückzahlung.*Darlehen'
+    gegenkonto: "3150"
+    kuerzel: "Darlehensrückzahlung Chen"
+
+  - pattern: 'SCHAAL.*BAD|SCHAAL.*DESIGN|Schaal'
+    gegenkonto: "6400"
+    kuerzel: "Schaal Bad+Design"
