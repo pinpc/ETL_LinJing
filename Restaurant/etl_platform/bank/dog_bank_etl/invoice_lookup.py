@@ -15,8 +15,7 @@ from pathlib import Path
 import pdfplumber
 
 _RE_BRUTTO = re.compile(
-    r"Gesamt\s*\(Brutto\)\s*/?\s*Rechnungsbetrag\s+([\d.,]+)"
-    r"|Rechnungsbetrag\s+([\d.,]+)"
+    r"(?:Gesamt\s*\(Brutto\)\s*/?\s*)?Rechnungsbetrag\s+([\d.,]+)"
     r"|Gesamt\s*\(Brutto\)\s+([\d.,]+)"
 )
 # "Rechnungsdatum" kann als Spaltenheader stehen; Datum dann in nächster Zeile am Ende
@@ -54,7 +53,7 @@ def read_invoice_pdf(pdf_path: Path) -> tuple[Decimal, date | None]:
 
     # Betrag
     m = _RE_BRUTTO.search(text)
-    raw_amt = next((g for g in (m.group(1), m.group(2), m.group(3)) if g), None) if m else None
+    raw_amt = (m.group(1) or m.group(2)) if m else None
     betrag = _parse_german_decimal(raw_amt) if raw_amt else Decimal("0")
 
     # Datum (Gruppe 1 = gleiche Zeile, Gruppe 2 = nächste Zeile)

@@ -27,6 +27,14 @@ _AMOUNT_FMT = "#,##0.00;-#,##0.00"
 _TOP        = Alignment(vertical="top")
 
 
+def _text_cell(ws, row: int, col: int, value: str):
+    """Schreibt eine Text-Zelle (Format @, vertical top)."""
+    c = ws.cell(row=row, column=col, value=value)
+    c.number_format = "@"
+    c.alignment = _TOP
+    return c
+
+
 class ExportRow(NamedTuple):
     umsatz: Decimal        # negativ = Ausgabe, positiv = Einnahme
     bu_gkto: str           # Gegenkonto / BU-Konto
@@ -64,29 +72,17 @@ def _fill_sheet(ws, rows: list[ExportRow], col_widths: tuple, use_final: bool) -
         c1.number_format = _AMOUNT_FMT
         c1.alignment = _TOP
 
-        c2 = ws.cell(row=row_idx, column=2, value=str(row.bu_gkto))
-        c2.number_format = "@"
-        c2.alignment = _TOP
-
-        b1_val = row.beleg1_final if use_final else row.beleg1
-        c3 = ws.cell(row=row_idx, column=3, value=str(b1_val))
-        c3.number_format = "@"
-        c3.alignment = _TOP
-
-        c4 = ws.cell(row=row_idx, column=4, value=str(row.beleg2))
-        c4.number_format = "@"
-        c4.alignment = _TOP
+        _text_cell(ws, row_idx, 2, str(row.bu_gkto))
+        _text_cell(ws, row_idx, 3, str(row.beleg1_final if use_final else row.beleg1))
+        _text_cell(ws, row_idx, 4, str(row.beleg2))
 
         c5 = ws.cell(row=row_idx, column=5, value=row.datum)
         c5.number_format = _DATE_FMT
         c5.alignment = _TOP
 
-        c6 = ws.cell(row=row_idx, column=6, value=str(row.konto))
-        c6.number_format = "@"
-        c6.alignment = _TOP
+        _text_cell(ws, row_idx, 6, str(row.konto))
 
-        bt_text = row.buchungstext_kurz if use_final else row.buchungstext
-        c7 = ws.cell(row=row_idx, column=7, value=bt_text)
+        c7 = ws.cell(row=row_idx, column=7, value=row.buchungstext_kurz if use_final else row.buchungstext)
         c7.alignment = Alignment(wrap_text=(not use_final), vertical="top")
 
         c8 = ws.cell(row=row_idx, column=8, value=float(row.skonto_euro))

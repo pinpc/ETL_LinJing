@@ -229,10 +229,9 @@ def run(tenant_dir: str | Path) -> Path:
             unmatched.add(tx.buchungstext[:60])
 
         beleg1_auto = _extract_beleg1(tx.buchungstext)
-        if rule is not None and rule.beleg1 is not None:
-            beleg1_final = rule.beleg1    # explizit aus Config (auch "" möglich)
-        else:
-            beleg1_final = beleg1_auto    # kein Override → gleich wie auto
+        beleg1_final = rule.beleg1 if (rule is not None and rule.beleg1 is not None) else beleg1_auto
+        bt_full = _build_buchungstext_full(tx)
+        bt_kurz = _build_buchungstext_kurz(tx, rule)
 
         # ---- Kontoauszug-Sheet: immer 1:1, unveraendert ----
         konto_rows.append(ExportRow(
@@ -243,20 +242,19 @@ def run(tenant_dir: str | Path) -> Path:
             beleg2=tx.auszug_nr,
             datum=tx.datum,
             konto=cfg.konto_nr,
-            buchungstext=_build_buchungstext_full(tx),
-            buchungstext_kurz=_build_buchungstext_kurz(tx, rule),
+            buchungstext=bt_full,
+            buchungstext_kurz=bt_kurz,
             skonto_euro=Decimal("0"),
         ))
 
         # ---- Final-Sheet: ggf. aufsplitten ----
         if rule and rule.split_re and rule.invoice_dir:
             split_refs = _extract_re_invoice_refs(tx.buchungstext)
-            if len(split_refs) >= 1:
+            if split_refs:
                 sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
-                bt_kurz = _build_buchungstext_kurz(tx, rule)
                 for ref in split_refs:
                     inv_betrag, _ = lookup_invoice(ref, rule.invoice_dir)
-                    if inv_betrag == Decimal("0"):
+                    if not inv_betrag:
                         logger.warning(
                             "[%s] RE-Betrag nicht gefunden für %s in %s",
                             cfg.display_name, ref, rule.invoice_dir,
@@ -265,11 +263,11 @@ def run(tenant_dir: str | Path) -> Path:
                         umsatz=sign * inv_betrag,
                         bu_gkto=rule.gegenkonto,
                         beleg1=beleg1_auto,
-                        beleg1_final=ref,              # Beleg1 = einzelne RE-Nr.
+                        beleg1_final=ref,     # Beleg1 = einzelne RE-Nr.
                         beleg2=tx.auszug_nr,
-                        datum=tx.datum,                # Buchungsdatum aus Kontoauszug
+                        datum=tx.datum,       # Buchungsdatum aus Kontoauszug
                         konto=cfg.konto_nr,
-                        buchungstext=_build_buchungstext_full(tx),
+                        buchungstext=bt_full,
                         buchungstext_kurz=bt_kurz,
                         skonto_euro=Decimal("0"),
                     ))
