@@ -8,7 +8,7 @@ rules:
     gegenkonto: "1210"
     kuerzel: "Miete/Verrech. DOG"
 
-  - pattern: 'Francois Massion.*Haushalts|monatliche.*Haushalt'
+  - pattern: 'Francois Massion|Haushaltsgeld|monatliche'
     gegenkonto: "1890"
     kuerzel: "Haushaltsgeld Massion"
 

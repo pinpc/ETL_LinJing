@@ -18,8 +18,9 @@ import pdfplumber
 class KskTransaction:
     datum: date
     betrag: Decimal        # negativ = Soll (Ausgabe), positiv = Haben (Einnahme)
-    buchungstext: str      # mehrzeilig zusammengefasst
+    buchungstext: str      # vollständiger Text (für Regelmatching)
     vorgang_typ: str       # Lastschrift, GutschriftÜberweisung, …
+    auszug_nr: str         # Kontoauszug-Nummer aus Dateiname z.B. "4"
 
 
 # ---------------------------------------------------------------------------
@@ -35,7 +36,8 @@ _RE_TX = re.compile(
 
 _RE_KONTOSTAND = re.compile(
     r"^Kontostand\s+am\b|^Gesamtumsatzsummen|^Anzahl\s+Anlagen|"
-    r"^Der\s+Kontostand|^Datum\s+Erl"
+    r"^Der\s+Kontostand|^Datum\s+Erl|"
+    r"^\.\s+-[\d.,]+\s+\d+\s+[\d.,]+\s+\d+"   # Summenzeilenformat ". -16.967,85 23 ..."
     , re.IGNORECASE,
 )
 
@@ -105,9 +107,21 @@ def _parse_date(s: str, year_hint: int) -> date:
 # Hauptparser
 # ---------------------------------------------------------------------------
 
+_RE_AUSZUG_NR = re.compile(r"Auszug_\d+_(\d+)", re.IGNORECASE)
+
+
+def _extract_auszug_nr(pdf_path: Path) -> str:
+    """Extrahiert Kontoauszug-Nummer aus Dateiname, z.B. 'Auszug_2026_0004.PDF' → '4'."""
+    m = _RE_AUSZUG_NR.search(pdf_path.name)
+    if m:
+        return str(int(m.group(1)))   # "0004" → "4"
+    return ""
+
+
 def parse_pdf(pdf_path: str | Path) -> list[KskTransaction]:
     """Liest alle Buchungen aus einem KSK-Kontoauszug-PDF."""
     pdf_path = Path(pdf_path)
+    auszug_nr = _extract_auszug_nr(pdf_path)
     transactions: list[KskTransaction] = []
 
     try:
@@ -163,9 +177,9 @@ def parse_pdf(pdf_path: str | Path) -> list[KskTransaction]:
             desc_lines.append(nl)
             j += 1
 
-        desc_text = " ".join(desc_lines).strip()
+        desc_text = "\n".join(line for line in desc_lines if line)
         # Vorgang-Typ dem Buchungstext voranstellen, damit Regex-Regeln ihn matchen können
-        buchungstext = f"{vorgang_typ} {desc_text}".strip() if vorgang_typ else desc_text
+        buchungstext = f"{vorgang_typ}\n{desc_text}".strip() if vorgang_typ else desc_text
         betrag = _parse_betrag(betrag_str)
         datum = _parse_date(datum_str, 2026)
 
@@ -174,6 +188,7 @@ def parse_pdf(pdf_path: str | Path) -> list[KskTransaction]:
             betrag=betrag,
             buchungstext=buchungstext,
             vorgang_typ=vorgang_typ,
+            auszug_nr=auszug_nr,
         ))
         i = j
 

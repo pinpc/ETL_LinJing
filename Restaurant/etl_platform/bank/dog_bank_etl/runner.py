@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from decimal import Decimal
 from pathlib import Path
 
 import yaml
@@ -88,14 +89,48 @@ def load_tenant_config(tenant_dir: str | Path) -> DogTenantConfig:
 
 
 # ---------------------------------------------------------------------------
-# Gegenkonto-Lookup
+# Gegenkonto-Lookup und Buchungstext-Aufbereitung
 # ---------------------------------------------------------------------------
 
-def _lookup_gegenkonto(tx: KskTransaction, rules: list[BuchungstextRule]) -> str:
+def _lookup_rule(tx: KskTransaction, rules: list[BuchungstextRule]) -> BuchungstextRule | None:
     for rule in rules:
         if rule.pattern.search(tx.buchungstext):
-            return rule.gegenkonto
+            return rule
+    return None
+
+
+# Beleg1-Extraktion: bevorzugt RE-Nummer, dann DRP-Referenz, dann erste sinnvolle Zahl
+_RE_BELEG_RE = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
+_RE_BELEG_DRP = re.compile(r"\bDRP\s+(\d{6,12})")
+_RE_BELEG_REF = re.compile(r"\b(\d{6,15})\b")   # erste lange Zahl
+
+
+def _extract_beleg1(buchungstext: str) -> str:
+    """Extrahiert Belegnummer aus dem Buchungstext."""
+    m = _RE_BELEG_RE.search(buchungstext)
+    if m:
+        return m.group(1)
+    m = _RE_BELEG_DRP.search(buchungstext)
+    if m:
+        return m.group(1)
+    m = _RE_BELEG_REF.search(buchungstext)
+    if m:
+        return str(int(m.group(1)))   # führende Nullen entfernen
     return ""
+
+
+_RE_VORGANG_PREFIX = re.compile(
+    r"^(GutschriftÜberweisung|Gutschrift\s+Überweisung|Gutschrift|"
+    r"Überweisung\s+online|Überweisung|Lastschrift|Dauerauftrag\s+online|"
+    r"Dauerauftrag|Entgeltabrechnung(?:\s*/\s*Wert:[^)]+)?|Rechnung|"
+    r"Darlehensrate|Kartenzahlung|Einzahlung|Auszahlung)\s*",
+    re.IGNORECASE,
+)
+
+
+def _build_buchungstext(tx: KskTransaction, rule: BuchungstextRule | None) -> str:
+    """Vorgangstyp-Präfix entfernen, restlichen Text unverändert zurückgeben."""
+    return _RE_VORGANG_PREFIX.sub("", tx.buchungstext).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -128,15 +163,18 @@ def run(tenant_dir: str | Path) -> Path:
     rows: list[ExportRow] = []
     unmatched: set[str] = set()
     for tx in transactions:
-        gegenkonto = _lookup_gegenkonto(tx, cfg.rules)
-        if not gegenkonto:
+        rule = _lookup_rule(tx, cfg.rules)
+        if rule is None:
             unmatched.add(tx.buchungstext[:60])
         rows.append(ExportRow(
+            umsatz=tx.betrag,
+            bu_gkto=rule.gegenkonto if rule else "",
+            beleg1=_extract_beleg1(tx.buchungstext),
+            beleg2=tx.auszug_nr,
             datum=tx.datum,
-            betrag=tx.betrag,
-            gegenkonto=gegenkonto,
             konto=cfg.konto_nr,
-            buchungstext=tx.buchungstext,
+            buchungstext=_build_buchungstext(tx, rule),
+            skonto_euro=Decimal("0"),
         ))
 
     if unmatched:
