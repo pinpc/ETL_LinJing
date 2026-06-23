@@ -21,6 +21,7 @@ _COL_WIDTHS_FINAL = (14, 10, 14, 6, 12, 10, 40, 12)
 
 _HEADER_FONT = Font(bold=True, color="000000")
 _HEADER_FILL = PatternFill(fill_type=None)
+_SUM_FONT    = Font(bold=True)
 
 _DATE_FMT   = "DD.MM.YYYY"
 _AMOUNT_FMT = "#,##0.00;-#,##0.00"
@@ -88,6 +89,18 @@ def _fill_sheet(ws, rows: list[ExportRow], col_widths: tuple, use_final: bool) -
         c8 = ws.cell(row=row_idx, column=8, value=float(row.skonto_euro))
         c8.number_format = _AMOUNT_FMT
         c8.alignment = _TOP
+
+    # Summenzeile
+    sum_row = len(rows) + 2
+    last_data = sum_row - 1
+    for col, label in ((1, "Umsatz"), (8, "Skonto Euro")):
+        col_letter = get_column_letter(col)
+        c = ws.cell(row=sum_row, column=col,
+                    value=f"=SUM({col_letter}2:{col_letter}{last_data})")
+        c.number_format = _AMOUNT_FMT
+        c.font = _SUM_FONT
+        c.alignment = _TOP
+    ws.cell(row=sum_row, column=7, value=f"Summe ({len(rows)} Buchungen)").font = _SUM_FONT
 
 
 # ---------------------------------------------------------------------------
