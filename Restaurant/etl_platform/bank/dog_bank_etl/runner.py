@@ -255,7 +255,7 @@ def run(tenant_dir: str | Path) -> Path:
                 sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
                 bt_kurz = _build_buchungstext_kurz(tx, rule)
                 for ref in split_refs:
-                    inv_betrag, inv_datum = lookup_invoice(ref, rule.invoice_dir)
+                    inv_betrag, _ = lookup_invoice(ref, rule.invoice_dir)
                     if inv_betrag == Decimal("0"):
                         logger.warning(
                             "[%s] RE-Betrag nicht gefunden für %s in %s",
@@ -267,7 +267,7 @@ def run(tenant_dir: str | Path) -> Path:
                         beleg1=beleg1_auto,
                         beleg1_final=ref,              # Beleg1 = einzelne RE-Nr.
                         beleg2=tx.auszug_nr,
-                        datum=inv_datum or tx.datum,   # Rechnungsdatum > Buchungsdatum
+                        datum=tx.datum,                # Buchungsdatum aus Kontoauszug
                         konto=cfg.konto_nr,
                         buchungstext=_build_buchungstext_full(tx),
                         buchungstext_kurz=bt_kurz,

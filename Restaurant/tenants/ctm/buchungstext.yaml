@@ -82,6 +82,6 @@ rules:
 
   - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
     gegenkonto: "10401"
-    kuerzel: "D.O.G. Überweisung"
+    kuerzel: "D.O.G. Dokument GmbH"
     split_re: true
     invoice_dir: "C:/Users/pinpc/OneDrive/DOG Gruppe/ctm/Fibu/2026"
