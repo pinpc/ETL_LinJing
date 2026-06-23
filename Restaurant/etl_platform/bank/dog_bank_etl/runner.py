@@ -5,6 +5,7 @@ from __future__ import annotations
 import logging
 import re
 from dataclasses import dataclass, field
+from datetime import date
 from decimal import Decimal
 from pathlib import Path
 
@@ -27,7 +28,8 @@ class BuchungstextRule:
     pattern: re.Pattern[str]
     gegenkonto: str
     kuerzel: str              # Anzeigename / Kürzel im Buchungstext (optional)
-    beleg1: str | None = None # None = auto-extrahieren, "" = leer erzwingen
+    beleg1: str | None = None # None = auto, "" = leer, "~auszug" = Auszugnummer
+    no_prefix: bool = False   # True: kein ZA-/ZE-Präfix im Final-Sheet
     split_re: bool = False    # True: RE NNN/YYYY-Nummern als separate Final-Zeilen
     invoice_dir: Path | None = None  # Verzeichnis für Ausgangsrechnungs-PDFs
 
@@ -63,6 +65,7 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
             gegenkonto=str(entry.get("gegenkonto", "")),
             kuerzel=str(entry.get("kuerzel", "")),
             beleg1=str(beleg1_val) if beleg1_val is not None else None,
+            no_prefix=bool(entry.get("no_prefix", False)),
             split_re=bool(entry.get("split_re", False)),
             invoice_dir=Path(invoice_dir_raw) if invoice_dir_raw else None,
         ))
@@ -120,17 +123,36 @@ def _normalize_dates(text: str) -> str:
     return _RE_PDF_DATE_SPLIT.sub(r"\1\2", text)
 
 
-def _resolve_placeholders(kuerzel: str, buchungstext: str) -> str:
-    """Ersetzt {MM.YYYY} im Kürzel durch das erste Datum aus dem Buchungstext."""
-    if "{MM.YYYY}" not in kuerzel:
+_DATE_PLACEHOLDERS = ("{MM.YYYY}", "{MM YYYY}", "{MM}", "{YYYY}")
+
+
+def _resolve_placeholders(
+    kuerzel: str, buchungstext: str, fallback_date: date | None = None
+) -> str:
+    """Ersetzt Datum-Platzhalter im Kürzel:
+    {MM.YYYY} → "04.2026"  |  {MM YYYY} → "04 2026"
+    {MM}      → "04"       |  {YYYY}    → "2026"
+    Datum-Quelle: erstes DD.MM.YYYY aus Buchungstext; Fallback: fallback_date.
+    """
+    if not any(ph in kuerzel for ph in _DATE_PLACEHOLDERS):
         return kuerzel
     normalized = _normalize_dates(buchungstext)
     m = _RE_DATE_IN_TEXT.search(normalized)
     if m:
-        mm_yyyy = f"{m.group(2)}.{m.group(3)}"   # MM.YYYY
+        mm = m.group(2)
+        yyyy = m.group(3)
+    elif fallback_date:
+        mm = f"{fallback_date.month:02d}"
+        yyyy = str(fallback_date.year)
     else:
-        mm_yyyy = ""
-    return kuerzel.replace("{MM.YYYY}", mm_yyyy).strip()
+        mm = yyyy = ""
+    return (
+        kuerzel
+        .replace("{MM.YYYY}", f"{mm}.{yyyy}")
+        .replace("{MM YYYY}", f"{mm} {yyyy}")
+        .replace("{MM}", mm)
+        .replace("{YYYY}", yyyy)
+    ).strip()
 
 
 # RE-Split: alle NNN/YYYY nach "RE" extrahieren (auch über Zeilenumbruch hinweg)
@@ -181,11 +203,13 @@ def _build_buchungstext_full(tx: KskTransaction) -> str:
 
 
 def _build_buchungstext_kurz(tx: KskTransaction, rule: BuchungstextRule | None) -> str:
-    """Final-Sheet: ZA/ZE-Präfix + Kürzel aus Regel (einzeilig).
-    Unterstützt Platzhalter {MM.YYYY} → Datum aus Buchungstext."""
-    prefix = "ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else "")
+    """Final-Sheet: (ZA/ZE-)Präfix + Kürzel aus Regel (einzeilig).
+    Platzhalter {MM.YYYY}/{MM YYYY}/{MM}/{YYYY}: Datum aus Buchungstext oder tx.datum.
+    no_prefix=True: kein ZA/ZE-Präfix."""
+    no_prefix = rule.no_prefix if rule else False
+    prefix = "" if no_prefix else ("ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else ""))
     if rule and rule.kuerzel:
-        kuerzel = _resolve_placeholders(rule.kuerzel, tx.buchungstext)
+        kuerzel = _resolve_placeholders(rule.kuerzel, tx.buchungstext, fallback_date=tx.datum)
         return prefix + kuerzel
     # Fallback: erste Zeile des bereinigten Textes, max. 40 Zeichen
     first_line = _build_buchungstext_full(tx).split("\n")[0].strip()[:40]
@@ -229,7 +253,13 @@ def run(tenant_dir: str | Path) -> Path:
             unmatched.add(tx.buchungstext[:60])
 
         beleg1_auto = _extract_beleg1(tx.buchungstext)
-        beleg1_final = rule.beleg1 if (rule is not None and rule.beleg1 is not None) else beleg1_auto
+        if rule is not None and rule.beleg1 is not None:
+            if rule.beleg1 == "~auszug":
+                beleg1_final = tx.auszug_nr   # Auszugnummer als Beleg1
+            else:
+                beleg1_final = rule.beleg1    # explizit aus Config (auch "" möglich)
+        else:
+            beleg1_final = beleg1_auto
         bt_full = _build_buchungstext_full(tx)
         bt_kurz = _build_buchungstext_kurz(tx, rule)
 

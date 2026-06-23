@@ -1,87 +1,113 @@
 # Buchungstext-Regeln für CTM Cloud Terminology Management GmbH
-# pattern: Regex auf Buchungstext (case-insensitiv)  — einfache Anführungszeichen verwenden!
-# gegenkonto: Kontierungsnummer (leer = manuell vergeben)
-# kuerzel: Kurzbezeichnung
+# pattern: Regex auf Buchungstext (case-insensitiv) — einfache Anführungszeichen verwenden!
+# gegenkonto:  Kontierungsnummer
+# kuerzel:     Kurztext im Final-Sheet (Platzhalter: {MM.YYYY} {MM YYYY} {MM} {YYYY})
+# no_prefix:   true  → kein ZA-/ZE-Präfix
+# beleg1:      "" = leer | "~auszug" = Auszugnummer | sonst: fester Wert
+# split_re:    true + invoice_dir → RE NNN/YYYY auf mehrere Zeilen aufteilen
 rules:
   - pattern: 'Nürnberger Lebensversicherung|NLV LEBENSVERS'
     gegenkonto: "1748"
-    kuerzel: "Nürnberg. LV {MM.YYYY}"
+    kuerzel: "Nürberg. LV {MM} {YYYY}"
+    no_prefix: true
     beleg1: ""
-
-  - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto'
-    gegenkonto: "6815"
-    kuerzel: "Telekom Mobil"
-
-  - pattern: 'Telekom Deutschland'
-    gegenkonto: "6815"
-    kuerzel: "Telekom"
-
-  - pattern: 'Klarna'
-    gegenkonto: "1400"
-    kuerzel: "Klarna"
-
-  - pattern: 'STRATO'
-    gegenkonto: "6815"
-    kuerzel: "Strato Hosting"
-
-  - pattern: 'Finanzamt.*LOHNST|LOHNST.*Finanzamt|070/050'
-    gegenkonto: "1740"
-    kuerzel: "Lohnsteuer"
-
-  - pattern: 'ECOVIS|RTS.*Steuerberatung|Steuerberatungsgesell'
-    gegenkonto: "6825"
-    kuerzel: "Steuerberatung RTS"
-
-  - pattern: 'BARMER'
-    gegenkonto: "6120"
-    kuerzel: "BARMER Krankenkasse"
-
-  - pattern: 'hkk Beitraege|hkk\b'
-    gegenkonto: "6120"
-    kuerzel: "hkk Krankenkasse"
-
-  - pattern: 'Knappschaft'
-    gegenkonto: "6120"
-    kuerzel: "Knappschaft"
-
-  - pattern: 'ebase|European Bank.*Verm|Vermögenswirksame'
-    gegenkonto: "6060"
-    kuerzel: "VWL ebase"
-
-  - pattern: 'Ping Zhou'
-    gegenkonto: "6825"
-    kuerzel: "Ping Zhou Honorar"
-
-  - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
-    gegenkonto: "6010"
-    kuerzel: "Gehalt Xiao"
-
-  - pattern: 'Francois Massion.*Gehalt|Gehalt.*Massion'
-    gegenkonto: "6010"
-    kuerzel: "Gehalt Massion"
-
-  - pattern: 'Peter Massion.*Gehalt|Lohn.*Peter Massion'
-    gegenkonto: "6010"
-    kuerzel: "Gehalt P. Massion"
-
-  - pattern: 'Boris Artes.*Lohn|Lohn.*Boris'
-    gegenkonto: "6010"
-    kuerzel: "Lohn Artes"
-
-  - pattern: 'Larissa Weiss'
-    gegenkonto: "6800"
-    kuerzel: "Larissa Weiss"
-
-  - pattern: 'TX-Kommunikation|TX Servicepauschale'
-    gegenkonto: "6815"
-    kuerzel: "TX Kommunikation"
-
-  - pattern: 'Entgeltabrechnung|Kontoführung Mindest|EBICS'
-    gegenkonto: "6855"
-    kuerzel: "Bankgebühren"
 
   - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
     gegenkonto: "10401"
     kuerzel: "D.O.G. Dokument GmbH"
     split_re: true
     invoice_dir: "C:/Users/pinpc/OneDrive/DOG Gruppe/ctm/Fibu/2026"
+
+  - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto|Telekom Deutschland'
+    gegenkonto: "71904"
+    kuerzel: "Telekom Deutschland"
+
+  - pattern: 'Klarna'
+    gegenkonto: "70105"
+    kuerzel: "Avesol GmbH"
+
+  - pattern: 'STRATO'
+    gegenkonto: "70104"
+    kuerzel: "Strato GmbH"
+
+  - pattern: 'Finanzamt.*LOHNST|LOHNST.*Finanzamt|070/050'
+    gegenkonto: "1741"
+    kuerzel: "LST Q 1 {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'ECOVIS|RTS.*Steuerberatung|Steuerberatungsgesell'
+    gegenkonto: "71700"
+    kuerzel: "RTS Steuerberatungsg"
+
+  - pattern: 'BARMER'
+    gegenkonto: "1743"
+    kuerzel: "BEK {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'hkk Beitraege|hkk\b'
+    gegenkonto: "1743"
+    kuerzel: "hkk {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Knappschaft'
+    gegenkonto: "1743"
+    kuerzel: "Knappschaft {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'ebase|European Bank.*Verm|Vermögenswirksame'
+    gegenkonto: "1750"
+    kuerzel: "VL {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Ping Zhou'
+    gegenkonto: "80500"
+    kuerzel: "Ping Zhou"
+
+  - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
+    gegenkonto: "1740"
+    kuerzel: "Jacobi {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Francois Massion.*Gehalt|Gehalt.*Massion|Dr\. Francois Massion'
+    gegenkonto: "1740"
+    kuerzel: "F. Massion {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Peter Massion.*Gehalt|Lohn.*Peter Massion|Peter Massion'
+    gegenkonto: "1740"
+    kuerzel: "P. Massion {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Boris Artes.*Lohn|Lohn.*Boris|Boris Artes'
+    gegenkonto: "1740"
+    kuerzel: "Boris {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Larissa Weiss'
+    gegenkonto: "1610"
+    kuerzel: "Softwareindustrie 24"
+
+  - pattern: 'TX-Kommunikation|TX Servicepauschale'
+    gegenkonto: "72402"
+    kuerzel: "TX Kommumikations Gm"
+
+  - pattern: 'EBICS'
+    gegenkonto: "9 04970"
+    kuerzel: "Ebics {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Entgeltabrechnung|Kontoführung Mindest'
+    gegenkonto: "9 04970"
+    kuerzel: "Bankgebühr {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
