@@ -11,6 +11,7 @@ from pathlib import Path
 import yaml
 
 from .excel_export import ExportRow, write_excel
+from .invoice_lookup import lookup_invoice
 from .kspark_parser import KskTransaction, parse_directory
 
 logger = logging.getLogger(__name__)
@@ -25,7 +26,10 @@ class BuchungstextRule:
     """Eine Zeile aus buchungstext.yaml."""
     pattern: re.Pattern[str]
     gegenkonto: str
-    kuerzel: str        # Anzeigename / Kürzel im Buchungstext (optional)
+    kuerzel: str              # Anzeigename / Kürzel im Buchungstext (optional)
+    beleg1: str | None = None # None = auto-extrahieren, "" = leer erzwingen
+    split_re: bool = False    # True: RE NNN/YYYY-Nummern als separate Final-Zeilen
+    invoice_dir: Path | None = None  # Verzeichnis für Ausgangsrechnungs-PDFs
 
 
 @dataclass
@@ -52,10 +56,15 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
         pattern_str = entry.get("pattern", "")
         if not pattern_str:
             continue
+        beleg1_val = entry.get("beleg1", None)
+        invoice_dir_raw = entry.get("invoice_dir")
         rules.append(BuchungstextRule(
             pattern=re.compile(pattern_str, re.IGNORECASE),
             gegenkonto=str(entry.get("gegenkonto", "")),
             kuerzel=str(entry.get("kuerzel", "")),
+            beleg1=str(beleg1_val) if beleg1_val is not None else None,
+            split_re=bool(entry.get("split_re", False)),
+            invoice_dir=Path(invoice_dir_raw) if invoice_dir_raw else None,
         ))
     return rules
 
@@ -99,6 +108,44 @@ def _lookup_rule(tx: KskTransaction, rules: list[BuchungstextRule]) -> Buchungst
     return None
 
 
+# Datum-Extraktion aus Buchungstext für Platzhalter {MM.YYYY}
+_RE_DATE_IN_TEXT = re.compile(r"\b(\d{2})\.(\d{2})\.(\d{4})\b")
+
+
+_RE_PDF_DATE_SPLIT = re.compile(r"(\d{2}\.\d)\s+(\d\.20\d{2})")
+
+
+def _normalize_dates(text: str) -> str:
+    """Repariert PDF-Artefakte wie '01.0 4.2026' → '01.04.2026'."""
+    return _RE_PDF_DATE_SPLIT.sub(r"\1\2", text)
+
+
+def _resolve_placeholders(kuerzel: str, buchungstext: str) -> str:
+    """Ersetzt {MM.YYYY} im Kürzel durch das erste Datum aus dem Buchungstext."""
+    if "{MM.YYYY}" not in kuerzel:
+        return kuerzel
+    normalized = _normalize_dates(buchungstext)
+    m = _RE_DATE_IN_TEXT.search(normalized)
+    if m:
+        mm_yyyy = f"{m.group(2)}.{m.group(3)}"   # MM.YYYY
+    else:
+        mm_yyyy = ""
+    return kuerzel.replace("{MM.YYYY}", mm_yyyy).strip()
+
+
+# RE-Split: alle NNN/YYYY nach "RE" extrahieren (auch über Zeilenumbruch hinweg)
+_RE_SPLIT_AFTER_RE = re.compile(r"\bRE\b(.*)", re.DOTALL | re.IGNORECASE)
+_RE_SPLIT_INV_NUM = re.compile(r"\b(\d{3}/\d{4})\b")
+
+
+def _extract_re_invoice_refs(buchungstext: str) -> list[str]:
+    """Gibt alle Rechnungsnummern (NNN/YYYY) nach 'RE' zurück (z. B. ['006/2026', '007/2026'])."""
+    m = _RE_SPLIT_AFTER_RE.search(buchungstext)
+    if not m:
+        return []
+    return _RE_SPLIT_INV_NUM.findall(m.group(1))
+
+
 # Beleg1-Extraktion: bevorzugt RE-Nummer, dann DRP-Referenz, dann erste sinnvolle Zahl
 _RE_BELEG_RE = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
 _RE_BELEG_DRP = re.compile(r"\bDRP\s+(\d{6,12})")
@@ -128,9 +175,21 @@ _RE_VORGANG_PREFIX = re.compile(
 )
 
 
-def _build_buchungstext(tx: KskTransaction, rule: BuchungstextRule | None) -> str:
-    """Vorgangstyp-Präfix entfernen, restlichen Text unverändert zurückgeben."""
+def _build_buchungstext_full(tx: KskTransaction) -> str:
+    """Kontoauszug-Sheet: Vorgangstyp-Präfix entfernen, restlichen Text mehrzeilig."""
     return _RE_VORGANG_PREFIX.sub("", tx.buchungstext).strip()
+
+
+def _build_buchungstext_kurz(tx: KskTransaction, rule: BuchungstextRule | None) -> str:
+    """Final-Sheet: ZA/ZE-Präfix + Kürzel aus Regel (einzeilig).
+    Unterstützt Platzhalter {MM.YYYY} → Datum aus Buchungstext."""
+    prefix = "ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else "")
+    if rule and rule.kuerzel:
+        kuerzel = _resolve_placeholders(rule.kuerzel, tx.buchungstext)
+        return prefix + kuerzel
+    # Fallback: erste Zeile des bereinigten Textes, max. 40 Zeichen
+    first_line = _build_buchungstext_full(tx).split("\n")[0].strip()[:40]
+    return (prefix + first_line).strip()
 
 
 # ---------------------------------------------------------------------------
@@ -160,22 +219,64 @@ def run(tenant_dir: str | Path) -> Path:
     transactions.sort(key=lambda t: t.datum)
     logger.info("[%s] %d Buchungen eingelesen", cfg.display_name, len(transactions))
 
-    rows: list[ExportRow] = []
+    konto_rows: list[ExportRow] = []
+    final_rows: list[ExportRow] = []
     unmatched: set[str] = set()
+
     for tx in transactions:
         rule = _lookup_rule(tx, cfg.rules)
         if rule is None:
             unmatched.add(tx.buchungstext[:60])
-        rows.append(ExportRow(
+
+        beleg1_auto = _extract_beleg1(tx.buchungstext)
+        if rule is not None and rule.beleg1 is not None:
+            beleg1_final = rule.beleg1    # explizit aus Config (auch "" möglich)
+        else:
+            beleg1_final = beleg1_auto    # kein Override → gleich wie auto
+
+        # ---- Kontoauszug-Sheet: immer 1:1, unveraendert ----
+        konto_rows.append(ExportRow(
             umsatz=tx.betrag,
             bu_gkto=rule.gegenkonto if rule else "",
-            beleg1=_extract_beleg1(tx.buchungstext),
+            beleg1=beleg1_auto,
+            beleg1_final=beleg1_final,
             beleg2=tx.auszug_nr,
             datum=tx.datum,
             konto=cfg.konto_nr,
-            buchungstext=_build_buchungstext(tx, rule),
+            buchungstext=_build_buchungstext_full(tx),
+            buchungstext_kurz=_build_buchungstext_kurz(tx, rule),
             skonto_euro=Decimal("0"),
         ))
+
+        # ---- Final-Sheet: ggf. aufsplitten ----
+        if rule and rule.split_re and rule.invoice_dir:
+            split_refs = _extract_re_invoice_refs(tx.buchungstext)
+            if len(split_refs) >= 1:
+                sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
+                bt_kurz = _build_buchungstext_kurz(tx, rule)
+                for ref in split_refs:
+                    inv_betrag, inv_datum = lookup_invoice(ref, rule.invoice_dir)
+                    if inv_betrag == Decimal("0"):
+                        logger.warning(
+                            "[%s] RE-Betrag nicht gefunden für %s in %s",
+                            cfg.display_name, ref, rule.invoice_dir,
+                        )
+                    final_rows.append(ExportRow(
+                        umsatz=sign * inv_betrag,
+                        bu_gkto=rule.gegenkonto,
+                        beleg1=beleg1_auto,
+                        beleg1_final=ref,              # Beleg1 = einzelne RE-Nr.
+                        beleg2=tx.auszug_nr,
+                        datum=inv_datum or tx.datum,   # Rechnungsdatum > Buchungsdatum
+                        konto=cfg.konto_nr,
+                        buchungstext=_build_buchungstext_full(tx),
+                        buchungstext_kurz=bt_kurz,
+                        skonto_euro=Decimal("0"),
+                    ))
+                continue  # nicht nochmal als Normal-Zeile eintragen
+
+        # kein Split → Final-Row identisch mit Kontoauszug-Row
+        final_rows.append(konto_rows[-1])
 
     if unmatched:
         logger.warning(
@@ -185,6 +286,6 @@ def run(tenant_dir: str | Path) -> Path:
             "\n  ".join(sorted(unmatched)),
         )
 
-    out = write_excel(rows, cfg.output_path)
+    out = write_excel(konto_rows, cfg.output_path, final_rows=final_rows)
     logger.info("[%s] Excel geschrieben: %s", cfg.display_name, out)
     return out

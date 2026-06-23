@@ -4,8 +4,9 @@
 # kuerzel: Kurzbezeichnung
 rules:
   - pattern: 'Nürnberger Lebensversicherung|NLV LEBENSVERS'
-    gegenkonto: "6330"
-    kuerzel: "NLV Lebensversicherung"
+    gegenkonto: "1748"
+    kuerzel: "Nürnberg. LV {MM.YYYY}"
+    beleg1: ""
 
   - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto'
     gegenkonto: "6815"
@@ -82,3 +83,5 @@ rules:
   - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
     gegenkonto: "10401"
     kuerzel: "D.O.G. Überweisung"
+    split_re: true
+    invoice_dir: "C:/Users/pinpc/OneDrive/DOG Gruppe/ctm/Fibu/2026"
