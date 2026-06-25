@@ -23,6 +23,16 @@ logger = logging.getLogger(__name__)
 # ---------------------------------------------------------------------------
 
 @dataclass
+class FixedSplitRow:
+    """Feste Aufteilung einer Buchung: ein Eintrag im Final-Sheet mit fixem Betrag."""
+    betrag: Decimal          # vorzeichenbehafteter Betrag (aus YAML)
+    gegenkonto: str
+    kuerzel: str             # unterstützt Datum-Platzhalter
+    beleg1: str = ""
+    no_prefix: bool = False  # True: kein ZA-/ZE-Präfix
+
+
+@dataclass
 class BuchungstextRule:
     """Eine Zeile aus buchungstext.yaml."""
     pattern: re.Pattern[str]
@@ -32,6 +42,7 @@ class BuchungstextRule:
     no_prefix: bool = False   # True: kein ZA-/ZE-Präfix im Final-Sheet
     split_re: bool = False    # True: RE NNN/YYYY-Nummern als separate Final-Zeilen
     invoice_dir: Path | None = None  # Verzeichnis für Ausgangsrechnungs-PDFs
+    fixed_split: list[FixedSplitRow] = field(default_factory=list)
 
 
 @dataclass
@@ -60,14 +71,25 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
             continue
         beleg1_val = entry.get("beleg1", None)
         invoice_dir_raw = entry.get("invoice_dir")
+        fixed_split = [
+            FixedSplitRow(
+                betrag=Decimal(str(fs.get("betrag", "0"))),
+                gegenkonto=str(fs.get("gegenkonto", "")),
+                kuerzel=str(fs.get("kuerzel", "")),
+                beleg1=str(fs.get("beleg1", "")),
+                no_prefix=bool(fs.get("no_prefix", False)),
+            )
+            for fs in entry.get("fixed_split", [])
+        ]
         rules.append(BuchungstextRule(
-            pattern=re.compile(pattern_str, re.IGNORECASE),
+            pattern=re.compile(pattern_str, re.IGNORECASE | re.DOTALL),
             gegenkonto=str(entry.get("gegenkonto", "")),
             kuerzel=str(entry.get("kuerzel", "")),
             beleg1=str(beleg1_val) if beleg1_val is not None else None,
             no_prefix=bool(entry.get("no_prefix", False)),
             split_re=bool(entry.get("split_re", False)),
             invoice_dir=Path(invoice_dir_raw) if invoice_dir_raw else None,
+            fixed_split=fixed_split,
         ))
     return rules
 
@@ -123,7 +145,7 @@ def _normalize_dates(text: str) -> str:
     return _RE_PDF_DATE_SPLIT.sub(r"\1\2", text)
 
 
-_DATE_PLACEHOLDERS = ("{MM.YYYY}", "{MM YYYY}", "{MM}", "{YYYY}")
+_DATE_PLACEHOLDERS = ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}")
 
 
 def _resolve_placeholders(
@@ -150,6 +172,7 @@ def _resolve_placeholders(
         kuerzel
         .replace("{MM.YYYY}", f"{mm}.{yyyy}")
         .replace("{MM YYYY}", f"{mm} {yyyy}")
+        .replace("{YYYY MM}", f"{yyyy} {mm}")
         .replace("{MM}", mm)
         .replace("{YYYY}", yyyy)
     ).strip()
@@ -300,6 +323,27 @@ def run(tenant_dir: str | Path) -> Path:
         ))
 
         # ---- Final-Sheet: ggf. aufsplitten ----
+        # fixed_split: feste Beträge aus Config (Miete/NK-Aufteilung etc.)
+        if rule and rule.fixed_split:
+            for fs in rule.fixed_split:
+                prefix = "" if fs.no_prefix else ("ZA-" if tx.betrag < 0 else "ZE-")
+                bt_kurz_fs = (prefix + _resolve_placeholders(
+                    fs.kuerzel, tx.buchungstext, fallback_date=tx.datum
+                )).strip()
+                final_rows.append(ExportRow(
+                    umsatz=fs.betrag,
+                    bu_gkto=fs.gegenkonto,
+                    beleg1=beleg1_auto,
+                    beleg1_final=fs.beleg1 if fs.beleg1 else beleg1_final,
+                    beleg2=tx.auszug_nr,
+                    datum=tx.datum,
+                    konto=cfg.konto_nr,
+                    buchungstext=bt_full,
+                    buchungstext_kurz=bt_kurz_fs,
+                    skonto_euro=Decimal("0"),
+                ))
+            continue
+
         if rule and rule.split_re and rule.invoice_dir:
             split_refs = _extract_split_refs(tx.buchungstext)
             if split_refs:
