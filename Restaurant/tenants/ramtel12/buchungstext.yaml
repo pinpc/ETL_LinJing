@@ -15,40 +15,93 @@ rules:
         no_prefix: true
         betrag: null   # leere Umsatz-Zelle in Zeile 2
 
-  - pattern: 'Entgeltabrechnung|EBICS'
+  - pattern: 'Entgeltabrechnung'
     gegenkonto: "9 04970"
     kuerzel: "Bankgebühr {MM YYYY}"
+    no_prefix: true
+
+  - pattern: 'EBICS-Umsatz|EBICS-Umsatzbereitstellung'
+    gegenkonto: "9 04970"
+    kuerzel: "Ebics {MM YYYY}"
     no_prefix: true
 
   - pattern: 'D\.O\.G\..*Büro 1\.'
     gegenkonto: "8401"
     kuerzel: "Miete/NK D.O.G. GmbH 1. OG {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8401"
+        kuerzel: "Miete D.O.G. GmbH 1. OG {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8402"
+        kuerzel: "NK D.O.G. GmbH 1. OG {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'D\.O\.G\..*Büro 2\.'
     gegenkonto: "8401"
     kuerzel: "Miete/NK D.O.G. GmbH 2. OG {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8401"
+        kuerzel: "Miete D.O.G. GmbH 2. OG {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8402"
+        kuerzel: "NK D.O.G. GmbH 2. OG {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'Hirotec'
     gegenkonto: "8405"
     kuerzel: "Miete/NK Hirotec EG {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8405"
+        kuerzel: "Miete Hirotec EG {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8406"
+        kuerzel: "NK  Hirotec EG {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'Systemgruppe|integrated solutions'
     gegenkonto: "8409"
     kuerzel: "Miete/NK systemgruppe integrated {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8409"
+        kuerzel: "Miete systemgruppe integrated {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8409"
+        kuerzel: "NK systemgruppe integrated {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'Köhler GmbH|Ingenieurbüro.*Elek'
     gegenkonto: "8403"
     kuerzel: "Miete/NK Köhler Leonberg {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8403"
+        kuerzel: "Miete Köhler Leonberg {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8404"
+        kuerzel: "NK Miete Köhler Leonberg {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'BERNHARD BRUCHMANN|BRUCHMANN.*MIETE'
     gegenkonto: "8407"
     kuerzel: "Miete/NK Bruchmann EG {YYYY MM}"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "8407"
+        kuerzel: "Miete Bruchmann EG {YYYY MM}"
+        no_prefix: true
+      - gegenkonto: "8408"
+        kuerzel: "NK Bruchmann EG {YYYY MM}"
+        no_prefix: true
+        betrag: null
 
   - pattern: 'WEG.*Hofmann|Hofmannstr'
     gegenkonto: "4232"
@@ -75,7 +128,7 @@ rules:
 
   - pattern: 'ACTIV WERBETECHNIK'
     gegenkonto: "1610"
-    kuerzel: "Activ Werbetechnik GmbH"
+    kuerzel: "Activ Werbetechnik GmbH RG fehlt # AR300083 + AR 300084"
     no_prefix: true
 
   - pattern: 'SHHS|Heizung|Ausdehnungsgef'
@@ -104,6 +157,15 @@ rules:
     gegenkonto: "751"
     kuerzel: "Chen Darlehen Rückzahlung"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "751"
+        kuerzel: "Chen Darlehen Rückzahlung"
+        no_prefix: true
+        amount_regex: '200\s*TEUR'
+      - gegenkonto: "752"
+        kuerzel: "Chen Darlehen Rückzahlung"
+        no_prefix: true
+        amount_regex: '100\s*TEUR'
 
   - pattern: 'Telekom Deutschland'
     gegenkonto: "9 04800"
@@ -115,10 +177,21 @@ rules:
     kuerzel: "DOG Holding Darlehen 400 T€ - {YYYY}"
     no_prefix: true
 
-  - pattern: 'KREISSPARKASSE.*Darl|Rechnung.*Darl'
+  - pattern: 'KREISSPARKASSE.*Darl|Rechnung Darl\.'
     gegenkonto: "652"
     kuerzel: "KSK Tilgung/Zins {MM YYYY} Merklingen/Dresden"
     no_prefix: true
+    fixed_split:
+      - gegenkonto: "652"
+        kuerzel: "KSK Tilgung {MM YYYY} Merklingen/Dresden"
+        no_prefix: true
+        amount_regex: 'Tilgung\s+([\d.,]+)'
+      - gegenkonto: "9 02120"
+        kuerzel: "KSK Zins {MM YYYY} Merklingen/Dresden"
+        no_prefix: true
+        amount_regex:
+          - 'Zinsen\s+([\d.,]+)'
+          - 'UST:\s+([\d.,]+)'
 
   - pattern: 'Abrechnung.*Geldmark|Waiblingen Geldmark|Geldmarktkonto'
     gegenkonto: "6855"

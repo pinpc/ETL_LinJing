@@ -12,7 +12,7 @@ from pathlib import Path
 import yaml
 
 from .excel_export import ExportRow, write_excel
-from .invoice_lookup import lookup_invoice
+from .invoice_lookup import _parse_german_decimal, lookup_invoice
 from .kspark_parser import KskTransaction, parse_directory
 
 logger = logging.getLogger(__name__)
@@ -26,15 +26,16 @@ logger = logging.getLogger(__name__)
 class FixedSplitRow:
     """Feste Aufteilung einer Buchung: ein Eintrag im Final-Sheet.
 
-    betrag-Semantik:
-      use_tx_betrag=True  → Umsatz aus der Bank-Buchung übernehmen (erste Zeile)
-      betrag=None         → Umsatz-Zelle leer lassen (Folgezeilen)
-      betrag=Decimal(x)   → fixer Betrag (legacy, nicht mehr empfohlen)
+    Umsatz-Quelle (Priorität):
+      amount_regex  → Betrag(e) aus Buchungstext extrahieren (Regex-Gruppe 1, summiert)
+      use_tx_betrag → echter Bankbetrag (Display-Split, nur Zeile 1)
+      betrag=None   → leere Umsatz-Zelle (Display-Split, Folgezeilen)
     """
     gegenkonto: str
-    kuerzel: str                    # unterstützt Datum-Platzhalter
-    use_tx_betrag: bool = True      # True: echten Bankbetrag verwenden
-    betrag: Decimal | None = None   # nur relevant wenn use_tx_betrag=False
+    kuerzel: str
+    use_tx_betrag: bool = True
+    betrag: Decimal | None = None
+    amount_regex: list[str] = field(default_factory=list)
     beleg1: str = ""
     no_prefix: bool = False
 
@@ -67,6 +68,44 @@ class DogTenantConfig:
 # Config laden
 # ---------------------------------------------------------------------------
 
+_RE_TEUR = re.compile(r"(\d+)\s*TEUR", re.IGNORECASE)
+
+
+def _parse_fixed_split_entry(fs: dict) -> FixedSplitRow:
+    """Parst einen fixed_split-Eintrag aus buchungstext.yaml."""
+    amount_regex_raw = fs.get("amount_regex")
+    if amount_regex_raw:
+        amount_regex = (
+            [str(amount_regex_raw)]
+            if isinstance(amount_regex_raw, str)
+            else [str(p) for p in amount_regex_raw]
+        )
+        return FixedSplitRow(
+            gegenkonto=str(fs.get("gegenkonto", "")),
+            kuerzel=str(fs.get("kuerzel", "")),
+            use_tx_betrag=False,
+            betrag=None,
+            amount_regex=amount_regex,
+            beleg1=str(fs.get("beleg1", "")),
+            no_prefix=bool(fs.get("no_prefix", False)),
+        )
+    betrag_raw = fs.get("betrag", "~tx")
+    if betrag_raw == "~tx" or (betrag_raw is None and "betrag" not in fs):
+        use_tx, betrag_val = True, None
+    elif betrag_raw is None or str(betrag_raw).strip() == "":
+        use_tx, betrag_val = False, None
+    else:
+        use_tx, betrag_val = False, Decimal(str(betrag_raw))
+    return FixedSplitRow(
+        gegenkonto=str(fs.get("gegenkonto", "")),
+        kuerzel=str(fs.get("kuerzel", "")),
+        use_tx_betrag=use_tx,
+        betrag=betrag_val,
+        beleg1=str(fs.get("beleg1", "")),
+        no_prefix=bool(fs.get("no_prefix", False)),
+    )
+
+
 def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
     if not buchungstext_yaml.exists():
         return []
@@ -78,26 +117,7 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
             continue
         beleg1_val = entry.get("beleg1", None)
         invoice_dir_raw = entry.get("invoice_dir")
-        fixed_split = []
-        for fs in entry.get("fixed_split", []):
-            betrag_raw = fs.get("betrag", "~tx")   # fehlt → ~tx (Bankbetrag)
-            if betrag_raw == "~tx" or betrag_raw is None and "betrag" not in fs:
-                use_tx = True
-                betrag_val = None
-            elif betrag_raw is None or str(betrag_raw).strip() == "":
-                use_tx = False      # leere Umsatz-Zelle
-                betrag_val = None
-            else:
-                use_tx = False
-                betrag_val = Decimal(str(betrag_raw))
-            fixed_split.append(FixedSplitRow(
-                gegenkonto=str(fs.get("gegenkonto", "")),
-                kuerzel=str(fs.get("kuerzel", "")),
-                use_tx_betrag=use_tx,
-                betrag=betrag_val,
-                beleg1=str(fs.get("beleg1", "")),
-                no_prefix=bool(fs.get("no_prefix", False)),
-            ))
+        fixed_split = [_parse_fixed_split_entry(fs) for fs in entry.get("fixed_split", [])]
         rules.append(BuchungstextRule(
             pattern=re.compile(pattern_str, re.IGNORECASE | re.DOTALL),
             gegenkonto=str(entry.get("gegenkonto", "")),
@@ -142,6 +162,134 @@ def load_tenant_config(tenant_dir: str | Path) -> DogTenantConfig:
 # ---------------------------------------------------------------------------
 # Gegenkonto-Lookup und Buchungstext-Aufbereitung
 # ---------------------------------------------------------------------------
+
+def _extract_amount_from_text(text: str, patterns: list[str]) -> Decimal | None:
+    """Summiert Beträge aus Buchungstext (Regex-Gruppe 1 je Pattern, oder TEUR-Muster)."""
+    total = Decimal("0")
+    found = False
+    for pat in patterns:
+        m = re.search(pat, text, re.IGNORECASE)
+        if not m:
+            continue
+        teur_m = _RE_TEUR.search(m.group(0))
+        if teur_m:
+            total += Decimal(teur_m.group(1)) * 1000
+        elif m.lastindex:
+            total += _parse_german_decimal(m.group(1))
+        found = True
+    return total if found else None
+
+
+def _fixed_split_umsatz(fs: FixedSplitRow, tx: KskTransaction) -> Decimal | None:
+    """Ermittelt Umsatz für eine fixed_split-Zeile."""
+    if fs.amount_regex:
+        amt = _extract_amount_from_text(tx.buchungstext, fs.amount_regex)
+        if amt is None:
+            return None
+        sign = Decimal(-1) if tx.betrag < 0 else Decimal(1)
+        return sign * amt
+    if fs.use_tx_betrag:
+        return tx.betrag
+    return fs.betrag
+
+
+def _row_kurz(tx: KskTransaction, kuerzel: str, no_prefix: bool) -> str:
+    prefix = "" if no_prefix else ("ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else ""))
+    return (prefix + _resolve_placeholders(kuerzel, tx.buchungstext, fallback_date=tx.datum)).strip()
+
+
+def _final_row(
+    tx: KskTransaction,
+    cfg: DogTenantConfig,
+    *,
+    umsatz: Decimal | None,
+    bu_gkto: str,
+    beleg1_auto: str,
+    beleg1_final: str,
+    bt_full: str,
+    bt_kurz: str,
+) -> ExportRow:
+    return ExportRow(
+        umsatz=umsatz,
+        bu_gkto=bu_gkto,
+        beleg1=beleg1_auto,
+        beleg1_final=beleg1_final,
+        beleg2=tx.auszug_nr,
+        datum=tx.datum,
+        konto=cfg.konto_nr,
+        buchungstext=bt_full,
+        buchungstext_kurz=bt_kurz,
+        skonto_euro=Decimal("0"),
+    )
+
+
+def _apply_fixed_split(
+    rule: BuchungstextRule,
+    tx: KskTransaction,
+    cfg: DogTenantConfig,
+    beleg1_auto: str,
+    beleg1_final: str,
+    bt_full: str,
+) -> list[ExportRow] | None:
+    """Gibt Final-Zeilen zurück, oder None wenn Split fehlschlägt."""
+    split_rows: list[tuple[FixedSplitRow, Decimal | None]] = []
+    for fs in rule.fixed_split:
+        row_umsatz = _fixed_split_umsatz(fs, tx)
+        if fs.amount_regex and row_umsatz is None:
+            logger.warning(
+                "[%s] Split übersprungen – Betrag nicht im Text: %s",
+                cfg.display_name, fs.amount_regex,
+            )
+            return None
+        split_rows.append((fs, row_umsatz))
+    return [
+        _final_row(
+            tx, cfg,
+            umsatz=row_umsatz,
+            bu_gkto=fs.gegenkonto,
+            beleg1_auto=beleg1_auto,
+            beleg1_final=fs.beleg1 if fs.beleg1 else beleg1_final,
+            bt_full=bt_full,
+            bt_kurz=_row_kurz(tx, fs.kuerzel, fs.no_prefix),
+        )
+        for fs, row_umsatz in split_rows
+    ]
+
+
+def _apply_split_re(
+    rule: BuchungstextRule,
+    tx: KskTransaction,
+    cfg: DogTenantConfig,
+    beleg1_auto: str,
+    bt_full: str,
+    bt_kurz: str,
+) -> list[ExportRow] | None:
+    """RE/JJJJ-NNN-Split via Rechnungs-PDFs. None = nicht splitten."""
+    split_refs = _extract_split_refs(tx.buchungstext)
+    if not split_refs or not rule.invoice_dir:
+        return None
+    sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
+    resolved = [(ref, *lookup_invoice(ref, rule.invoice_dir)) for ref in split_refs]
+    missing = [ref for ref, amt, _ in resolved if not amt]
+    if missing:
+        logger.warning(
+            "[%s] Split übersprungen – Rechnungen nicht gefunden: %s",
+            cfg.display_name, ", ".join(missing),
+        )
+        return None
+    return [
+        _final_row(
+            tx, cfg,
+            umsatz=sign * inv_betrag,
+            bu_gkto=rule.gegenkonto,
+            beleg1_auto=beleg1_auto,
+            beleg1_final=ref,
+            bt_full=bt_full,
+            bt_kurz=bt_kurz,
+        )
+        for ref, inv_betrag, _ in resolved
+    ]
+
 
 def _lookup_rule(tx: KskTransaction, rules: list[BuchungstextRule]) -> BuchungstextRule | None:
     for rule in rules:
@@ -265,15 +413,10 @@ def _build_buchungstext_full(tx: KskTransaction) -> str:
 
 
 def _build_buchungstext_kurz(tx: KskTransaction, rule: BuchungstextRule | None) -> str:
-    """Final-Sheet: (ZA/ZE-)Präfix + Kürzel aus Regel (einzeilig).
-    Platzhalter {MM.YYYY}/{MM YYYY}/{MM}/{YYYY}: Datum aus Buchungstext oder tx.datum.
-    no_prefix=True: kein ZA/ZE-Präfix."""
-    no_prefix = rule.no_prefix if rule else False
-    prefix = "" if no_prefix else ("ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else ""))
+    """Final-Sheet: (ZA/ZE-)Präfix + Kürzel aus Regel (einzeilig)."""
     if rule and rule.kuerzel:
-        kuerzel = _resolve_placeholders(rule.kuerzel, tx.buchungstext, fallback_date=tx.datum)
-        return prefix + kuerzel
-    # Fallback: erste Zeile des bereinigten Textes, max. 40 Zeichen
+        return _row_kurz(tx, rule.kuerzel, rule.no_prefix)
+    prefix = "ZA-" if tx.betrag < 0 else ("ZE-" if tx.betrag > 0 else "")
     first_line = _build_buchungstext_full(tx).split("\n")[0].strip()[:40]
     return (prefix + first_line).strip()
 
@@ -340,55 +483,21 @@ def run(tenant_dir: str | Path) -> Path:
         ))
 
         # ---- Final-Sheet: ggf. aufsplitten ----
-        # fixed_split: feste Beträge aus Config (Miete/NK-Aufteilung etc.)
         if rule and rule.fixed_split:
-            for fs in rule.fixed_split:
-                prefix = "" if fs.no_prefix else ("ZA-" if tx.betrag < 0 else "ZE-")
-                bt_kurz_fs = (prefix + _resolve_placeholders(
-                    fs.kuerzel, tx.buchungstext, fallback_date=tx.datum
-                )).strip()
-                row_umsatz = tx.betrag if fs.use_tx_betrag else fs.betrag
-                final_rows.append(ExportRow(
-                    umsatz=row_umsatz,
-                    bu_gkto=fs.gegenkonto,
-                    beleg1=beleg1_auto,
-                    beleg1_final=fs.beleg1 if fs.beleg1 else beleg1_final,
-                    beleg2=tx.auszug_nr,
-                    datum=tx.datum,
-                    konto=cfg.konto_nr,
-                    buchungstext=bt_full,
-                    buchungstext_kurz=bt_kurz_fs,
-                    skonto_euro=Decimal("0"),
-                ))
-            continue
+            split_rows = _apply_fixed_split(
+                rule, tx, cfg, beleg1_auto, beleg1_final, bt_full,
+            )
+            if split_rows:
+                final_rows.extend(split_rows)
+                continue
 
-        if rule and rule.split_re and rule.invoice_dir:
-            split_refs = _extract_split_refs(tx.buchungstext)
-            if split_refs:
-                sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
-                # Alle Rechnungen vorher prüfen – nur splitten wenn alle gefunden
-                resolved = [(ref, *lookup_invoice(ref, rule.invoice_dir)) for ref in split_refs]
-                missing = [ref for ref, amt, _ in resolved if not amt]
-                if missing:
-                    logger.warning(
-                        "[%s] Split übersprungen – Rechnungen nicht gefunden: %s",
-                        cfg.display_name, ", ".join(missing),
-                    )
-                else:
-                    for ref, inv_betrag, _ in resolved:
-                        final_rows.append(ExportRow(
-                            umsatz=sign * inv_betrag,
-                            bu_gkto=rule.gegenkonto,
-                            beleg1=beleg1_auto,
-                            beleg1_final=ref,
-                            beleg2=tx.auszug_nr,
-                            datum=tx.datum,
-                            konto=cfg.konto_nr,
-                            buchungstext=bt_full,
-                            buchungstext_kurz=bt_kurz,
-                            skonto_euro=Decimal("0"),
-                        ))
-                    continue  # nur bei erfolgreichem Split überspringen
+        if rule and rule.split_re:
+            split_rows = _apply_split_re(
+                rule, tx, cfg, beleg1_auto, bt_full, bt_kurz,
+            )
+            if split_rows:
+                final_rows.extend(split_rows)
+                continue
 
         # kein Split → Final-Row identisch mit Kontoauszug-Row
         final_rows.append(konto_rows[-1])
