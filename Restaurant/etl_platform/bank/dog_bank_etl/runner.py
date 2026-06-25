@@ -348,26 +348,29 @@ def run(tenant_dir: str | Path) -> Path:
             split_refs = _extract_split_refs(tx.buchungstext)
             if split_refs:
                 sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
-                for ref in split_refs:
-                    inv_betrag, _ = lookup_invoice(ref, rule.invoice_dir)
-                    if not inv_betrag:
-                        logger.warning(
-                            "[%s] RE-Betrag nicht gefunden für %s in %s",
-                            cfg.display_name, ref, rule.invoice_dir,
-                        )
-                    final_rows.append(ExportRow(
-                        umsatz=sign * inv_betrag,
-                        bu_gkto=rule.gegenkonto,
-                        beleg1=beleg1_auto,
-                        beleg1_final=ref,     # Beleg1 = einzelne RE-Nr.
-                        beleg2=tx.auszug_nr,
-                        datum=tx.datum,       # Buchungsdatum aus Kontoauszug
-                        konto=cfg.konto_nr,
-                        buchungstext=bt_full,
-                        buchungstext_kurz=bt_kurz,
-                        skonto_euro=Decimal("0"),
-                    ))
-                continue  # nicht nochmal als Normal-Zeile eintragen
+                # Alle Rechnungen vorher prüfen – nur splitten wenn alle gefunden
+                resolved = [(ref, *lookup_invoice(ref, rule.invoice_dir)) for ref in split_refs]
+                missing = [ref for ref, amt, _ in resolved if not amt]
+                if missing:
+                    logger.warning(
+                        "[%s] Split übersprungen – Rechnungen nicht gefunden: %s",
+                        cfg.display_name, ", ".join(missing),
+                    )
+                else:
+                    for ref, inv_betrag, _ in resolved:
+                        final_rows.append(ExportRow(
+                            umsatz=sign * inv_betrag,
+                            bu_gkto=rule.gegenkonto,
+                            beleg1=beleg1_auto,
+                            beleg1_final=ref,
+                            beleg2=tx.auszug_nr,
+                            datum=tx.datum,
+                            konto=cfg.konto_nr,
+                            buchungstext=bt_full,
+                            buchungstext_kurz=bt_kurz,
+                            skonto_euro=Decimal("0"),
+                        ))
+                    continue  # nur bei erfolgreichem Split überspringen
 
         # kein Split → Final-Row identisch mit Kontoauszug-Row
         final_rows.append(konto_rows[-1])
