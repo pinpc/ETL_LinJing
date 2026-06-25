@@ -37,7 +37,7 @@ def _text_cell(ws, row: int, col: int, value: str):
 
 
 class ExportRow(NamedTuple):
-    umsatz: Decimal        # negativ = Ausgabe, positiv = Einnahme
+    umsatz: Decimal | None  # negativ = Ausgabe, positiv = Einnahme; None = leere Zelle
     bu_gkto: str           # Gegenkonto / BU-Konto
     beleg1: str            # Belegnummer 1 — auto-extrahiert (Kontoauszug-Sheet)
     beleg1_final: str      # Belegnummer 1 — Regel-Override (Final-Sheet)
@@ -69,7 +69,8 @@ def _fill_sheet(ws, rows: list[ExportRow], col_widths: tuple, use_final: bool) -
 
     # Datenzeilen
     for row_idx, row in enumerate(rows, start=2):
-        c1 = ws.cell(row=row_idx, column=1, value=float(row.umsatz))
+        c1 = ws.cell(row=row_idx, column=1,
+                     value=float(row.umsatz) if row.umsatz is not None else None)
         c1.number_format = _AMOUNT_FMT
         c1.alignment = _TOP
 

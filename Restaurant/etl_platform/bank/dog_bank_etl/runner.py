@@ -24,12 +24,19 @@ logger = logging.getLogger(__name__)
 
 @dataclass
 class FixedSplitRow:
-    """Feste Aufteilung einer Buchung: ein Eintrag im Final-Sheet mit fixem Betrag."""
-    betrag: Decimal          # vorzeichenbehafteter Betrag (aus YAML)
+    """Feste Aufteilung einer Buchung: ein Eintrag im Final-Sheet.
+
+    betrag-Semantik:
+      use_tx_betrag=True  → Umsatz aus der Bank-Buchung übernehmen (erste Zeile)
+      betrag=None         → Umsatz-Zelle leer lassen (Folgezeilen)
+      betrag=Decimal(x)   → fixer Betrag (legacy, nicht mehr empfohlen)
+    """
     gegenkonto: str
-    kuerzel: str             # unterstützt Datum-Platzhalter
+    kuerzel: str                    # unterstützt Datum-Platzhalter
+    use_tx_betrag: bool = True      # True: echten Bankbetrag verwenden
+    betrag: Decimal | None = None   # nur relevant wenn use_tx_betrag=False
     beleg1: str = ""
-    no_prefix: bool = False  # True: kein ZA-/ZE-Präfix
+    no_prefix: bool = False
 
 
 @dataclass
@@ -71,16 +78,26 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
             continue
         beleg1_val = entry.get("beleg1", None)
         invoice_dir_raw = entry.get("invoice_dir")
-        fixed_split = [
-            FixedSplitRow(
-                betrag=Decimal(str(fs.get("betrag", "0"))),
+        fixed_split = []
+        for fs in entry.get("fixed_split", []):
+            betrag_raw = fs.get("betrag", "~tx")   # fehlt → ~tx (Bankbetrag)
+            if betrag_raw == "~tx" or betrag_raw is None and "betrag" not in fs:
+                use_tx = True
+                betrag_val = None
+            elif betrag_raw is None or str(betrag_raw).strip() == "":
+                use_tx = False      # leere Umsatz-Zelle
+                betrag_val = None
+            else:
+                use_tx = False
+                betrag_val = Decimal(str(betrag_raw))
+            fixed_split.append(FixedSplitRow(
                 gegenkonto=str(fs.get("gegenkonto", "")),
                 kuerzel=str(fs.get("kuerzel", "")),
+                use_tx_betrag=use_tx,
+                betrag=betrag_val,
                 beleg1=str(fs.get("beleg1", "")),
                 no_prefix=bool(fs.get("no_prefix", False)),
-            )
-            for fs in entry.get("fixed_split", [])
-        ]
+            ))
         rules.append(BuchungstextRule(
             pattern=re.compile(pattern_str, re.IGNORECASE | re.DOTALL),
             gegenkonto=str(entry.get("gegenkonto", "")),
@@ -330,8 +347,9 @@ def run(tenant_dir: str | Path) -> Path:
                 bt_kurz_fs = (prefix + _resolve_placeholders(
                     fs.kuerzel, tx.buchungstext, fallback_date=tx.datum
                 )).strip()
+                row_umsatz = tx.betrag if fs.use_tx_betrag else fs.betrag
                 final_rows.append(ExportRow(
-                    umsatz=fs.betrag,
+                    umsatz=row_umsatz,
                     bu_gkto=fs.gegenkonto,
                     beleg1=beleg1_auto,
                     beleg1_final=fs.beleg1 if fs.beleg1 else beleg1_final,

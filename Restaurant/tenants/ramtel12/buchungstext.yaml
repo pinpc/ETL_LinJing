@@ -2,10 +2,18 @@
 # BU Gkto nach SOLL: Agenda_Bank_Ramtel12_04 2026.xlsx
 rules:
   - pattern: 'Stadtwerke Leonberg'
-    gegenkonto: "4240"
-    kuerzel: "Stadtwerke Leonberg {MM YYYY}"
-    no_prefix: true
+    gegenkonto: "8 04240"
+    kuerzel: "Stadtwerke Leonberg Wasser/Abwasser"
     beleg1: ""
+    fixed_split:
+      - gegenkonto: "8 04240"
+        kuerzel: "Stadtwerke Leonberg Wasser {MM YYYY}"
+        no_prefix: true
+        # betrag fehlt → use_tx_betrag=True: echter Bankbetrag in Zeile 1
+      - gegenkonto: "4240"
+        kuerzel: "Stadtwerke Leonberg Abwasser {MM YYYY}"
+        no_prefix: true
+        betrag: null   # leere Umsatz-Zelle in Zeile 2
 
   - pattern: 'Entgeltabrechnung|EBICS'
     gegenkonto: "9 04970"
