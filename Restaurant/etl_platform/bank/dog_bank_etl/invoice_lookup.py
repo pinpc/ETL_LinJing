@@ -1,7 +1,8 @@
 """Hilfsfunktionen: Ausgangsrechnungs-PDF finden und Brutto-Betrag + Datum lesen.
 
-Namenskonvention der RE-Dateien:  RE NNN-YYYY<beliebig>.pdf
-Beispiel:  RE 006-2026_DOG Massion.pdf  →  Rechnungsnr. 006/2026
+Unterstützte Rechnungsnummer-Formate und Dateibenennungen:
+  NNN/YYYY  →  RE NNN-YYYY*.pdf       (z. B. RE 006-2026_DOG Massion.pdf)
+  JJJJ-NNN  →  *JJJJ-NNN*.pdf        (z. B. Ping Zhou_2026-008_Fibu 12 2025_ctm.pdf)
 """
 
 from __future__ import annotations
@@ -16,14 +17,15 @@ import pdfplumber
 
 _RE_BRUTTO = re.compile(
     r"(?:Gesamt\s*\(Brutto\)\s*/?\s*)?Rechnungsbetrag\s+([\d.,]+)"
-    r"|Gesamt\s*\(Brutto\)\s+([\d.,]+)"
+    r"|Gesamt\s*\(Brutto\)[:\s]+([\d.,]+)"   # "Gesamt (Brutto): 303,45 €"
 )
-# "Rechnungsdatum" kann als Spaltenheader stehen; Datum dann in nächster Zeile am Ende
+# "Rechnungsdatum" kann als Spaltenheader oder mit Doppelpunkt stehen
 _RE_RECHNUNG_DATUM = re.compile(
-    r"Rechnungsdatum\s+(\d{2}\.\d{2}\.\d{4})"          # Datum gleiche Zeile
-    r"|Rechnungsdatum\n[^\n]*?(\d{2}\.\d{2}\.\d{4})"   # Datum nächste Zeile
+    r"Rechnungsdatum[:\s]+(\d{2}\.\d{2}\.\d{4})"        # gleiche Zeile mit : oder Leer
+    r"|Rechnungsdatum\n[^\n]*?(\d{2}\.\d{2}\.\d{4})"    # Datum in nächster Zeile
 )
-_RE_INVOICE_REF = re.compile(r"^(\d+)/(\d{4})$")
+_RE_REF_NNN_YYYY  = re.compile(r"^(\d+)/(\d{4})$")       # "006/2026"
+_RE_REF_JJJJ_NNN = re.compile(r"^(20\d{2}-\d{3})$")     # "2026-008"
 
 
 def _parse_german_decimal(s: str) -> Decimal:
@@ -32,21 +34,27 @@ def _parse_german_decimal(s: str) -> Decimal:
 
 
 def find_invoice_pdf(ref: str, search_dir: Path) -> Path | None:
-    """Findet PDF für Rechnungsnummer '006/2026' (Muster: RE 006-2026*.pdf).
-    Sucht rekursiv in search_dir."""
-    m = _RE_INVOICE_REF.match(ref.strip())
-    if not m:
-        return None
-    nr, year = m.group(1), m.group(2)
-    pattern = f"RE {nr}-{year}*.pdf"
-    hits = list(search_dir.rglob(pattern))
-    return hits[0] if hits else None
+    """Findet PDF rekursiv in search_dir passend zur Rechnungsnummer.
+
+    NNN/YYYY  → sucht 'RE NNN-YYYY*.pdf'   (z. B. 006/2026 → RE 006-2026*.pdf)
+    JJJJ-NNN  → sucht '*JJJJ-NNN*.pdf'    (z. B. 2026-008 → *2026-008*.pdf)
+    """
+    ref = ref.strip()
+    m = _RE_REF_NNN_YYYY.match(ref)
+    if m:
+        nr, year = m.group(1), m.group(2)
+        hits = list(search_dir.rglob(f"RE {nr}-{year}*.pdf"))
+        return hits[0] if hits else None
+    m = _RE_REF_JJJJ_NNN.match(ref)
+    if m:
+        hits = list(search_dir.rglob(f"*{ref}*.pdf"))
+        return hits[0] if hits else None
+    return None
 
 
 @lru_cache(maxsize=64)
 def read_invoice_pdf(pdf_path: Path) -> tuple[Decimal, date | None]:
-    """Liest Rechnungsbetrag (Brutto) und Rechnungsdatum aus Ausgangsrechnung-PDF.
-    Gibt (betrag, datum) zurück; datum=None wenn nicht gefunden.
+    """Liest Rechnungsbetrag (Brutto) und Rechnungsdatum aus einer Rechnungs-PDF.
     Ergebnisse werden gecacht (gleicher Pfad wird nur einmal gelesen)."""
     with pdfplumber.open(str(pdf_path)) as pdf:
         text = "\n".join(p.extract_text() or "" for p in pdf.pages)

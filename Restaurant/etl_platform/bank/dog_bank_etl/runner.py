@@ -155,17 +155,30 @@ def _resolve_placeholders(
     ).strip()
 
 
-# RE-Split: alle NNN/YYYY nach "RE" extrahieren (auch über Zeilenumbruch hinweg)
-_RE_SPLIT_AFTER_RE = re.compile(r"\bRE\b(.*)", re.DOTALL | re.IGNORECASE)
-_RE_SPLIT_INV_NUM = re.compile(r"\b(\d{3}/\d{4})\b")
+# Split-Referenz-Extraktion: RE NNN/YYYY  oder  JJJJ-NNN[+NNN…]
+_RE_SPLIT_AFTER_RE  = re.compile(r"\bRE\b(.*)", re.DOTALL | re.IGNORECASE)
+_RE_SPLIT_NNN_YYYY  = re.compile(r"\b(\d{3}/\d{4})\b")    # 006/2026
+# Erkennt "2026-008" allein oder "2026-008+011" (mehrere mit gemeinsamem Jahres-Prefix)
+_RE_SPLIT_JJJJ_NNN  = re.compile(r"\b(20\d{2})-(\d{3})((?:\+\d{3})*)\b")
 
 
-def _extract_re_invoice_refs(buchungstext: str) -> list[str]:
-    """Gibt alle Rechnungsnummern (NNN/YYYY) nach 'RE' zurück (z. B. ['006/2026', '007/2026'])."""
+def _extract_split_refs(buchungstext: str) -> list[str]:
+    """Gibt alle Split-Rechnungsnummern zurück.
+    Erkennt NNN/YYYY (nach 'RE') und JJJJ-NNN (z.B. 2026-008 oder 2026-008+011)."""
+    # RE NNN/YYYY: nur nach dem Schlüsselwort "RE" suchen
     m = _RE_SPLIT_AFTER_RE.search(buchungstext)
-    if not m:
-        return []
-    return _RE_SPLIT_INV_NUM.findall(m.group(1))
+    if m:
+        refs = _RE_SPLIT_NNN_YYYY.findall(m.group(1))
+        if refs:
+            return refs
+    # JJJJ-NNN[+NNN…]: Jahres-Prefix + erste Nummer + optionale Folgennummern
+    refs: list[str] = []
+    for m in _RE_SPLIT_JJJJ_NNN.finditer(buchungstext):
+        year, first, rest = m.group(1), m.group(2), m.group(3)
+        refs.append(f"{year}-{first}")
+        for extra in re.findall(r"\d{3}", rest):
+            refs.append(f"{year}-{extra}")
+    return refs
 
 
 # Beleg1-Extraktion – Prioritätsreihenfolge:
@@ -288,7 +301,7 @@ def run(tenant_dir: str | Path) -> Path:
 
         # ---- Final-Sheet: ggf. aufsplitten ----
         if rule and rule.split_re and rule.invoice_dir:
-            split_refs = _extract_re_invoice_refs(tx.buchungstext)
+            split_refs = _extract_split_refs(tx.buchungstext)
             if split_refs:
                 sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
                 for ref in split_refs:

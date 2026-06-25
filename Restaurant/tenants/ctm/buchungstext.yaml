@@ -67,6 +67,8 @@ rules:
   - pattern: 'Ping Zhou'
     gegenkonto: "80500"
     kuerzel: "Ping Zhou"
+    split_re: true
+    invoice_dir: "C:/temp_cursor/DOG/2026/CTM/Fibu 04 2026/Belege"
 
   - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
     gegenkonto: "1740"
