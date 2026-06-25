@@ -168,24 +168,33 @@ def _extract_re_invoice_refs(buchungstext: str) -> list[str]:
     return _RE_SPLIT_INV_NUM.findall(m.group(1))
 
 
-# Beleg1-Extraktion: bevorzugt RE-Nummer, dann DRP-Referenz, dann erste sinnvolle Zahl
-_RE_BELEG_RE = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
-_RE_BELEG_DRP = re.compile(r"\bDRP\s+(\d{6,12})")
-_RE_BELEG_REF = re.compile(r"\b(\d{6,15})\b")   # erste lange Zahl
+# Beleg1-Extraktion – Prioritätsreihenfolge:
+# 1. RE NNN/YYYY        → "006/2026"
+# 2. JJJJ-NNN           → "2026-008"  (Ping Zhou, Jahresformat)
+# 3. ReNr/RNR/Re-Nr     → alphanumerische Rechnungsnummern ("AR26-391", "2026-008")
+# 4. DRP                → sechsstellige KSK-Referenz
+# 5. Kd.-Nr./KdNr.      → Kundennummer
+# 6. erste lange Zahl   → Fallback (6–15 Stellen)
+_RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
+_RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
+_RE_BELEG_RENR     = re.compile(
+    r"\b(?:ReNr\.?|Re-Nr\.?|RNR|Rechnungsnummer)\s+(?:RE-|AR-)?([^\s+,;]+\d)",
+    re.IGNORECASE,
+)
+_RE_BELEG_DRP      = re.compile(r"\bDRP\s+(\d{6,12})")
+_RE_BELEG_KDNR     = re.compile(r"\bKd\.?-?Nr\.?\s*(\d{5,})", re.IGNORECASE)
+_RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
 
 
 def _extract_beleg1(buchungstext: str) -> str:
-    """Extrahiert Belegnummer aus dem Buchungstext."""
-    m = _RE_BELEG_RE.search(buchungstext)
-    if m:
-        return m.group(1)
-    m = _RE_BELEG_DRP.search(buchungstext)
-    if m:
-        return m.group(1)
+    """Extrahiert die Belegnummer aus dem Buchungstext (Prioritätsreihenfolge s. o.)."""
+    for pat in (_RE_BELEG_RE, _RE_BELEG_YEAR_NUM, _RE_BELEG_RENR,
+                _RE_BELEG_DRP, _RE_BELEG_KDNR):
+        m = pat.search(buchungstext)
+        if m:
+            return m.group(1)
     m = _RE_BELEG_REF.search(buchungstext)
-    if m:
-        return str(int(m.group(1)))   # führende Nullen entfernen
-    return ""
+    return str(int(m.group(1))) if m else ""  # führende Nullen entfernen
 
 
 _RE_VORGANG_PREFIX = re.compile(
