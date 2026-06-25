@@ -1,109 +1,46 @@
 # Buchungstext-Regeln für Ramtel12 Grundstücks GmbH
-# BU Gkto und Kürzel nach SOLL: Agenda_Bank_Ramtel12_04 2026.xlsx
+# BU Gkto nach SOLL: Agenda_Bank_Ramtel12_04 2026.xlsx
 rules:
-  # --- Stadtwerke: split in Wasser + Abwasser (Beträge lt. Auszug) ---
   - pattern: 'Stadtwerke Leonberg'
     gegenkonto: "4240"
-    kuerzel: "Stadtwerke Wasser/Abwasser"
+    kuerzel: "Stadtwerke Leonberg {MM YYYY}"
+    no_prefix: true
     beleg1: ""
-    fixed_split:
-      - betrag: -73.35
-        gegenkonto: "8 04240"
-        kuerzel: "Stadtwerke Leonberg Wasser {MM YYYY}"
-        no_prefix: true
-      - betrag: -110.39
-        gegenkonto: "4240"
-        kuerzel: "Stadtwerke Leonberg Abwasser {MM YYYY}"
-        no_prefix: true
 
   - pattern: 'Entgeltabrechnung|EBICS'
     gegenkonto: "9 04970"
     kuerzel: "Bankgebühr {MM YYYY}"
     no_prefix: true
 
-  # --- D.O.G. Büro 1. OG: split in Miete + NK ---
   - pattern: 'D\.O\.G\..*Büro 1\.'
     gegenkonto: "8401"
-    kuerzel: "Miete/NK DOG 1. OG"
-    fixed_split:
-      - betrag: 1512.73
-        gegenkonto: "8401"
-        kuerzel: "Miete D.O.G. GmbH 1. OG {YYYY MM}"
-        no_prefix: true
-      - betrag: 571.20
-        gegenkonto: "8402"
-        kuerzel: "NK D.O.G. GmbH 1. OG {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK D.O.G. GmbH 1. OG {YYYY MM}"
+    no_prefix: true
 
-  # --- D.O.G. Büro 2. OG: split in Miete + NK ---
   - pattern: 'D\.O\.G\..*Büro 2\.'
     gegenkonto: "8401"
-    kuerzel: "Miete/NK DOG 2. OG"
-    fixed_split:
-      - betrag: 4320.16
-        gegenkonto: "8401"
-        kuerzel: "Miete D.O.G. GmbH 2. OG {YYYY MM}"
-        no_prefix: true
-      - betrag: 1260.81
-        gegenkonto: "8402"
-        kuerzel: " NK D.O.G. GmbH 2. OG {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK D.O.G. GmbH 2. OG {YYYY MM}"
+    no_prefix: true
 
-  # --- Hirotec: split in Miete + NK ---
   - pattern: 'Hirotec'
     gegenkonto: "8405"
-    kuerzel: "Miete Hirotec"
-    fixed_split:
-      - betrag: 1704.08
-        gegenkonto: "8405"
-        kuerzel: "Miete Hirotec EG {YYYY MM}"
-        no_prefix: true
-      - betrag: 737.80
-        gegenkonto: "8406"
-        kuerzel: "NK  Hirotec EG {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK Hirotec EG {YYYY MM}"
+    no_prefix: true
 
-  # --- Systemgruppe: split in Miete + NK ---
   - pattern: 'Systemgruppe|integrated solutions'
     gegenkonto: "8409"
-    kuerzel: "Systemgruppe IT"
-    fixed_split:
-      - betrag: 1820.70
-        gegenkonto: "8409"
-        kuerzel: "Miete systemgruppe integrated {YYYY MM}"
-        no_prefix: true
-      - betrag: 405.20
-        gegenkonto: "8409"
-        kuerzel: "NK systemgruppe integrated {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK systemgruppe integrated {YYYY MM}"
+    no_prefix: true
 
-  # --- Köhler: split in Miete + NK ---
   - pattern: 'Köhler GmbH|Ingenieurbüro.*Elek'
     gegenkonto: "8403"
-    kuerzel: "Köhler Elektroarbeiten"
-    fixed_split:
-      - betrag: 2018.31
-        gegenkonto: "8403"
-        kuerzel: "Miete Köhler Leonberg {YYYY MM}"
-        no_prefix: true
-      - betrag: 993.65
-        gegenkonto: "8404"
-        kuerzel: "NK Miete Köhler Leonberg {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK Köhler Leonberg {YYYY MM}"
+    no_prefix: true
 
-  # --- Bruchmann: split in Miete + NK ---
   - pattern: 'BERNHARD BRUCHMANN|BRUCHMANN.*MIETE'
     gegenkonto: "8407"
-    kuerzel: "Miete Bruchmann"
-    fixed_split:
-      - betrag: 1470.84
-        gegenkonto: "8407"
-        kuerzel: "Miete Bruchmann EG {YYYY MM}"
-        no_prefix: true
-      - betrag: 416.50
-        gegenkonto: "8408"
-        kuerzel: "NK Bruchmann EG {YYYY MM}"
-        no_prefix: true
+    kuerzel: "Miete/NK Bruchmann EG {YYYY MM}"
+    no_prefix: true
 
   - pattern: 'WEG.*Hofmann|Hofmannstr'
     gegenkonto: "4232"
@@ -130,7 +67,7 @@ rules:
 
   - pattern: 'ACTIV WERBETECHNIK'
     gegenkonto: "1610"
-    kuerzel: "Activ Werbetechnik GmbH RG fehlt # AR300083 + AR 300084"
+    kuerzel: "Activ Werbetechnik GmbH"
     no_prefix: true
 
   - pattern: 'SHHS|Heizung|Ausdehnungsgef'
@@ -155,19 +92,10 @@ rules:
     gegenkonto: "70051"
     kuerzel: "Zhou, Ping"
 
-  # --- Chen Darlehen: split in zwei Buchungen ---
   - pattern: 'May-Lin Chen.*Darlehen|Rückzahlung.*Darlehen'
     gegenkonto: "751"
-    kuerzel: "Darlehensrückzahlung Chen"
-    fixed_split:
-      - betrag: -200000
-        gegenkonto: "751"
-        kuerzel: "Chen Darlehen Rückzahlung"
-        no_prefix: true
-      - betrag: -100000
-        gegenkonto: "752"
-        kuerzel: "Chen Darlehen Rückzahlung"
-        no_prefix: true
+    kuerzel: "Chen Darlehen Rückzahlung"
+    no_prefix: true
 
   - pattern: 'Telekom Deutschland'
     gegenkonto: "9 04800"
@@ -179,19 +107,10 @@ rules:
     kuerzel: "DOG Holding Darlehen 400 T€ - {YYYY}"
     no_prefix: true
 
-  # --- KSK Tilgung + Zins: split ---
   - pattern: 'KREISSPARKASSE.*Darl|Rechnung.*Darl'
     gegenkonto: "652"
-    kuerzel: "Zinsen Geldmarktkonto"
-    fixed_split:
-      - betrag: -1278.07
-        gegenkonto: "652"
-        kuerzel: "KSK Tilgung {MM YYYY} Merklingen/Dresden"
-        no_prefix: true
-      - betrag: -151.05
-        gegenkonto: "9 02120"
-        kuerzel: "KSK Zins {MM YYYY} Merklingen/Dresden"
-        no_prefix: true
+    kuerzel: "KSK Tilgung/Zins {MM YYYY} Merklingen/Dresden"
+    no_prefix: true
 
   - pattern: 'Abrechnung.*Geldmark|Waiblingen Geldmark|Geldmarktkonto'
     gegenkonto: "6855"
