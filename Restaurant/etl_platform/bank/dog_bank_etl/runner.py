@@ -312,6 +312,30 @@ def _normalize_dates(text: str) -> str:
 
 _DATE_PLACEHOLDERS = ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}")
 
+_RE_BEITRAG_MMYY = re.compile(r"BEITRAG\s+(\d{2})(\d{2})-\d{4}", re.IGNORECASE)
+_RE_MON_ABBR = re.compile(
+    r"\b(JAN|FEB|MÄR|MAR|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ)\.(\d{2})\b",
+    re.IGNORECASE,
+)
+_MON_ABBR_TO_MM = {
+    "JAN": "01", "FEB": "02", "MÄR": "03", "MAR": "03", "APR": "04",
+    "MAI": "05", "JUN": "06", "JUL": "07", "AUG": "08", "SEP": "09",
+    "OKT": "10", "NOV": "11", "DEZ": "12",
+}
+
+
+def _extract_period_mm_yyyy(buchungstext: str) -> tuple[str, str] | None:
+    """Beitrags-/Steuerzeitraum aus Text (z. B. BEITRAG 0326-0326, FEB.26)."""
+    m = _RE_BEITRAG_MMYY.search(buchungstext)
+    if m:
+        return m.group(1), f"20{m.group(2)}"
+    m = _RE_MON_ABBR.search(buchungstext)
+    if m:
+        mm = _MON_ABBR_TO_MM.get(m.group(1).upper().replace("Ä", "A"))
+        if mm:
+            return mm, f"20{m.group(2)}"
+    return None
+
 
 def _resolve_placeholders(
     kuerzel: str, buchungstext: str, fallback_date: date | None = None
@@ -319,20 +343,24 @@ def _resolve_placeholders(
     """Ersetzt Datum-Platzhalter im Kürzel:
     {MM.YYYY} → "04.2026"  |  {MM YYYY} → "04 2026"
     {MM}      → "04"       |  {YYYY}    → "2026"
-    Datum-Quelle: erstes DD.MM.YYYY aus Buchungstext; Fallback: fallback_date.
+    Datum-Quelle: Beitrags-/Steuerzeitraum, dann DD.MM.YYYY, Fallback: fallback_date.
     """
     if not any(ph in kuerzel for ph in _DATE_PLACEHOLDERS):
         return kuerzel
-    normalized = _normalize_dates(buchungstext)
-    m = _RE_DATE_IN_TEXT.search(normalized)
-    if m:
-        mm = m.group(2)
-        yyyy = m.group(3)
-    elif fallback_date:
-        mm = f"{fallback_date.month:02d}"
-        yyyy = str(fallback_date.year)
+    period = _extract_period_mm_yyyy(buchungstext)
+    if period:
+        mm, yyyy = period
     else:
-        mm = yyyy = ""
+        normalized = _normalize_dates(buchungstext)
+        m = _RE_DATE_IN_TEXT.search(normalized)
+        if m:
+            mm = m.group(2)
+            yyyy = m.group(3)
+        elif fallback_date:
+            mm = f"{fallback_date.month:02d}"
+            yyyy = str(fallback_date.year)
+        else:
+            mm = yyyy = ""
     return (
         kuerzel
         .replace("{MM.YYYY}", f"{mm}.{yyyy}")
@@ -373,15 +401,19 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 # 1. RE NNN/YYYY        → "006/2026"
 # 2. JJJJ-NNN           → "2026-008"  (Ping Zhou, Jahresformat)
 # 3. ReNr/RNR/Re-Nr     → alphanumerische Rechnungsnummern ("AR26-391", "2026-008")
-# 4. DRP                → sechsstellige KSK-Referenz
-# 5. Kd.-Nr./KdNr.      → Kundennummer
-# 6. erste lange Zahl   → Fallback (6–15 Stellen)
+# 4. RGN (Vodafone)     → Rechnungsnummer aus "RGN 00229874854 1"
+# 5. RG                 → "RG20260005566710"
+# 6. DRP                → sechsstellige KSK-Referenz
+# 7. Kd.-Nr./KdNr.      → Kundennummer
+# 8. erste lange Zahl   → Fallback (6–15 Stellen)
 _RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
 _RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
 _RE_BELEG_RENR     = re.compile(
     r"\b(?:ReNr\.?|Re-Nr\.?|RNR|Rechnungsnummer)\s+(?:RE-|AR-)?([^\s+,;]+\d)",
     re.IGNORECASE,
 )
+_RE_BELEG_RGN      = re.compile(r"\bRGN\s+0*(\d+)\s+(\d)\b", re.IGNORECASE)
+_RE_BELEG_RG       = re.compile(r"\bRG(20\d{10})\b", re.IGNORECASE)
 _RE_BELEG_DRP      = re.compile(r"\bDRP\s+(\d{6,12})")
 _RE_BELEG_KDNR     = re.compile(r"\bKd\.?-?Nr\.?\s*(\d{5,})", re.IGNORECASE)
 _RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
@@ -389,19 +421,22 @@ _RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
 
 def _extract_beleg1(buchungstext: str) -> str:
     """Extrahiert die Belegnummer aus dem Buchungstext (Prioritätsreihenfolge s. o.)."""
-    for pat in (_RE_BELEG_RE, _RE_BELEG_YEAR_NUM, _RE_BELEG_RENR,
-                _RE_BELEG_DRP, _RE_BELEG_KDNR):
-        m = pat.search(buchungstext)
-        if m:
+    for pat in (_RE_BELEG_RE, _RE_BELEG_YEAR_NUM, _RE_BELEG_RENR, _RE_BELEG_DRP, _RE_BELEG_KDNR):
+        if m := pat.search(buchungstext):
             return m.group(1)
-    m = _RE_BELEG_REF.search(buchungstext)
-    return str(int(m.group(1))) if m else ""  # führende Nullen entfernen
+    if m := _RE_BELEG_RGN.search(buchungstext):
+        return str(int(m.group(1))) + m.group(2)
+    if m := _RE_BELEG_RG.search(buchungstext):
+        return m.group(1)
+    if m := _RE_BELEG_REF.search(buchungstext):
+        return str(int(m.group(1)))
+    return ""
 
 
 _RE_VORGANG_PREFIX = re.compile(
     r"^(GutschriftÜberweisung|Gutschrift\s+Überweisung|Gutschrift|"
     r"Überweisung\s+online|Überweisung|Lastschrift|Dauerauftrag\s+online|"
-    r"Dauerauftrag|Entgeltabrechnung(?:\s*/\s*Wert:[^)]+)?|Rechnung|"
+    r"Dauerauftrag|Entgeltabrechnung(?:\s*/\s*Wert:\s*\d{2}\.\d{2}\.\d{4})?|Rechnung|"
     r"Darlehensrate|Kartenzahlung|Einzahlung|Auszahlung)\s*",
     re.IGNORECASE,
 )

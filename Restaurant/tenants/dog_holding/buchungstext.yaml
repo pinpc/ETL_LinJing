@@ -1,89 +1,134 @@
 # Buchungstext-Regeln für D.O.G. Holding GmbH
+# BU Gkto + Kürzel nach SOLL: Agenda_Bank_Holding 04 2026.xlsx
 rules:
-  - pattern: 'Entgeltabrechnung|Kontoführung Mindest|EBICS'
-    gegenkonto: "6855"
-    kuerzel: "Bankgebühren"
+  - pattern: 'EBICS-Umsatz|EBICS'
+    gegenkonto: "4970"
+    kuerzel: "Ebics {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
 
-  - pattern: 'D\.O\.G\. Dokumentation|DOG.*Dokumentation|ctm.*Büro'
-    gegenkonto: "1210"
-    kuerzel: "Miete/Verrech. DOG"
+  - pattern: 'Entgeltabrechnung|Kontoführung Mindest'
+    gegenkonto: "4970"
+    kuerzel: "Bankgebühr {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
 
-  - pattern: 'Francois Massion|Haushaltsgeld|monatliche'
-    gegenkonto: "1890"
-    kuerzel: "Haushaltsgeld Massion"
+  - pattern: 'Firmenkundenportal'
+    gegenkonto: "4970"
+    kuerzel: "Bankgebühr {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Haushaltsgeld'
+    gegenkonto: "8201"
+    kuerzel: "NK Mieter {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "4"
+
+  - pattern: 'Vorsorgebezug.*Massion|Massion.*Vorsorgebezug'
+    gegenkonto: "1740"
+    kuerzel: "F. Massion {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Abfallwirtschaftsbetrieb|AWB.*Calw|Calw.*AWB'
+    gegenkonto: "70104"
+    kuerzel: "Abfallwirtschaft Lkr"
+
+  - pattern: 'Finanzamt.*LOHNST|LOHNST'
+    gegenkonto: "1741"
+    kuerzel: "LST Q 1 {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'Weiterleitung.*Institut|von Institut|Weiterleitung.*von Institut'
+    gegenkonto: "10002"
+    kuerzel: "RL-Institut Dr. Sturz G"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'Institut.*Management.*Kommun|Institut.*Kommun.*Rückbu|Institut.*Sturz'
+    gegenkonto: "10002"
+    kuerzel: "Institut Dr. Sturz G - Verkauf DOG GmbH"
+
+  - pattern: 'BARMER'
+    gegenkonto: "1743"
+    kuerzel: "BEK {MM} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
+    gegenkonto: "1780"
+    kuerzel: "USt VA {MM} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'NEW Niederrhein|Niederrhein Energie'
+    gegenkonto: "4244"
+    kuerzel: "NEW Strom {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "Strom"
+
+  - pattern: '190864'
+    gegenkonto: "4244"
+    kuerzel: "EnCW Wasser {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "Wasser"
+
+  - pattern: '190865'
+    gegenkonto: "4244"
+    kuerzel: "EnCW Abwasser {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "Abwasser"
+
+  - pattern: '668703'
+    gegenkonto: "4244"
+    kuerzel: "EnCW Gas {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "Gas"
+
+  - pattern: 'Vodafone'
+    gegenkonto: "70120"
+    kuerzel: "Vodafone West GmbH RG fehlt"
 
   - pattern: 'Ping Zhou'
-    gegenkonto: "6825"
-    kuerzel: "Ping Zhou Honorar"
+    gegenkonto: "70102"
+    kuerzel: "Ping Zhou"
 
-  - pattern: 'Abfallgebühr|Abfallgeb'
-    gegenkonto: "6830"
-    kuerzel: "Abfallgebühren"
+  - pattern: 'Ingo Mattes|Metallbau.*Mattes'
+    gegenkonto: "1 74849"
+    kuerzel: "Ingo Mattes Metallba"
 
-  - pattern: 'Ingo Mattes|Metallbau'
-    gegenkonto: "6400"
-    kuerzel: "Reparatur Metallbau"
+  - pattern: 'MetaComp'
+    gegenkonto: "74850"
+    kuerzel: "MetaComp GmbH"
 
-  - pattern: 'MetaComp|WAN Umstellung'
-    gegenkonto: "6815"
-    kuerzel: "MetaComp IT"
+  - pattern: 'Bundeskasse.*EHUG|EHUG'
+    gegenkonto: "70113"
+    kuerzel: "Bundesamt für Justiz"
 
-  - pattern: 'Ordnungsgeld|Bundesamt.*Justiz'
-    gegenkonto: "6900"
-    kuerzel: "Ordnungsgeld"
+  - pattern: 'Ramtel12.*Auszahlung|Auszahlung.*Ramtel12|Auszahlung.*Darlehensvertra'
+    gegenkonto: "1703"
+    kuerzel: "Auszahlung Ramtel12 Darlehen"
+    no_prefix: true
+
+  - pattern: 'May-Lin Chen.*Versorgung|Versorgungsbezug.*Chen'
+    gegenkonto: "1740"
+    kuerzel: "M. Chen {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Softwareüberlassung|Monatspreis Software|entgeltfreie Buchung.*SFirm'
+    gegenkonto: "70104"
+    kuerzel: "Softwareüberlassung SFirm"
+
+  - pattern: 'hkk\b|hkk Beitraege'
+    gegenkonto: "1743"
+    kuerzel: "hkk {MM} {YYYY}"
+    no_prefix: true
+    beleg1: ""
 
   - pattern: 'IHK'
     gegenkonto: "6835"
-    kuerzel: "IHK Beitrag"
-
-  - pattern: 'BARMER'
-    gegenkonto: "6120"
-    kuerzel: "BARMER Krankenkasse"
-
-  - pattern: 'hkk\b|hkk Beitraege'
-    gegenkonto: "6120"
-    kuerzel: "hkk Krankenkasse"
-
-  - pattern: 'Finanzamt.*LOHNST|LOHNST'
-    gegenkonto: "1740"
-    kuerzel: "Lohnsteuer"
-
-  - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
-    gegenkonto: "1770"
-    kuerzel: "Umsatzsteuer"
-
-  - pattern: 'Abfallwirtschaftsbetrieb|AWB.*Calw|Calw.*AWB'
-    gegenkonto: "6830"
-    kuerzel: "Abfallgebühren Calw"
-
-  - pattern: 'Energie Calw|EnBW|NEW.*Energie|Niederrhein Energie'
-    gegenkonto: "6830"
-    kuerzel: "Energie"
-
-  - pattern: 'Vodafone'
-    gegenkonto: "6815"
-    kuerzel: "Vodafone Telefon"
-
-  - pattern: 'Softwareüberlassung|Monatspreis Software|entgeltfreie Buchung'
-    gegenkonto: "6815"
-    kuerzel: "Software Lizenz"
-
-  - pattern: 'Bundeskasse.*EHUG|EHUG'
-    gegenkonto: "6900"
-    kuerzel: "Bundesjustizamt EHUG"
-
-  - pattern: 'Francois Massion.*Vorsorge|Vorsorgebezug.*Massion'
-    gegenkonto: "6030"
-    kuerzel: "Vorsorgebezug Massion"
-
-  - pattern: 'May-Lin Chen.*Versorgung|Versorgungsbezug.*Chen'
-    gegenkonto: "6030"
-    kuerzel: "Versorgungsbezug Chen"
-
-  - pattern: 'Ramtel12.*Auszahlung|Auszahlung.*Ramtel'
-    gegenkonto: "1890"
-    kuerzel: "Auszahlung Ramtel12"
-
-  - pattern: 'Institut.*Management.*Kommun|Institut.*Kommun'
-    gegenkonto: "6825"
-    kuerzel: "Institut Mgmt Kommunikation"
+    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    no_prefix: true

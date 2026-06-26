@@ -84,8 +84,10 @@ def _fill_sheet(ws, rows: list[ExportRow], col_widths: tuple, use_final: bool) -
 
         _text_cell(ws, row_idx, 6, str(row.konto))
 
-        c7 = ws.cell(row=row_idx, column=7, value=row.buchungstext_kurz if use_final else row.buchungstext)
-        c7.alignment = Alignment(wrap_text=(not use_final), vertical="top")
+        _text_cell(ws, row_idx, 7, row.buchungstext_kurz if use_final else row.buchungstext)
+        ws.cell(row=row_idx, column=7).alignment = Alignment(
+            wrap_text=(not use_final), vertical="top",
+        )
 
         c8 = ws.cell(row=row_idx, column=8, value=float(row.skonto_euro))
         c8.number_format = _AMOUNT_FMT
