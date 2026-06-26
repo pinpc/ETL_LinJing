@@ -10,9 +10,8 @@ from pathlib import Path
 
 import openpyxl
 
+from .golden_master_baselines import BASELINES, TenantBaseline
 from .runner import run
-
-# Bekannte EXTRA-Zeilen in IST (Display-Split, fehlende Agenda-Buchungen, …)
 
 
 def _norm_text(v: str) -> str:
@@ -25,18 +24,6 @@ def _norm_bu(v) -> str:
 
 def _known_extra_key(bu: str, beleg2: str, text: str) -> tuple[str, str, str]:
     return (_norm_bu(bu), beleg2, _norm_text(text))
-
-
-_KNOWN_EXTRA = {
-    _known_extra_key("6855", "2", "Bankgebühren Geldmarktkonto"),
-    # DOG Holding: SOLL deckt nur Apr 1–28 ab (6 Buchungen fehlen in Agenda)
-    _known_extra_key("1703", "46", "Auszahlung Ramtel12 Darlehen"),
-    _known_extra_key("1740", "47", "M. Chen 04 2026"),
-    _known_extra_key("1740", "47", "F. Massion 04 2026"),
-    _known_extra_key("70104", "47", "ZA-Softwareüberlassung SFirm"),
-    _known_extra_key("4970", "47", "Ebics 04 2026"),
-    _known_extra_key("4970", "47", "Bankgebühr 04 2026"),
-}
 
 
 @dataclass(frozen=True)
@@ -104,6 +91,7 @@ def compare_final(
     soll_sheet: str | None = None,
     *,
     ignore_beleg2: bool = False,
+    known_extra: frozenset[tuple[str, str, str]] = frozenset(),
 ) -> list[str]:
     """Vergleicht Final-Blatt IST vs. SOLL. Gibt Liste der Abweichungen zurück."""
     ist = _read_final(ist_path, "Final")
@@ -130,7 +118,7 @@ def compare_final(
     for k, i_row in ist_map.items():
         if k in soll_map:
             continue
-        if _known_extra_key(i_row.bu_gkto, i_row.beleg2, i_row.buchungstext) in _KNOWN_EXTRA:
+        if _known_extra_key(i_row.bu_gkto, i_row.beleg2, i_row.buchungstext) in known_extra:
             continue
         errors.append(f"EXTRA in IST: BU={i_row.bu_gkto} B2={i_row.beleg2} | {i_row.buchungstext}")
 
@@ -142,6 +130,13 @@ def compare_final(
     return errors
 
 
+def _split_baseline(errors: list[str], baseline: TenantBaseline) -> tuple[list[str], list[str]]:
+    """Teilt Abweichungen in erwartete (Baseline) und neue."""
+    expected = [e for e in errors if e in baseline.deviations]
+    unexpected = [e for e in errors if e not in baseline.deviations]
+    return expected, unexpected
+
+
 @dataclass(frozen=True)
 class GoldenCase:
     name: str
@@ -149,7 +144,7 @@ class GoldenCase:
     ist_path: Path
     soll_path: Path
     soll_sheet: str | None = None
-    ignore_beleg2: bool = False
+    baseline: TenantBaseline | None = None
 
 
 _GOLDEN_CASES = (
@@ -158,6 +153,7 @@ _GOLDEN_CASES = (
         "tenants/ctm",
         Path(r"C:\temp_cursor\DOG\2026\CTM\Fibu 04 2026\Kontoauszug_CTM_04_2026.xlsx"),
         Path(r"C:\temp_cursor\DOG\2026\CTM\Fibu 04 2026\Agenda_CTM_Bank_2026 04.xlsx"),
+        baseline=BASELINES["CTM"],
     ),
     GoldenCase(
         "Ramtel12",
@@ -165,6 +161,7 @@ _GOLDEN_CASES = (
         Path(r"C:\temp_cursor\DOG\2026\Ramtel12\Fibu 04 2026\Kontoauszug_Ramtel12_04_2026.xlsx"),
         Path(r"C:\temp_cursor\DOG\2026\Ramtel12\Fibu 04 2026\Agenda_Bank_Ramtel12_04 2026.xlsx"),
         "tmp6A99",
+        baseline=BASELINES["Ramtel12"],
     ),
     GoldenCase(
         "DOG Holding",
@@ -172,13 +169,13 @@ _GOLDEN_CASES = (
         Path(r"C:\temp_cursor\DOG\2026\DOG Holding\Fibu 04 2026\Kontoauszug_DOG_Holding_04_2026.xlsx"),
         Path(r"C:\temp_cursor\DOG\2026\DOG Holding\Fibu 04 2026\Agenda_Bank_Holding 04 2026.xlsx"),
         "tmp8235",
-        ignore_beleg2=True,
+        baseline=BASELINES["DOG Holding"],
     ),
 )
 
 
 def run_golden_master() -> int:
-    """Führt ETL + Golden-Master aus. Exit-Code 0 = OK."""
+    """Führt ETL + Golden-Master aus. Exit-Code 0 = OK (keine neuen Abweichungen)."""
     failed = 0
     for case in _GOLDEN_CASES:
         print(f"\n=== {case.name} ===")
@@ -186,19 +183,36 @@ def run_golden_master() -> int:
             run(case.tenant)
         except PermissionError:
             print(f"WARN: {case.ist_path.name} gesperrt – vergleiche vorhandene Datei")
+
+        bl = case.baseline or TenantBaseline(frozenset())
         errs = compare_final(
-            case.ist_path, case.soll_path, case.soll_sheet,
-            ignore_beleg2=case.ignore_beleg2,
+            case.ist_path,
+            case.soll_path,
+            case.soll_sheet,
+            ignore_beleg2=bl.ignore_beleg2,
+            known_extra=bl.extra_rows,
         )
-        if errs:
+        expected, unexpected = _split_baseline(errs, bl)
+
+        if unexpected:
             failed += 1
-            print(f"FAIL ({len(errs)} Abweichungen):")
-            for e in errs[:25]:
+            print(f"FAIL ({len(unexpected)} neue Abweichungen, {len(expected)} bekannt):")
+            for e in unexpected[:25]:
                 print(f"  - {e}")
-            if len(errs) > 25:
-                print(f"  ... und {len(errs) - 25} weitere")
+            if len(unexpected) > 25:
+                print(f"  ... und {len(unexpected) - 25} weitere")
+        elif expected:
+            print(f"OK – {len(expected)} bekannte Abweichungen (Baseline)")
         else:
             print("OK – Final entspricht SOLL")
+
+        # Baseline veraltet: erwartete Einträge fehlen in aktuellem Lauf
+        stale = bl.deviations - frozenset(errs)
+        if stale:
+            print(f"HINWEIS: {len(stale)} Baseline-Einträge nicht mehr getroffen – ggf. golden_master_baselines.py aktualisieren")
+            for e in sorted(stale)[:5]:
+                print(f"  ~ {e}")
+
     return failed
 
 
