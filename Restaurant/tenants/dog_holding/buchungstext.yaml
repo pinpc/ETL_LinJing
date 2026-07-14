@@ -132,3 +132,40 @@ rules:
     gegenkonto: "6835"
     kuerzel: "IHK Beitrag {MM} {YYYY}"
     no_prefix: true
+
+  - pattern: 'Netze Calw'
+    gegenkonto: "4244"
+    kuerzel: "Netze Calw Strom-Einspeisung {YYYY}"
+    no_prefix: true
+
+  - pattern: 'Grundsteuer|Große Kreisstadt Calw'
+    gegenkonto: "2280"
+    kuerzel: "Grundsteuer Calw {YYYY}"
+    no_prefix: true
+
+  - pattern: 'Sonstige Kartenleistungen|Kartenpreisbelastung'
+    gegenkonto: "4970"
+    kuerzel: "Bankgebühr {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Rossmann'
+    gegenkonto: "6815"
+    kuerzel: "Rossmann"
+
+  - pattern: 'Pantina|Arjanit Pantina'
+    gegenkonto: "70104"
+    kuerzel: "Pantina Reinigung"
+
+  - pattern: 'D\.O\.G\. Holding GmbH Einzahlung'
+    gegenkonto: "1290"
+    kuerzel: "Einzahlung {MM} {YYYY}"
+    no_prefix: true
+
+  - pattern: 'FLORIAN TEUFEL|Florian Teufel'
+    gegenkonto: "70104"
+    kuerzel: "Florian Teufel Gartenbau"
+
+  - pattern: 'ctm Cloud Terminology'
+    gegenkonto: "70104"
+    kuerzel: "ctm Cloud Terminology"

@@ -103,7 +103,7 @@ rules:
         no_prefix: true
         betrag: null
 
-  - pattern: 'WEG.*Hofmann|Hofmannstr'
+  - pattern: 'WEG.*Hofmann|WEG Hofmannstr'
     gegenkonto: "4232"
     kuerzel: "WEG Dresden Hausgeld {MM YYYY}"
     no_prefix: true
@@ -197,3 +197,32 @@ rules:
     gegenkonto: "6855"
     kuerzel: "Bankgebühren Geldmarktkonto"
     no_prefix: true
+
+  - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
+    gegenkonto: "1780"
+    kuerzel: "USt VA {MM} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'Abfallgebuehr|Abfallgebühr|Landkreis B[oö]blingen'
+    gegenkonto: "70104"
+    kuerzel: "Abfallgebühr {MM YYYY}"
+    no_prefix: true
+
+  - pattern: 'Grundsteuer|GrSt\b|Stadt Leonberg|Landeshauptstadt Dresden'
+    gegenkonto: "2280"
+    kuerzel: "Grundsteuer {MM YYYY}"
+    no_prefix: true
+
+  - pattern: 'IHK'
+    gegenkonto: "6835"
+    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    no_prefix: true
+
+  - pattern: 'Kone GmbH'
+    gegenkonto: "80106"
+    kuerzel: "Kone GmbH"
+
+  - pattern: 'ctm Cloud Terminology'
+    gegenkonto: "70104"
+    kuerzel: "ctm Cloud Terminology"

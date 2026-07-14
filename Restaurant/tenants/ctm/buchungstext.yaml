@@ -16,7 +16,7 @@ rules:
     gegenkonto: "10401"
     kuerzel: "D.O.G. Dokument GmbH"
     split_re: true
-    invoice_dir: "C:/Users/pinpc/OneDrive/DOG Gruppe/ctm/Fibu/2026"
+    invoice_dir: "C:/temp_cursor/DOG/2026/CTM"
 
   - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto|Telekom Deutschland'
     gegenkonto: "71904"
@@ -68,7 +68,7 @@ rules:
     gegenkonto: "80500"
     kuerzel: "Ping Zhou"
     split_re: true
-    invoice_dir: "C:/temp_cursor/DOG/2026/CTM/Fibu 04 2026/Belege"
+    invoice_dir: "C:/temp_cursor/DOG/2026/CTM"
 
   - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
     gegenkonto: "1740"
@@ -113,3 +113,40 @@ rules:
     kuerzel: "Bankgebühr {MM} {YYYY}"
     no_prefix: true
     beleg1: "~auszug"
+
+  - pattern: 'MetaComp'
+    gegenkonto: "74850"
+    kuerzel: "MetaComp GmbH"
+
+  - pattern: 'RAMTEL12'
+    gegenkonto: "10401"
+    kuerzel: "Ramtel12 Grundstücks GmbH"
+
+  - pattern: 'Verwaltungs-Berufsgenossenschaft|\bVBG\b'
+    gegenkonto: "4138"
+    kuerzel: "VBG {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~auszug"
+
+  - pattern: 'Rundfunk ARD|Rundfunk.*ZDF'
+    gegenkonto: "6320"
+    kuerzel: "Rundfunk {MM} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+
+  - pattern: 'IHK'
+    gegenkonto: "6835"
+    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    no_prefix: true
+
+  - pattern: 'Dagmar P[aäoö]tzold'
+    gegenkonto: "80500"
+    kuerzel: "Dagmar Pötzold"
+
+  - pattern: 'B[oö]ttcher'
+    gegenkonto: "6815"
+    kuerzel: "Büttcher AG"
+
+  - pattern: 'NeS GmbH'
+    gegenkonto: "6815"
+    kuerzel: "NeS GmbH"
