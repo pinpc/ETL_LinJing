@@ -4,78 +4,87 @@ from __future__ import annotations
 
 import logging
 import re
-import sys
-from pathlib import Path
 from typing import Any
 
-if __package__ in (None, ""):
-    _asia_root = Path(__file__).resolve().parent.parent
-    if str(_asia_root) not in sys.path:
-        sys.path.insert(0, str(_asia_root))
-    from asia_bank_etl.text_normalize import bereinige_pdf_text
-else:
-    from .text_normalize import bereinige_pdf_text
+from .text_normalize import bereinige_pdf_text
 
 logger = logging.getLogger(__name__)
 
 # (Suchtext im Buchungstext, BU Gkto oder None, Kürzel)
-# Im Kürzel: „tt.mm.jjjj“ → erste DD.MM.JJJJ-Zahl; „mm.jjjj“ → MM.JJJJ daraus.
+# Im Kürzel: „tt.mm.jjjj“ → erste DD.MM.JJJJ-Zahl; „mm.jjjj“ / „mm yyyy“ → Monat/Jahr.
 # Reihenfolge unwichtig – Anwendung sortiert nach Suchlänge (länger zuerst).
 BUCHUNG_PARSER_RULES: list[tuple[str, str | None, str]] = [
-    ("Olivia Dang-Huang Vorauszahlung", "4130", "Nebenkosten ASIA"),
-    ("Olivia Dang-Huang Pacht", "4830", "Pacht ASIA"),
+    # --- Olivia / Miete / NK (Agenda Mai 2026 Konten) ---
+    ("Olivia Dang-Huang Nebenkosten 2024", "904228", "NK 2024 Asia"),
+    ("Olivia Dang-Huang Vorauszahlung", "904228", "NK Asia mm yyyy"),
+    ("Olivia Dang-Huang Pacht", "904210", "Pacht Asia mm yyyy"),
+    # --- Darlehen: Split erfolgt in darlehen_split.py; Fallback falls kein Split ---
     ("SPARKASSE ALLGAEU Rechnung Darl", "4360", "Sparkasse Darlehen"),
     ("Knittel GmbH Abfallentsorgung", "3106", "Knittel GmbH Abfallentsorgung Essensre"),
     ("DEVK Allgemeine Versicherungs", "4360", "DEVK KFZ"),
-    ("Elektrizitätswerke Reutte", "904280", "Elektrizitaetswerke Reutte GmbH und Co"),
-    ("Knappschaft-Bahn-See", "4360", "Knappschaft"),
+    ("Elektrizitätswerke Reutte", "904240", "Strom mm yyyy"),
+    ("Knappschaft-Bahn-See", "1743", "Knappschaft mm yyyy"),
     ("Ling Jin privat benutzen", "1800", "Privat Ling Jin"),
     ("V-BAUMARKT FUESSEN ELV", None, "V-BAUMARKT WE"),
     ("SB-EINZAHLUNG", "1360", "von Kasse"),
     ("HISEAS INTERNATIONAL", "1360", "HISEAS"),
     ("Wanyun Chen Ausleihen", "1800", "Darlehen Chen"),
     ("Yuzhong Zhao Darlehen", "1800", "Darlehen Zhao"),
-    ("Telefonica Germany", "4360", "Telefonica"),
+    ("Telefonica Germany", "4360", "Telefonica Mobil mm yyyy"),
+    # Jupiter: Erstattung (Haben) vs. Lohn (Soll)
+    ("Erstattung Lohnkosten Jupiter", "1360", "vom Jupiter"),
     ("Jupiter Restaurant", "4120", "Lohn Jupiter"),
+    # Finanzamt: LOHNST / USt-Erstattung vor generischem UmSt
+    ("LOHNST", "1741", "LSt mm yyyy"),
+    ("ERSTATT .* UMS.ST", "1780", "UST VA mm yyyy"),
+    ("UMS.ST", "1780", "UST VA mm yyyy"),
     ("Finanzamt Kaufbeuren", "4830", "Finanzamt UmSt"),
-    ("Vodafone GmbH", "904925", "Vodafone GmbH Internet"),
+    # Vodafone: Mobil vs. Internet
+    ("Vodafone GmbH 40549", "904925", "Vodafone GmbH Mobil mm yyyy"),
+    ("Vodafone GmbH", "904925", "Vodafone GmbH Internet mm yyyy"),
     ("Union SB-Grosmarkt", "4800", "Edeka WE"),
     ("Fruchthaus Stöckl", "4800", "Fruchthaus Stöckl"),
     ("STRIPE CO A L GOODBODY", "4970", "AllOpay"),
     ("DEHOGA Bayern e.V", "1743", "DEHOGA Bayern e.V Beitrag"),
-    ("AOK Bayern", "1743", "AOK Bayern Beitrag"),
-    ("ERGO Vorsorge LV AG R71390271.3", "1748", "ERGO Vorsorge LV AG R71390271.3 Linjing mm.jjjj"),
+    ("AOK Bayern", "1743", "AOK Bayern Beitrag mm yyyy"),
+    ("ERGO Vorsorge LV AG R71390271.3", "1748", "ERGO LV Linjing mm yyyy"),
     ("Huizhen Lyu Lohn", "4120", "Lohn Huizhen Lyu"),
     ("Fan Peng Lohn", "4120", "Lohn Fan Peng"),
     ("Ling Jin Lohn", "4120", "Lohn Ling Jin"),
     ("Ze Peng Lohn", "4120", "Lohn Ze Peng"),
     ("V-MARKT TANKA", "904530", "V-MARKT Tank"),
-    ("ESSO", "904530", "ESSO Tanken tt.mm.jjjj"),
+    ("ESSO", "904530", "ESSO Tanken"),
     ("AllOpay", "4970", "AllOpay"),
-    ("Abrechnung", "4360", "Abrechnung Bank"),
+    ("Abrechnung", "4970", "Bankgebühr"),
     ("EXPERT", None, "EXPERT WE"),
     ("IKEA", None, "IKEA WE"),
     ("LIDL", None, "LIDL WE"),
-    # Parser-Tabelle: Spalten BU Gkto · Kürzel · Suchtext (PDF)
-    ("allO Technology GmbH ALLO TECHNOLOGY GMBH", "904930", "allO Technology GmbH Nutzungsgebühr"),
+    ("allO Technology GmbH ALLO TECHNOLOGY GMBH", "904930", "allO Technology GmbH Nutzungsgebühr mm yyyy"),
+    ("allO Technology GmbH", "904930", "allO Technology GmbH Nutzungsgebühr mm yyyy"),
     ("Bortz & Dr. Führer Steuerberatungsg esellschaft", "904955", "Bortz & Dr. Fuehrer Datenübertragung"),
     ("ACV Automobil-Club", None, "ACV Automobil-Club"),
     ("ABK Betriebsgesellschaft", "3400", "ABK Getränke WE 19 %"),
     ("H.I.S. DEUTSCHLAND TOURISTIK GMBH", "1360", "H.I.S. DEUTSCHLAND"),
     ("Ling Jin ausleihen", "1800", "Jing Ling Privat"),
-    ("GÜSCHO Feinkost GmbH", "3300", "GÜSCHO Feinkost WE 7%"),
-    ("Bundeskasse 1062 4146 8329", "2308", "Bußgeld Raten von 03 bis 06 2026"),
-    ("Bußgeld Raten von 03 bis 06 2026", "2308", "Bußgeld Raten von 03 bis 06 2026"),
-    ("Fliesenstudio Deutschmann Bad 2000 GmbH", "4260", "Fliesenstudio Deutschmann Bad 2000 Fliesenverlegung tt.mm.jjjj"),
+    ("GÜSCHO Feinkost GmbH", "3300", "GÜSCHO WE 7%"),
+    ("Bundeskasse 1062 4146 8329", "2308", "Zoll Bußgeld Raten von 03 bis 06 2026"),
+    ("Bußgeld Raten von 03 bis 06 2026", "2308", "Zoll Bußgeld Raten von 03 bis 06 2026"),
+    ("Bundeskasse Kfz-Steuer", "4510", "Kfz-Steuer fuer FUES LJ 888 mm1 yyyy1 - mm2 yyyy2"),
+    ("Kfz-Steuer fuer FUES LJ 888", "4510", "Kfz-Steuer fuer FUES LJ 888 mm1 yyyy1 - mm2 yyyy2"),
+    ("Fliesenstudio Deutschmann Bad 2000 GmbH", "4260", "Fliesenstudio Deutschmann Bad 2000 Fliesenverlegung Ratenzahlung"),
     ("KreuterMedeleSchäfer GmbH", None, "Werkstatt F ÜS-LJ 888 F ÜS-LJ 888  tt.mm.jjjj"),
     ("Theurer + Partner GbR", "904955", "Theurer + Partner GbR Lohndatenübertrag + 4.Q"),
     ("DEURAG Deutsche Rechtsschutz", "0980", "DEURAG Rechtsschutz"),
     ("Mielich Haustechnik GmbH", "3400", "Mielich Haustechnik Anlagen WE 19%"),
-    ("KAUFBEUREN .* UMS.ST", "4830", "Finanzamt UmSt"),
+    ("Gemeinde Schwangau", "4390", "Gemeinde Schwangau Kurtaxe 2023"),
+    ("Fremdenv", "4390", "Gemeinde Schwangau Kurtaxe 2023"),
+    ("Allianz Versicherungs-AG", "4360", "Allianz Versicherungs-AG Vertrag AS-9835199105 Betriebshaftpflicht 2025"),
+    ("Isabella Ebentheuer", "904280", "Ebentheuer Schornsteinprüfung"),
+    ("Ebentheuer", "904280", "Ebentheuer Schornsteinprüfung"),
+    ("Staatsoberkasse Bayern", "2010", "Überbrückungshilfe Corona UBH3XR-57164 Rückzahlung"),
+    ("Sheue-Ru Wang Rechnung", "904955", "Fibu"),
     ("Check24 .* Kfz-Ve rsicherungen GmbH", None, "Kfz-Versicherung"),
-    ("Sheue-Ru Wang Rechnung", "904955", "Sheue-Ru Wang Rechnung tt.mm.jjjj"),
     ("Jing Ling privat benutzen", "1800", "Privat Ling Jin tt.mm.jjjj"),
-   
 ]
 
 
@@ -96,8 +105,44 @@ def _pattern_matches(parser: str, text: str) -> bool:
 
 
 _KUERZEL_DATUM_PLATZ = "tt.mm.jjjj"
-_KUERZEL_MONAT_PLATZ = "mm.jjjj"
+_KUERZEL_MONAT_DOT = "mm.jjjj"
+_KUERZEL_MONAT_SPACE = "mm yyyy"
 _DATUM_ERSTES = re.compile(r"\d{2}\.\d{2}\.\d{4}")
+_RE_BEITRAG_MMYY = re.compile(r"BEITRAG\s+(\d{2})(\d{2})", re.IGNORECASE)
+_RE_MONAT_ABBR = re.compile(
+    r"\b(JAN|FEB|MÄR|MAR|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ|MRZ)\.?(\d{2})\b",
+    re.IGNORECASE,
+)
+_MONAT_MAP = {
+    "JAN": "01",
+    "FEB": "02",
+    "MAR": "03",
+    "MÄR": "03",
+    "MRZ": "03",
+    "APR": "04",
+    "MAI": "05",
+    "JUN": "06",
+    "JUL": "07",
+    "AUG": "08",
+    "SEP": "09",
+    "OKT": "10",
+    "NOV": "11",
+    "DEZ": "12",
+}
+# Bank-PDF kann Leerzeichen in Datumsbruchstücken haben: „01.05 .2027“
+_RE_KFZ_PERIOD = re.compile(
+    r"vom\s+(\d{2})\.(\d{2})\.(\d{4})\s+bis\s+zum\s+(\d{2})\.(\d{2})\s*\.\s*(\d{4})",
+    re.IGNORECASE,
+)
+
+
+def _kfz_end_month(day: int, month: int, year: int) -> tuple[str, str]:
+    """„bis zum 01.MM.JJJJ“ → Periode endet am Vortag → Vormonat."""
+    if day == 1:
+        if month == 1:
+            return "12", str(year - 1)
+        return f"{month - 1:02d}", str(year)
+    return f"{month:02d}", str(year)
 
 
 def _datum_tt_mm_jjjj_aus_text(text: str) -> str | None:
@@ -106,19 +151,61 @@ def _datum_tt_mm_jjjj_aus_text(text: str) -> str | None:
     return m.group(0) if m else None
 
 
-def _monat_jahr_aus_text(text: str) -> str | None:
-    """Erstes Datum als MM.JJJJ (Monat/Jahr der Versicherungsperiode)."""
+def _monat_jahr_aus_text(text: str, fallback_datum: str | None = None) -> tuple[str, str] | None:
+    """Monat/Jahr als (MM, YYYY) aus Datum, BEITRAG MMYY oder Monats-Kürzel."""
     d = _datum_tt_mm_jjjj_aus_text(text)
-    if not d:
-        return None
-    _tag, monat, jahr = d.split(".")
-    return f"{monat}.{jahr}"
+    if d:
+        _tag, monat, jahr = d.split(".")
+        return monat, jahr
+
+    m = _RE_BEITRAG_MMYY.search(text)
+    if m:
+        return m.group(1), f"20{m.group(2)}"
+
+    m = _RE_MONAT_ABBR.search(text)
+    if m:
+        raw = m.group(1).upper()
+        mon = _MONAT_MAP.get(raw) or _MONAT_MAP.get(raw[:3])
+        if mon:
+            return mon, f"20{m.group(2)}"
+
+    if fallback_datum:
+        fb = _datum_tt_mm_jjjj_aus_text(str(fallback_datum))
+        if fb:
+            _tag, monat, jahr = fb.split(".")
+            return monat, jahr
+        # ISO YYYY-MM-DD
+        m = re.match(r"(\d{4})-(\d{2})-(\d{2})", str(fallback_datum).strip())
+        if m:
+            return m.group(2), m.group(1)
+
+    return None
 
 
-def _kuerzel_mit_datum(kuerzel: str, text: str) -> str:
+def _kuerzel_mit_datum(
+    kuerzel: str,
+    text: str,
+    fallback_datum: str | None = None,
+) -> str:
     """Ersetzt Datums-Platzhalter im Kürzel durch Werte aus dem Buchungstext."""
+    # Kfz-Periode zuerst (eigene Platzhalter mm1/yyyy1/mm2/yyyy2)
+    if "mm1" in kuerzel or "yyyy1" in kuerzel or "mm2" in kuerzel:
+        km = _RE_KFZ_PERIOD.search(text)
+        if km:
+            mm2, yyyy2 = _kfz_end_month(int(km.group(4)), int(km.group(5)), int(km.group(6)))
+            kuerzel = (
+                kuerzel.replace("mm1", km.group(2))
+                .replace("yyyy1", km.group(3))
+                .replace("mm2", mm2)
+                .replace("yyyy2", yyyy2)
+            )
+        else:
+            kuerzel = re.sub(r"\s*mm1\s*yyyy1\s*-\s*mm2\s*yyyy2", "", kuerzel).strip()
+
     if _KUERZEL_DATUM_PLATZ in kuerzel:
-        d = _datum_tt_mm_jjjj_aus_text(text)
+        d = _datum_tt_mm_jjjj_aus_text(text) or (
+            _datum_tt_mm_jjjj_aus_text(str(fallback_datum)) if fallback_datum else None
+        )
         if d:
             kuerzel = kuerzel.replace(_KUERZEL_DATUM_PLATZ, d)
         else:
@@ -127,16 +214,27 @@ def _kuerzel_mit_datum(kuerzel: str, text: str) -> str:
                 .replace("  ", " ")
                 .strip(" -–—")
             )
-    if _KUERZEL_MONAT_PLATZ in kuerzel:
-        mj = _monat_jahr_aus_text(text)
+
+    mj = _monat_jahr_aus_text(text, fallback_datum=fallback_datum)
+    if _KUERZEL_MONAT_DOT in kuerzel:
         if mj:
-            kuerzel = kuerzel.replace(_KUERZEL_MONAT_PLATZ, mj)
+            kuerzel = kuerzel.replace(_KUERZEL_MONAT_DOT, f"{mj[0]}.{mj[1]}")
         else:
             kuerzel = (
-                kuerzel.replace(_KUERZEL_MONAT_PLATZ, "")
+                kuerzel.replace(_KUERZEL_MONAT_DOT, "")
                 .replace("  ", " ")
                 .strip(" -–—")
             )
+    if _KUERZEL_MONAT_SPACE in kuerzel:
+        if mj:
+            kuerzel = kuerzel.replace(_KUERZEL_MONAT_SPACE, f"{mj[0]} {mj[1]}")
+        else:
+            kuerzel = (
+                kuerzel.replace(_KUERZEL_MONAT_SPACE, "")
+                .replace("  ", " ")
+                .strip(" -–—")
+            )
+
     return kuerzel
 
 
@@ -148,21 +246,26 @@ def apply_buchungs_mapping(rows: list[dict[str, Any]]) -> int:
     „Überweisung Online“, „Gutschr einer Überw“) aus ``Buchungstext`` entfernt.
     Ohne ``.*`` im Suchtext: Vergleich als Teilstring, ohne Groß-/Kleinschreibung.
     Mit ``.*``: beliebiger Text zwischen den durch ``.*`` getrennten Teilstücken.
-    Enthält das Kürzel ``tt.mm.jjjj`` bzw. ``mm.jjjj``, wird es durch Datum bzw. Monat.Jahr
-    aus dem Buchungstext ersetzt (erstes DD.MM.JJJJ).
+    Enthält das Kürzel ``tt.mm.jjjj`` bzw. ``mm.jjjj`` / ``mm yyyy``, wird es durch
+    Datum bzw. Monat/Jahr aus dem Buchungstext (sonst Zeilen-Datum) ersetzt.
     """
     rules = sorted(BUCHUNG_PARSER_RULES, key=lambda t: len(t[0]), reverse=True)
     n = 0
     for row in rows:
+        if row.get("_skip_buchung_mapping"):
+            continue
         raw = str(row.get("Buchungstext") or "").strip()
         if not raw:
             continue
         cleaned = bereinige_pdf_text(raw)
         text = cleaned if cleaned.strip() else raw
         row["Buchungstext"] = text
+        fallback_datum = str(row.get("Datum") or "")
         for parser, bu, kuerzel in rules:
             if _pattern_matches(parser, text):
-                row["Buchungstext"] = _kuerzel_mit_datum(kuerzel, text)
+                row["Buchungstext"] = _kuerzel_mit_datum(
+                    kuerzel, text, fallback_datum=fallback_datum
+                )
                 if bu:
                     row["BU Gkto"] = bu
                 n += 1

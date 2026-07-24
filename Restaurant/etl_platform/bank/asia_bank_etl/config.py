@@ -14,7 +14,7 @@ class AsiaEtlConfig:
     pdf_file: str = r"C:\temp_jingling\ALOP\Asia Buchhaltung 03.2026\Asia Konto 03.2026\01b Kontoauszug 2026_03.pdf"
     agenda_file: str = ""
     output_file: str = r"C:\temp_cursor\LinJing\03_Coding\ETL_LinJing\asia\asia_bank_etl\result\asia_bank_etl_0326.xlsx"
-    sql_output_file: str = r"C:\temp_cursor\LinJing\03_Coding\ETL_LinJing\asia\asia_bank_etl\result\asia_bank_etl_0326.sqlite"
+    sql_output_file: str = ""
     agenda_sheet: str = "split (2)"
     bank_konto: int = 1200
     kost: int = 1000

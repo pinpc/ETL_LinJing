@@ -57,6 +57,8 @@ def merge_mit_agenda_und_split(
     pdf_rows: list[dict[str, Any]],
     df_agenda: pd.DataFrame,
     config: dict[str, Any],
+    *,
+    beleg_1: str | int | None = None,
 ) -> list[dict[str, Any]]:
     """Mergt PDF-Buchungen mit Agenda und teilt Fruchthaus-Zahlungen auf."""
     fruchthaus_pdf = [r for r in pdf_rows if "Fruchthaus" in r["Buchungstext"]]
@@ -96,27 +98,56 @@ def merge_mit_agenda_und_split(
             agenda_by_key[key] = r
 
     output_rows: list[dict[str, Any]] = []
+    # Agenda SOLL: Beleg = Monatsnummer (z. B. 05), nicht laufende Nummer
+    fixed_beleg: str | int | None = beleg_1
     beleg_counter = 1
+
+    def _next_beleg() -> str | int:
+        nonlocal beleg_counter
+        if fixed_beleg is not None:
+            return fixed_beleg
+        current = beleg_counter
+        beleg_counter += 1
+        return current
+
+    def _row(
+        *,
+        umsatz: Any,
+        bu: Any,
+        datum_val: Any,
+        text_val: Any,
+        skip_mapping: bool = False,
+    ) -> dict[str, Any]:
+        row: dict[str, Any] = {
+            "Umsatz Euro": umsatz,
+            "BU Gkto": bu,
+            "Beleg 1": _next_beleg(),
+            "Datum": datum_val,
+            "KOST 1": config["KOST"],
+            "Bank": config["BANK_KONTO"],
+            "Buchungstext": text_val,
+        }
+        if skip_mapping:
+            row["_skip_buchung_mapping"] = True
+        return row
 
     for pdf_row in pdf_rows:
         datum = pdf_row["Datum"]
         gesamt = round(pdf_row["Umsatz Euro"], 2)
         text = pdf_row["Buchungstext"]
+        skip_map = bool(pdf_row.get("_skip_buchung_mapping"))
+        pre_bu = str(pdf_row.get("BU Gkto") or "")
 
         if "Fruchthaus" in text and do_split:
             for _, teil in fruchthaus_agenda.iterrows():
                 output_rows.append(
-                    {
-                        "Umsatz Euro": teil["Umsatz Euro"],
-                        "BU Gkto": teil["BU Gkto"],
-                        "Beleg 1": beleg_counter,
-                        "Datum": teil["Datum"],
-                        "KOST 1": config["KOST"],
-                        "Bank": config["BANK_KONTO"],
-                        "Buchungstext": teil["Buchungstext"],
-                    }
+                    _row(
+                        umsatz=teil["Umsatz Euro"],
+                        bu=teil["BU Gkto"],
+                        datum_val=teil["Datum"],
+                        text_val=teil["Buchungstext"],
+                    )
                 )
-                beleg_counter += 1
             continue
 
         if _is_edeka_payment(text):
@@ -130,17 +161,13 @@ def merge_mit_agenda_und_split(
                 )
                 for _, teil in edeka_split.iterrows():
                     output_rows.append(
-                        {
-                            "Umsatz Euro": teil["Umsatz Euro"],
-                            "BU Gkto": teil["BU Gkto"],
-                            "Beleg 1": beleg_counter,
-                            "Datum": teil["Datum"],
-                            "KOST 1": config["KOST"],
-                            "Bank": config["BANK_KONTO"],
-                            "Buchungstext": teil["Buchungstext"],
-                        }
+                        _row(
+                            umsatz=teil["Umsatz Euro"],
+                            bu=teil["BU Gkto"],
+                            datum_val=teil["Datum"],
+                            text_val=teil["Buchungstext"],
+                        )
                     )
-                    beleg_counter += 1
                 continue
             logger.warning(
                 "Edeka %s (%.2f EUR): keine passende Rechnungsauswertung in Agenda – "
@@ -149,33 +176,38 @@ def merge_mit_agenda_und_split(
                 gesamt,
             )
 
+        # Bereits gesplittete Darlehenszeilen: Text/BU beibehalten
+        if skip_map:
+            output_rows.append(
+                _row(
+                    umsatz=gesamt,
+                    bu=pre_bu,
+                    datum_val=datum,
+                    text_val=text,
+                    skip_mapping=True,
+                )
+            )
+            continue
+
         key = (datum, gesamt)
         if key in agenda_by_key:
             m = agenda_by_key[key]
             output_rows.append(
-                {
-                    "Umsatz Euro": gesamt,
-                    "BU Gkto": m["BU Gkto"],
-                    "Beleg 1": beleg_counter,
-                    "Datum": datum,
-                    "KOST 1": config["KOST"],
-                    "Bank": config["BANK_KONTO"],
-                    "Buchungstext": m["Buchungstext"],
-                }
+                _row(
+                    umsatz=gesamt,
+                    bu=m["BU Gkto"],
+                    datum_val=datum,
+                    text_val=m["Buchungstext"],
+                )
             )
         else:
-            fallback_text = kuerze_stripe_text(text, datum)
             output_rows.append(
-                {
-                    "Umsatz Euro": gesamt,
-                    "BU Gkto": "",
-                    "Beleg 1": beleg_counter,
-                    "Datum": datum,
-                    "KOST 1": config["KOST"],
-                    "Bank": config["BANK_KONTO"],
-                    "Buchungstext": fallback_text,
-                }
+                _row(
+                    umsatz=gesamt,
+                    bu="",
+                    datum_val=datum,
+                    text_val=kuerze_stripe_text(text, datum),
+                )
             )
-        beleg_counter += 1
 
     return output_rows

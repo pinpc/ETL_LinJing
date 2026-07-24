@@ -4,9 +4,9 @@
     "module_name": "bank",
     "amount": -338.0,
     "booking_date": "2026-04-01",
-    "booking_text": "ERGO Vorsorge LV AG R71390271.3 Linjing 04.2026",
+    "booking_text": "ERGO LV Linjing 04 2026",
     "bu_gkto": "1748",
-    "beleg_1": "1"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -15,16 +15,16 @@
     "booking_date": "2026-04-02",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "3"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -117.81,
     "booking_date": "2026-04-02",
-    "booking_text": "allO Technology GmbH Nutzungsgebühr",
+    "booking_text": "allO Technology GmbH Nutzungsgebühr 04 2026",
     "bu_gkto": "904930",
-    "beleg_1": "2"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -33,7 +33,7 @@
     "booking_date": "2026-04-07",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "6"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -42,25 +42,25 @@
     "booking_date": "2026-04-07",
     "booking_text": "Elektrizitaetswerke Reutte GmbH und Co. KG Kd.-Nr. 120231840 DATUM 03.04.2026, 00.15 UHR",
     "bu_gkto": "",
-    "beleg_1": "7"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -800.0,
     "booking_date": "2026-04-07",
-    "booking_text": "Nebenkosten ASIA",
-    "bu_gkto": "4130",
-    "beleg_1": "5"
+    "booking_text": "NK Asia 04 2026",
+    "bu_gkto": "904228",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -5360.0,
     "booking_date": "2026-04-07",
-    "booking_text": "Pacht ASIA",
-    "bu_gkto": "4830",
-    "beleg_1": "4"
+    "booking_text": "Pacht Asia 04 2026",
+    "bu_gkto": "904210",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -69,7 +69,7 @@
     "booking_date": "2026-04-07",
     "booking_text": "von Kasse",
     "bu_gkto": "1360",
-    "beleg_1": "8"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -78,25 +78,25 @@
     "booking_date": "2026-04-08",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "11"
-  },
-  {
-    "tenant_id": "asia",
-    "module_name": "bank",
-    "amount": -487.0,
-    "booking_date": "2026-04-08",
-    "booking_text": "Elektrizitaetswerke Reutte GmbH und Co",
-    "bu_gkto": "904280",
-    "beleg_1": "10"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -1542.66,
     "booking_date": "2026-04-08",
-    "booking_text": "GÜSCHO Feinkost WE 7%",
+    "booking_text": "GÜSCHO WE 7%",
     "bu_gkto": "3300",
-    "beleg_1": "9"
+    "beleg_1": "04"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "bank",
+    "amount": -487.0,
+    "booking_date": "2026-04-08",
+    "booking_text": "Strom 04 2026",
+    "bu_gkto": "904240",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -105,7 +105,7 @@
     "booking_date": "2026-04-09",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "12"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -114,7 +114,7 @@
     "booking_date": "2026-04-10",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "16"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -123,7 +123,7 @@
     "booking_date": "2026-04-10",
     "booking_text": "DEHOGA Bayern e.V Beitrag",
     "bu_gkto": "1743",
-    "beleg_1": "15"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -132,7 +132,7 @@
     "booking_date": "2026-04-10",
     "booking_text": "Landratsamt Ostallgäu Kassenzeichen 0000098870000 - 2302 DATUM 09.04.2026, 23.58 UHR",
     "bu_gkto": "",
-    "beleg_1": "14"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -141,16 +141,16 @@
     "booking_date": "2026-04-10",
     "booking_text": "Yiu UG & Co KG Rg.Nr. 26-22, Kd.Nr. 24540 DATUM 09.04.2026, 23.51 UHR",
     "bu_gkto": "",
-    "beleg_1": "13"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -5363.17,
     "booking_date": "2026-04-13",
-    "booking_text": "AOK Bayern Beitrag",
+    "booking_text": "AOK Bayern Beitrag 03 2026",
     "bu_gkto": "1743",
-    "beleg_1": "17"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -159,7 +159,7 @@
     "booking_date": "2026-04-13",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "19"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -168,7 +168,7 @@
     "booking_date": "2026-04-13",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "18"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -177,16 +177,7 @@
     "booking_date": "2026-04-13",
     "booking_text": "von Kasse",
     "bu_gkto": "1360",
-    "beleg_1": "20"
-  },
-  {
-    "tenant_id": "asia",
-    "module_name": "bank",
-    "amount": -205.0,
-    "booking_date": "2026-04-14",
-    "booking_text": "Bußgeld Raten von 03 bis 06 2026",
-    "bu_gkto": "2308",
-    "beleg_1": "22"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -195,7 +186,7 @@
     "booking_date": "2026-04-14",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "21"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -204,7 +195,16 @@
     "booking_date": "2026-04-14",
     "booking_text": "VOSAIO TRAVEL LIMITED VOSAIO TRAVEL LIMITED THE CLOCKWORK BUILDING 45 BEAVOR LANE LONDON BP2206 VOSAIO TRAVEL LIMITED PAY87403",
     "bu_gkto": "",
-    "beleg_1": "23"
+    "beleg_1": "04"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "bank",
+    "amount": -205.0,
+    "booking_date": "2026-04-14",
+    "booking_text": "Zoll Bußgeld Raten von 03 bis 06 2026",
+    "bu_gkto": "2308",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -213,7 +213,7 @@
     "booking_date": "2026-04-15",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "25"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -222,7 +222,7 @@
     "booking_date": "2026-04-15",
     "booking_text": "Rundfunk ARD, ZDF, DRadio RF57X672952108 DATUM 15.04.2026, 01.35 UHR",
     "bu_gkto": "",
-    "beleg_1": "24"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -231,7 +231,7 @@
     "booking_date": "2026-04-16",
     "booking_text": "Finanzamt UmSt",
     "bu_gkto": "4830",
-    "beleg_1": "26"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -240,7 +240,7 @@
     "booking_date": "2026-04-17",
     "booking_text": "Finanzamt UmSt",
     "bu_gkto": "4830",
-    "beleg_1": "27"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -249,7 +249,7 @@
     "booking_date": "2026-04-17",
     "booking_text": "V-MARKT Tank",
     "bu_gkto": "904530",
-    "beleg_1": "28"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -258,7 +258,7 @@
     "booking_date": "2026-04-20",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "32"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -267,7 +267,7 @@
     "booking_date": "2026-04-20",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "30"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -276,16 +276,16 @@
     "booking_date": "2026-04-20",
     "booking_text": "Lohn Ze Peng",
     "bu_gkto": "4120",
-    "beleg_1": "29"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -12.0,
     "booking_date": "2026-04-20",
-    "booking_text": "Vodafone GmbH Internet",
+    "booking_text": "Vodafone GmbH Mobil 04 2026",
     "bu_gkto": "904925",
-    "beleg_1": "31"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -294,16 +294,16 @@
     "booking_date": "2026-04-20",
     "booking_text": "von Kasse",
     "bu_gkto": "1360",
-    "beleg_1": "33"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -24.98,
     "booking_date": "2026-04-21",
-    "booking_text": "Telefonica",
+    "booking_text": "Telefonica Mobil 04 2026",
     "bu_gkto": "4360",
-    "beleg_1": "34"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -312,7 +312,7 @@
     "booking_date": "2026-04-22",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "37"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -321,16 +321,16 @@
     "booking_date": "2026-04-22",
     "booking_text": "IKEA WE",
     "bu_gkto": "",
-    "beleg_1": "36"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -44.98,
     "booking_date": "2026-04-22",
-    "booking_text": "Vodafone GmbH Internet",
+    "booking_text": "Vodafone GmbH Internet 04 2026",
     "bu_gkto": "904925",
-    "beleg_1": "35"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -339,7 +339,7 @@
     "booking_date": "2026-04-23",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "38"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -348,7 +348,7 @@
     "booking_date": "2026-04-24",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "39"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -357,7 +357,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "44"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -366,7 +366,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "Bortz & Dr. Fuehrer Datenübertragung",
     "bu_gkto": "904955",
-    "beleg_1": "42"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -375,7 +375,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "Edeka WE",
     "bu_gkto": "4800",
-    "beleg_1": "41"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -384,7 +384,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "Fruchthaus Stöckl",
     "bu_gkto": "4800",
-    "beleg_1": "40"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -393,7 +393,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "Knittel GmbH Abfallentsorgung Essensre",
     "bu_gkto": "3106",
-    "beleg_1": "43"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -402,7 +402,7 @@
     "booking_date": "2026-04-27",
     "booking_text": "von Kasse",
     "bu_gkto": "1360",
-    "beleg_1": "45"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -411,16 +411,16 @@
     "booking_date": "2026-04-28",
     "booking_text": "ABK Betriebsgesellsc KONTO RE-NR. 2604813 319,04",
     "bu_gkto": "",
-    "beleg_1": "48"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -343.49,
     "booking_date": "2026-04-28",
-    "booking_text": "Knappschaft",
-    "bu_gkto": "4360",
-    "beleg_1": "47"
+    "booking_text": "Knappschaft 04 2026",
+    "bu_gkto": "1743",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -429,16 +429,16 @@
     "booking_date": "2026-04-28",
     "booking_text": "Marcus Andreas Schneidberger 26-04658-RE, 26-05009-P DATUM 28.04.2026, 00.34 UHR",
     "bu_gkto": "",
-    "beleg_1": "46"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -1812.82,
     "booking_date": "2026-04-29",
-    "booking_text": "GÜSCHO Feinkost WE 7%",
+    "booking_text": "GÜSCHO WE 7%",
     "bu_gkto": "3300",
-    "beleg_1": "49"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -447,16 +447,7 @@
     "booking_date": "2026-04-29",
     "booking_text": "von Kasse",
     "bu_gkto": "1360",
-    "beleg_1": "50"
-  },
-  {
-    "tenant_id": "asia",
-    "module_name": "bank",
-    "amount": -28.56,
-    "booking_date": "2026-04-30",
-    "booking_text": "Abrechnung Bank",
-    "bu_gkto": "4360",
-    "beleg_1": "56"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -465,16 +456,25 @@
     "booking_date": "2026-04-30",
     "booking_text": "AllOpay",
     "bu_gkto": "4970",
-    "beleg_1": "57"
+    "beleg_1": "04"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "bank",
+    "amount": -28.56,
+    "booking_date": "2026-04-30",
+    "booking_text": "Bankgebühr",
+    "bu_gkto": "4970",
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
     "amount": -7500.0,
     "booking_date": "2026-04-30",
-    "booking_text": "Fliesenstudio Deutschmann Bad 2000 Fliesenverlegung 30.04.2026",
+    "booking_text": "Fliesenstudio Deutschmann Bad 2000 Fliesenverlegung Ratenzahlung",
     "bu_gkto": "4260",
-    "beleg_1": "51"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -483,7 +483,7 @@
     "booking_date": "2026-04-30",
     "booking_text": "Lohn Fan Peng",
     "bu_gkto": "4120",
-    "beleg_1": "53"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -492,16 +492,7 @@
     "booking_date": "2026-04-30",
     "booking_text": "Lohn Huizhen Lyu",
     "bu_gkto": "4120",
-    "beleg_1": "55"
-  },
-  {
-    "tenant_id": "asia",
-    "module_name": "bank",
-    "amount": 7000.0,
-    "booking_date": "2026-04-30",
-    "booking_text": "Lohn Jupiter",
-    "bu_gkto": "4120",
-    "beleg_1": "58"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -510,15 +501,33 @@
     "booking_date": "2026-04-30",
     "booking_text": "Lohn Ling Jin",
     "bu_gkto": "4120",
-    "beleg_1": "52"
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
-    "amount": -1157.12,
+    "amount": -1124.71,
     "booking_date": "2026-04-30",
-    "booking_text": "Sparkasse Darlehen",
-    "bu_gkto": "4360",
-    "beleg_1": "54"
+    "booking_text": "Sparkasse Darlehen 6205679498 Tilgung 04 2026",
+    "bu_gkto": "631",
+    "beleg_1": "04"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "bank",
+    "amount": -32.41,
+    "booking_date": "2026-04-30",
+    "booking_text": "Sparkasse Darlehen 6205679498 Zins 04 2026",
+    "bu_gkto": "2120",
+    "beleg_1": "04"
+  },
+  {
+    "tenant_id": "asia",
+    "module_name": "bank",
+    "amount": 7000.0,
+    "booking_date": "2026-04-30",
+    "booking_text": "vom Jupiter",
+    "bu_gkto": "1360",
+    "beleg_1": "04"
   }
 ]

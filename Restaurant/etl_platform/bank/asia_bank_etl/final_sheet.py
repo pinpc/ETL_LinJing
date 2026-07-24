@@ -35,6 +35,25 @@ class _EdekaSheetEntry:
     used: bool = field(default=False, compare=False)
 
 
+def _write_allopay_final_row(
+    ws_final: Worksheet,
+    target_row: int,
+    row_values: list[Any],
+    *,
+    bank_beleg: Any,
+    bank_datum: Any,
+) -> None:
+    """Schreibt Stripe-Zeile mit Bankvaluta und Monats-Beleg."""
+    for col_idx, val in enumerate(row_values, 1):
+        if col_idx == 1:
+            val = umsatz_zwei_nachkommastellen(val)
+        elif col_idx == 3:
+            val = bank_beleg
+        elif col_idx == 4:
+            val = bank_datum
+        ws_final.cell(target_row, col_idx, val)
+
+
 def _cell_float(value: Any) -> float | None:
     if value is None or value == "":
         return None
@@ -425,12 +444,17 @@ def erstelle_final_blatt(workbook_path: str) -> None:
                         betrag,
                         len(best_comb),
                     )
+                    # Bankvaluta + Monats-Beleg aus Kontoauszug-Zeile (nicht Stripe-CSV-Datum)
+                    bank_beleg = ws_buchungen.cell(src_row, 3).value
                     for item in best_comb:
                         item["used"] = True
-                        for col_idx, val in enumerate(item["row_values"], 1):
-                            if col_idx == 1:
-                                val = umsatz_zwei_nachkommastellen(val)
-                            ws_final.cell(target_row, col_idx, val)
+                        _write_allopay_final_row(
+                            ws_final,
+                            target_row,
+                            item["row_values"],
+                            bank_beleg=bank_beleg,
+                            bank_datum=datum,
+                        )
                         target_row += 1
                     continue
                 logger.warning(

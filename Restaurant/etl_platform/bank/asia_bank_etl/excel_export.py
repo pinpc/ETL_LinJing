@@ -2,19 +2,11 @@
 
 from __future__ import annotations
 
-import sys
-from pathlib import Path
 from typing import Any
 
 from openpyxl import Workbook
 
-if __package__ in (None, ""):
-    _asia_root = Path(__file__).resolve().parent.parent
-    if str(_asia_root) not in sys.path:
-        sys.path.insert(0, str(_asia_root))
-    from asia_bank_etl.buchungstext_mapping import BUCHUNG_PARSER_RULES
-else:
-    from .buchungstext_mapping import BUCHUNG_PARSER_RULES
+from .buchungstext_mapping import BUCHUNG_PARSER_RULES
 
 # Excel/XLSX nutzt US-Formatcodes: "," = Tausender, "." = Dezimalstellen — genau 2 Nachkommastellen.
 # Darstellung z. B. 30,00 / 1.234,56 übernimmt Excel je nach Windows-Ländereinstellung.
