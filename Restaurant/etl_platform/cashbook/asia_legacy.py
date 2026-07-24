@@ -35,10 +35,17 @@ BU_GKTO_TIPS_0 = "4140"
 
 BOOKING_TEXT_ALLO_PAY = "AllO Pay"
 BOOKING_TEXT_TIPS = "Trinkgeld"
-BOOKING_TEXT_TIPS_0 = "Umsatz 0 %"
+# Agenda SOLL uses the spelling "Trinkegeld" for the tip residual row.
+BOOKING_TEXT_TIPS_0 = "Trinkegeld"
 BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
 BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
 BOOKING_TEXT_BANK = "an Bank"
+
+# (pattern on cashbook subject / booking text, BU Gkto, Final Buchungstext)
+EXPENSE_RULES: list[tuple[re.Pattern[str], str, str]] = [
+    (re.compile(r"V-Baumarkt", re.IGNORECASE), "904280", "V-Baumarkt Baumittel"),
+    (re.compile(r"V-Markt", re.IGNORECASE), "904250", "V-Markt Wishmop"),
+]
 
 MERGE_TOLERANCE = Decimal("0.01")
 XL_EURO_NUM_FMT = "#,##0.00"
@@ -163,6 +170,7 @@ def format_buchungstext_date_short(value: str) -> str:
 
 
 def format_beleg(value: Any) -> str:
+    """Normalize Z-Belege to Z###; keep other belegs (e.g. 01, 02) unchanged."""
     text = as_text(value)
     if text == "":
         return ""
@@ -171,11 +179,64 @@ def format_beleg(value: Any) -> str:
         digits = "".join(ch for ch in text if ch.isdigit())
         if digits:
             return f"Z{int(digits):03d}"
+    return text
 
-    digits = "".join(ch for ch in text if ch.isdigit())
-    if digits == "":
-        return text.upper() if text.upper().startswith("Z") else text
-    return f"Z{int(digits):03d}"
+
+def is_tips_row(row: BuchungRow) -> bool:
+    return row.buchungstext.strip().lower() == BOOKING_TEXT_TIPS.lower()
+
+
+def apply_cashbook_mapping(row: BuchungRow) -> BuchungRow:
+    """Map Trinkgeld / expense subjects to Agenda BU Gkto and booking text."""
+    if is_tips_row(row):
+        return replace(row, bu_gkto=BU_GKTO_TIPS_0)
+
+    for pattern, bu_gkto, label in EXPENSE_RULES:
+        if pattern.search(row.buchungstext):
+            return replace(row, bu_gkto=bu_gkto, buchungstext=label)
+
+    return row
+
+
+def needs_sequential_beleg(row: BuchungRow) -> bool:
+    """Non-Z cashbook expenses (an Bank, V-Baumarkt, …) get running Beleg 01, 02, …"""
+    if row.beleg_1.strip():
+        return False
+    text = row.buchungstext.strip().lower()
+    if text in {
+        BOOKING_TEXT_TIPS.lower(),
+        BOOKING_TEXT_TIPS_0.lower(),
+        BOOKING_TEXT_UMSATZ_19.lower(),
+        BOOKING_TEXT_UMSATZ_7.lower(),
+    }:
+        return False
+    if BOOKING_TEXT_ALLO_PAY.lower() in text:
+        return False
+    return True
+
+
+def assign_final_belege(rows: list[BuchungRow]) -> list[BuchungRow]:
+    """Fill empty Trinkgeld Z-Belege from same-day Z; assign sequential Beleg for expenses."""
+    z_by_date: dict[tuple[int, int, int], str] = {}
+    for row in rows:
+        beleg = row.beleg_1.strip()
+        if beleg.upper().startswith("Z"):
+            key = date_sort_key(row.datum)[:3]
+            z_by_date.setdefault(key, beleg)
+
+    seq = 1
+    result: list[BuchungRow] = []
+    for row in sort_rows_by_date(rows):
+        if is_tips_row(row) and not row.beleg_1.strip():
+            key = date_sort_key(row.datum)[:3]
+            result.append(replace(row, beleg_1=z_by_date.get(key, ""), bu_gkto=BU_GKTO_TIPS_0))
+            continue
+        if needs_sequential_beleg(row):
+            result.append(replace(row, beleg_1=f"{seq:02d}"))
+            seq += 1
+            continue
+        result.append(row)
+    return result
 
 
 def date_sort_key(value: str) -> tuple[int, int, int, str]:
@@ -335,17 +396,16 @@ def read_cashbook_rows(input_xlsx: Path, sheet_name: str = "cashbook") -> list[B
             buchungstext = subject
         bu_gkto = BU_GKTO_POSITIVE if amount >= 0 else BU_GKTO_NEGATIVE
 
-        rows.append(
-            BuchungRow(
-                umsatz_euro=amount,
-                bu_gkto=bu_gkto,
-                beleg_1=beleg,
-                datum=datum,
-                kost_1=STANDARD_KOST,
-                bank=STANDARD_BANK,
-                buchungstext=buchungstext,
-            )
+        row = BuchungRow(
+            umsatz_euro=amount,
+            bu_gkto=bu_gkto,
+            beleg_1=beleg,
+            datum=datum,
+            kost_1=STANDARD_KOST,
+            bank=STANDARD_BANK,
+            buchungstext=buchungstext,
         )
+        rows.append(apply_cashbook_mapping(row))
 
     return rows
 
@@ -592,7 +652,9 @@ class AsiaKasseETL:
                         f"({row.datum}): keine Allopay-PDF-Zeilen geladen; "
                         f"Kasse bleibt {row.umsatz_euro} EUR."
                     )
-            return sort_rows_by_date([normalize_final_text(row) for row in buchung_rows])
+            return assign_final_belege(
+                sort_rows_by_date([normalize_final_text(row) for row in buchung_rows])
+            )
 
         allopay_by_date: dict[tuple[int, int, int], list[BuchungRow]] = {}
         allopay_sum_by_date: dict[tuple[int, int, int], Decimal] = {}
@@ -640,7 +702,7 @@ class AsiaKasseETL:
 
             final_rows.append(normalize_final_text(row))
 
-        return sort_rows_by_date(final_rows)
+        return assign_final_belege(sort_rows_by_date(final_rows))
 
     def run(
         self,
