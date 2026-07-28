@@ -4,7 +4,8 @@
 # kuerzel:     Kurztext im Final-Sheet (Platzhalter: {MM.YYYY} {MM YYYY} {MM} {YYYY})
 # no_prefix:   true  → kein ZA-/ZE-Präfix
 # beleg1:      "" = leer | "~auszug" = Auszugnummer | sonst: fester Wert
-# split_re:    true + invoice_dir → RE NNN/YYYY auf mehrere Zeilen aufteilen
+# split_re:    true → RE-Nummern splitten; invoice_dir optional
+#              (fehlt/ "~source" → parent von source_dir, z. B. Fibu-Monatsordner)
 rules:
   - pattern: 'Nürnberger Lebensversicherung|NLV LEBENSVERS'
     gegenkonto: "1748"
@@ -12,11 +13,14 @@ rules:
     no_prefix: true
     beleg1: ""
 
+  - pattern: 'D\.O\.G\. HOLDING|HOLDING GMBH'
+    gegenkonto: "10401"
+    kuerzel: "D.O.G. Holding GmbH"
+
   - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
     gegenkonto: "10401"
     kuerzel: "D.O.G. Dokument GmbH"
     split_re: true
-    invoice_dir: "C:/temp_cursor/DOG/2026/CTM"
 
   - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto|Telekom Deutschland'
     gegenkonto: "71904"
@@ -68,7 +72,6 @@ rules:
     gegenkonto: "80500"
     kuerzel: "Ping Zhou"
     split_re: true
-    invoice_dir: "C:/temp_cursor/DOG/2026/CTM"
 
   - pattern: 'Xiao Yang-Jacobi.*Gehalt|Gehalt.*Xiao'
     gegenkonto: "1740"
@@ -123,30 +126,30 @@ rules:
     kuerzel: "Ramtel12 Grundstücks GmbH"
 
   - pattern: 'Verwaltungs-Berufsgenossenschaft|\bVBG\b'
-    gegenkonto: "4138"
-    kuerzel: "VBG {MM} {YYYY}"
+    gegenkonto: "72100"
+    kuerzel: "VBG Beitrag {YYYY}"
     no_prefix: true
-    beleg1: "~auszug"
+    beleg1: ""
 
   - pattern: 'Rundfunk ARD|Rundfunk.*ZDF'
-    gegenkonto: "6320"
-    kuerzel: "Rundfunk {MM} {YYYY}"
+    gegenkonto: "4380"
+    kuerzel: "Rundfunk {MM1} - {MM2} {YYYY2}"
     no_prefix: true
     beleg1: ""
 
   - pattern: 'IHK'
-    gegenkonto: "6835"
-    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    gegenkonto: "70901"
+    kuerzel: "IHK Beitrag {YYYY}"
     no_prefix: true
 
   - pattern: 'Dagmar P[aäoö]tzold'
-    gegenkonto: "80500"
-    kuerzel: "Dagmar Pötzold"
+    gegenkonto: "70403"
+    kuerzel: "Dagmar Pätzold"
 
   - pattern: 'B[oö]ttcher'
-    gegenkonto: "6815"
-    kuerzel: "Büttcher AG"
+    gegenkonto: "70201"
+    kuerzel: "Böttcher AG"
 
   - pattern: 'NeS GmbH'
-    gegenkonto: "6815"
+    gegenkonto: "71400"
     kuerzel: "NeS GmbH"

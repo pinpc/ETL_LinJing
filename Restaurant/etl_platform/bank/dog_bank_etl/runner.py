@@ -256,6 +256,15 @@ def _apply_fixed_split(
     ]
 
 
+def _resolve_invoice_dir(rule: BuchungstextRule, cfg: DogTenantConfig) -> Path | None:
+    """Rechnungsordner: explizit, sonst Parent von source_dir (Fibu-Monatsordner)."""
+    if rule.invoice_dir is not None:
+        raw = str(rule.invoice_dir)
+        if raw.strip() and raw.strip() != "~source":
+            return Path(raw)
+    return cfg.source_dir.parent if cfg.source_dir else None
+
+
 def _apply_split_re(
     rule: BuchungstextRule,
     tx: KskTransaction,
@@ -266,10 +275,11 @@ def _apply_split_re(
 ) -> list[ExportRow] | None:
     """RE/JJJJ-NNN-Split via Rechnungs-PDFs. None = nicht splitten."""
     split_refs = _extract_split_refs(tx.buchungstext)
-    if not split_refs or not rule.invoice_dir:
+    invoice_dir = _resolve_invoice_dir(rule, cfg)
+    if not split_refs or invoice_dir is None:
         return None
     sign = Decimal(1) if tx.betrag >= 0 else Decimal(-1)
-    resolved = [(ref, *lookup_invoice(ref, rule.invoice_dir)) for ref in split_refs]
+    resolved = [(ref, *lookup_invoice(ref, invoice_dir)) for ref in split_refs]
     missing = [ref for ref, amt, _ in resolved if not amt]
     if missing:
         logger.warning(
@@ -310,7 +320,31 @@ def _normalize_dates(text: str) -> str:
     return _RE_PDF_DATE_SPLIT.sub(r"\1\2", text)
 
 
-_DATE_PLACEHOLDERS = ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}")
+_DATE_PLACEHOLDERS = (
+    "{MM.YYYY}",
+    "{MM YYYY}",
+    "{YYYY MM}",
+    "{MM}",
+    "{YYYY}",
+    "{MM1}",
+    "{YYYY1}",
+    "{MM2}",
+    "{YYYY2}",
+)
+
+# z. B. Rundfunk 04.2026 - 06.2026
+_RE_PERIOD_RANGE = re.compile(
+    r"\b(\d{2})\.(\d{4})\s*[-–]\s*(\d{2})\.(\d{4})\b"
+)
+
+
+def _extract_period_range(buchungstext: str) -> tuple[str, str, str, str] | None:
+    """Zeitraum MM.YYYY - MM.YYYY → (mm1, yyyy1, mm2, yyyy2)."""
+    m = _RE_PERIOD_RANGE.search(_normalize_dates(buchungstext))
+    if not m:
+        return None
+    return m.group(1), m.group(2), m.group(3), m.group(4)
+
 
 _RE_BEITRAG_MMYY = re.compile(r"BEITRAG\s+(\d{2})(\d{2})-\d{4}", re.IGNORECASE)
 _RE_MON_ABBR = re.compile(
@@ -343,10 +377,25 @@ def _resolve_placeholders(
     """Ersetzt Datum-Platzhalter im Kürzel:
     {MM.YYYY} → "04.2026"  |  {MM YYYY} → "04 2026"
     {MM}      → "04"       |  {YYYY}    → "2026"
+    {MM1}/{YYYY1}/{MM2}/{YYYY2} → Zeitraum aus Text (z. B. 04.2026 - 06.2026)
     Datum-Quelle: Beitrags-/Steuerzeitraum, dann DD.MM.YYYY, Fallback: fallback_date.
     """
     if not any(ph in kuerzel for ph in _DATE_PLACEHOLDERS):
         return kuerzel
+
+    period_range = _extract_period_range(buchungstext)
+    if period_range and any(ph in kuerzel for ph in ("{MM1}", "{YYYY1}", "{MM2}", "{YYYY2}")):
+        mm1, yyyy1, mm2, yyyy2 = period_range
+        kuerzel = (
+            kuerzel.replace("{MM1}", mm1)
+            .replace("{YYYY1}", yyyy1)
+            .replace("{MM2}", mm2)
+            .replace("{YYYY2}", yyyy2)
+        )
+
+    if not any(ph in kuerzel for ph in ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}")):
+        return kuerzel.strip()
+
     period = _extract_period_mm_yyyy(buchungstext)
     if period:
         mm, yyyy = period
@@ -398,7 +447,7 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 
 
 # Beleg1-Extraktion – Prioritätsreihenfolge:
-# 1. RE NNN/YYYY        → "006/2026"
+# 1. RE NNN/YYYY oder RE NNN-YYYY → "006/2026"
 # 2. JJJJ-NNN           → "2026-008"  (Ping Zhou, Jahresformat)
 # 3. ReNr/RNR/Re-Nr     → alphanumerische Rechnungsnummern ("AR26-391", "2026-008")
 # 4. RGN (Vodafone)     → Rechnungsnummer aus "RGN 00229874854 1"
@@ -406,8 +455,11 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 # 6. DRP                → sechsstellige KSK-Referenz
 # 7. Kd.-Nr./KdNr.      → Kundennummer
 # 8. erste lange Zahl   → Fallback (6–15 Stellen)
-_RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+/\d+)", re.IGNORECASE)
+_RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+)/(\d{4})\b", re.IGNORECASE)
+_RE_BELEG_RE_DASH  = re.compile(r"\bRE\s+(\d+)-(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
+_RE_BELEG_YEAR_SPACE = re.compile(r"\bRechnung\s+Nr\.?\s+(20\d{2})\s+(\d{3})\b", re.IGNORECASE)
+_RE_BELEG_ANR      = re.compile(r"\bANR0*(\d+)\b", re.IGNORECASE)
 _RE_BELEG_RENR     = re.compile(
     r"\b(?:ReNr\.?|Re-Nr\.?|RNR|Rechnungsnummer)\s+(?:RE-|AR-)?([^\s+,;]+\d)",
     re.IGNORECASE,
@@ -421,7 +473,15 @@ _RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
 
 def _extract_beleg1(buchungstext: str) -> str:
     """Extrahiert die Belegnummer aus dem Buchungstext (Prioritätsreihenfolge s. o.)."""
-    for pat in (_RE_BELEG_RE, _RE_BELEG_YEAR_NUM, _RE_BELEG_RENR, _RE_BELEG_DRP, _RE_BELEG_KDNR):
+    if m := _RE_BELEG_RE.search(buchungstext):
+        return f"{int(m.group(1)):03d}/{m.group(2)}"
+    if m := _RE_BELEG_RE_DASH.search(buchungstext):
+        return f"{int(m.group(1)):03d}/{m.group(2)}"
+    if m := _RE_BELEG_YEAR_SPACE.search(buchungstext):
+        return f"{m.group(1)}-{m.group(2)}"
+    if m := _RE_BELEG_ANR.search(buchungstext):
+        return f"{int(m.group(1)):09d}"
+    for pat in (_RE_BELEG_YEAR_NUM, _RE_BELEG_RENR, _RE_BELEG_DRP, _RE_BELEG_KDNR):
         if m := pat.search(buchungstext):
             return m.group(1)
     if m := _RE_BELEG_RGN.search(buchungstext):
@@ -432,6 +492,13 @@ def _extract_beleg1(buchungstext: str) -> str:
         return str(int(m.group(1)))
     return ""
 
+
+def _format_auszug_beleg1(auszug_nr: str) -> str:
+    """Agenda: Auszugsnummer als Beleg1 zweistellig (5 → 05)."""
+    text = str(auszug_nr or "").strip()
+    if text.isdigit():
+        return f"{int(text):02d}"
+    return text
 
 _RE_VORGANG_PREFIX = re.compile(
     r"^(GutschriftÜberweisung|Gutschrift\s+Überweisung|Gutschrift|"
@@ -495,7 +562,7 @@ def run(tenant_dir: str | Path) -> Path:
         beleg1_auto = _extract_beleg1(tx.buchungstext)
         if rule is not None and rule.beleg1 is not None:
             if rule.beleg1 == "~auszug":
-                beleg1_final = tx.auszug_nr   # Auszugnummer als Beleg1
+                beleg1_final = _format_auszug_beleg1(tx.auszug_nr)
             else:
                 beleg1_final = rule.beleg1    # explizit aus Config (auch "" möglich)
         else:
