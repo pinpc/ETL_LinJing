@@ -58,9 +58,11 @@ RAMTEL12 = TenantBaseline(
         "FEHLT in IST: BU=8408 B2=40 | NK Bruchmann EG 2026 04",
         "FEHLT in IST: BU=9 04800 B2=46 | Telekom Alarm Pumpe 03 2026",
         "FEHLT in IST: BU=652 B2=47 | KSK Tilgung 04 202 Merklingen/Dresden",
+        "FEHLT in IST: BU=9 02120 B2=47 | KSK Zins 04 2026 Merklingen/Dresden",
         "FEHLT in IST: BU= B2= | ",
         "EXTRA in IST: BU=9 04800 B2=46 | Telekom Alarm Pumpe 04 2026",
-        "EXTRA in IST: BU=652 B2=47 | KSK Tilgung 04 2026 Merklingen/Dresden",
+        "EXTRA in IST: BU=0652 B2=47 | KSK Tilgung 04 2026 Merklingen/Dresden",
+        "EXTRA in IST: BU=2120 B2=47 | KSK Zins 04 2026 Merklingen/Dresden",
     }),
     extra_rows=frozenset({
         ("6855", "2", "Bankgebühren Geldmarktkonto"),

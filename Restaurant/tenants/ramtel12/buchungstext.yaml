@@ -1,5 +1,7 @@
 # Buchungstext-Regeln für Ramtel12 Grundstücks GmbH
-# BU Gkto nach SOLL: Agenda_Bank_Ramtel12_04 2026.xlsx
+# BU Gkto + Kürzel nach Agenda (Platzhalter aus Banktext / Buchungsdatum)
+# beleg1: "" | "~auszug" | "~mm" | fester Wert | weglassen = Auto aus Text
+# Miete/NK: Display-Split (Bankbetrag Zeile 1, NK leer) – Einzelbeträge nicht im Banktext
 rules:
   - pattern: 'Stadtwerke Leonberg'
     gegenkonto: "8 04240"
@@ -9,18 +11,18 @@ rules:
       - gegenkonto: "8 04240"
         kuerzel: "Stadtwerke Leonberg Wasser {MM YYYY}"
         no_prefix: true
-        # betrag fehlt → use_tx_betrag=True: echter Bankbetrag in Zeile 1
       - gegenkonto: "4240"
         kuerzel: "Stadtwerke Leonberg Abwasser {MM YYYY}"
         no_prefix: true
-        betrag: null   # leere Umsatz-Zelle in Zeile 2
+        betrag: null
 
   - pattern: 'Entgeltabrechnung'
     gegenkonto: "9 04970"
     kuerzel: "Bankgebühr {MM YYYY}"
     no_prefix: true
+    beleg1: ""
 
-  - pattern: 'EBICS-Umsatz|EBICS-Umsatzbereitstellung'
+  - pattern: 'EBICS-Umsatz|EBICS'
     gegenkonto: "9 04970"
     kuerzel: "Ebics {MM YYYY}"
     no_prefix: true
@@ -29,6 +31,7 @@ rules:
     gegenkonto: "8401"
     kuerzel: "Miete/NK D.O.G. GmbH 1. OG {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8401"
         kuerzel: "Miete D.O.G. GmbH 1. OG {YYYY MM}"
@@ -42,6 +45,7 @@ rules:
     gegenkonto: "8401"
     kuerzel: "Miete/NK D.O.G. GmbH 2. OG {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8401"
         kuerzel: "Miete D.O.G. GmbH 2. OG {YYYY MM}"
@@ -55,6 +59,7 @@ rules:
     gegenkonto: "8405"
     kuerzel: "Miete/NK Hirotec EG {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8405"
         kuerzel: "Miete Hirotec EG {YYYY MM}"
@@ -68,6 +73,7 @@ rules:
     gegenkonto: "8409"
     kuerzel: "Miete/NK systemgruppe integrated {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8409"
         kuerzel: "Miete systemgruppe integrated {YYYY MM}"
@@ -81,6 +87,7 @@ rules:
     gegenkonto: "8403"
     kuerzel: "Miete/NK Köhler Leonberg {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8403"
         kuerzel: "Miete Köhler Leonberg {YYYY MM}"
@@ -94,6 +101,7 @@ rules:
     gegenkonto: "8407"
     kuerzel: "Miete/NK Bruchmann EG {YYYY MM}"
     no_prefix: true
+    beleg1: ""
     fixed_split:
       - gegenkonto: "8407"
         kuerzel: "Miete Bruchmann EG {YYYY MM}"
@@ -107,6 +115,7 @@ rules:
     gegenkonto: "4232"
     kuerzel: "WEG Dresden Hausgeld {MM YYYY}"
     no_prefix: true
+    beleg1: ""
 
   - pattern: 'SCHAAL.*BAD|SCHAAL.*DESIGN|Schaal'
     gegenkonto: "74921"
@@ -121,6 +130,7 @@ rules:
     gegenkonto: "8111"
     kuerzel: "Dresden Miete {MM YYYY}"
     no_prefix: true
+    beleg1: ""
 
   - pattern: 'CleanFix|Winterdienst'
     gegenkonto: "75035"
@@ -139,11 +149,13 @@ rules:
     gegenkonto: "9 04241"
     kuerzel: "EnBW Gas {MM YYYY}"
     no_prefix: true
+    beleg1: ""
 
   - pattern: 'EnBW.*Strom|Strom Absc'
     gegenkonto: "9 04242"
     kuerzel: "EnBW Strom {MM YYYY}"
     no_prefix: true
+    beleg1: ""
 
   - pattern: 'Bundeskasse.*EHUG|EHUG'
     gegenkonto: "70201"
@@ -178,15 +190,15 @@ rules:
     no_prefix: true
 
   - pattern: 'KREISSPARKASSE.*Darl|Rechnung Darl\.'
-    gegenkonto: "652"
+    gegenkonto: "0652"
     kuerzel: "KSK Tilgung/Zins {MM YYYY} Merklingen/Dresden"
     no_prefix: true
     fixed_split:
-      - gegenkonto: "652"
+      - gegenkonto: "0652"
         kuerzel: "KSK Tilgung {MM YYYY} Merklingen/Dresden"
         no_prefix: true
         amount_regex: 'Tilgung\s+([\d.,]+)'
-      - gegenkonto: "9 02120"
+      - gegenkonto: "2120"
         kuerzel: "KSK Zins {MM YYYY} Merklingen/Dresden"
         no_prefix: true
         amount_regex:
@@ -205,22 +217,30 @@ rules:
     beleg1: ""
 
   - pattern: 'Abfallgebuehr|Abfallgebühr|Landkreis B[oö]blingen'
-    gegenkonto: "70104"
-    kuerzel: "Abfallgebühr {MM YYYY}"
+    gegenkonto: "80100"
+    kuerzel: "Abfallwirtschaft Abfallgebühr {YYYY}"
     no_prefix: true
 
-  - pattern: 'Grundsteuer|GrSt\b|Stadt Leonberg|Landeshauptstadt Dresden'
-    gegenkonto: "2280"
-    kuerzel: "Grundsteuer {MM YYYY}"
+  # Dresden vor generischer Grundsteuer (Stadt Leonberg)
+  - pattern: 'Landeshauptstadt Dresden|Dresden.*GrSt|GrSt.*Dresden'
+    gegenkonto: "4232"
+    kuerzel: "Grundsteuer Q {Q} {YYYY} Dresden"
     no_prefix: true
+    beleg1: ""
+
+  - pattern: 'Grundsteuer|GrSt\b|Stadt Leonberg'
+    gegenkonto: "2280"
+    kuerzel: "Grundsteuer Q {Q} {YYYY} Dresden"
+    no_prefix: true
+    # Agenda-Kürzel „Dresden“ (Objekt); Quartal/Jahr aus Buchungsdatum
 
   - pattern: 'IHK'
-    gegenkonto: "6835"
-    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    gegenkonto: "71901"
+    kuerzel: "IHK Beitrag {YYYY}"
     no_prefix: true
 
   - pattern: 'Kone GmbH'
-    gegenkonto: "80106"
+    gegenkonto: "74911"
     kuerzel: "Kone GmbH"
 
   - pattern: 'ctm Cloud Terminology'

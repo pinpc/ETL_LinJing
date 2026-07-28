@@ -11,7 +11,7 @@ Baseline-Abweichungen: `golden_master_baselines.py`
 | Tenant | Status | Bekannte Abw. | Hinweis |
 |--------|--------|---------------|---------|
 | **CTM** | OK (Baseline) | 9 | Telekom/VL/Massion offen; DOG-Split ohne RE 006/007-PDFs |
-| **Ramtel12** | OK (Baseline) | 20 | Display-Split Miete/NK; Telekom/KSK Monat |
+| **Ramtel12** | OK (Baseline) | 22 | Display-Split Miete/NK; Telekom/KSK BU 0652/2120 vs Agenda 04 |
 | **DOG Holding** | OK (Baseline) | 1 | 17/17 SOLL-Zeilen; Ping Zhou Datum Agenda vs. Bank |
 
 ## CTM (9 bekannte Abweichungen)
@@ -21,13 +21,13 @@ Baseline-Abweichungen: `golden_master_baselines.py`
 - P. Massion Umsatz-Split
 - ZE-D.O.G. Dokument: Split RE 006/007 fehlt lokal (PDFs nicht im Fibu-Ordner)
 
-## Ramtel12 (20 bekannte Abweichungen)
+## Ramtel12 (22 bekannte Abweichungen)
 
 - Stadtwerke Wasser/Abwasser Display-Split
 - Miete D.O.G./Hirotec/systemgruppe/Köhler/Bruchmann: Umsatz nur Zeile 1, NK-Zeile fehlt
 - Haftpflichtkasse: Datum ±1 Tag
 - Telekom Alarm Pumpe: Monat 03 vs. 04 in Kürzel
-- KSK Tilgung: Tippfehler „202 Merklingen“ in SOLL vs. „2026“ in IST
+- KSK: Agenda 04 noch BU 652 / 9 02120 (Tippfehler „202“); IST nach Agenda 05: 0652 / 2120
 
 ## DOG Holding (1 bekannte Abweichung)
 
@@ -38,5 +38,5 @@ Baseline-Abweichungen: `golden_master_baselines.py`
 
 | Datum | Änderung |
 |-------|----------|
-| 2026-07-28 | Holding: Chen/SFirm-Kürzel; CTM: Dokument-Split ohne RE 006/007-PDFs |
+| 2026-07-28 | Holding: Chen/SFirm; CTM Dokument-Split; Ramtel12 KSK BU 0652/2120 |
 | 2026-06-25 | Baseline nach Code-Optimierung: Entgelt-Fix, Perioden BEK/USt, semantic match DOG Holding, Summe Final=Kontoauszug |
