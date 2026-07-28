@@ -1,19 +1,21 @@
 # Buchungstext-Regeln für D.O.G. Holding GmbH
-# BU Gkto + Kürzel nach SOLL: Agenda_Bank_Holding 04 2026.xlsx
+# BU Gkto + Kürzel nach Agenda (Platzhalter aus Banktext / Buchungsdatum)
+# beleg1: "" | "~auszug" | "~mm" (Monatsnr. aus Zeitraum) | fester Wert
 rules:
+  # Firmenkundenportal vor EBICS: Anlage-PDF kann "EBICS" im Text enthalten
+  - pattern: 'Firmenkundenportal'
+    gegenkonto: "4970"
+    kuerzel: "Bankgebühr {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~mm"
+
   - pattern: 'EBICS-Umsatz|EBICS'
     gegenkonto: "4970"
     kuerzel: "Ebics {MM} {YYYY}"
     no_prefix: true
-    beleg1: "~auszug"
+    beleg1: "~mm"
 
   - pattern: 'Entgeltabrechnung|Kontoführung Mindest'
-    gegenkonto: "4970"
-    kuerzel: "Bankgebühr {MM} {YYYY}"
-    no_prefix: true
-    beleg1: "~auszug"
-
-  - pattern: 'Firmenkundenportal'
     gegenkonto: "4970"
     kuerzel: "Bankgebühr {MM} {YYYY}"
     no_prefix: true
@@ -55,7 +57,7 @@ rules:
     gegenkonto: "1743"
     kuerzel: "BEK {MM} {YYYY}"
     no_prefix: true
-    beleg1: ""
+    beleg1: "~mm"
 
   - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
     gegenkonto: "1780"
@@ -114,33 +116,35 @@ rules:
 
   - pattern: 'May-Lin Chen.*Versorgung|Versorgungsbezug.*Chen'
     gegenkonto: "1740"
-    kuerzel: "M. Chen {MM} {YYYY}"
+    kuerzel: "Chen {MM} {YYYY}"
     no_prefix: true
-    beleg1: "~auszug"
+    beleg1: "~mm"
 
-  - pattern: 'Softwareüberlassung|Monatspreis Software|entgeltfreie Buchung.*SFirm'
-    gegenkonto: "70104"
-    kuerzel: "Softwareüberlassung SFirm"
+  - pattern: 'Softwareüberlassung|Monatspreis Software|entgeltfreie Buchung.*SFirm|SFirm'
+    gegenkonto: "4970"
+    kuerzel: "SFirm {MM} {YYYY}"
+    no_prefix: true
+    beleg1: "~mm"
 
   - pattern: 'hkk\b|hkk Beitraege'
     gegenkonto: "1743"
     kuerzel: "hkk {MM} {YYYY}"
     no_prefix: true
-    beleg1: ""
+    beleg1: "~mm"
 
   - pattern: 'IHK'
-    gegenkonto: "6835"
-    kuerzel: "IHK Beitrag {MM} {YYYY}"
+    gegenkonto: "70108"
+    kuerzel: "IHK Beitrag {YYYY}"
     no_prefix: true
 
   - pattern: 'Netze Calw'
     gegenkonto: "4244"
-    kuerzel: "Netze Calw Strom-Einspeisung {YYYY}"
+    kuerzel: "Netze Calw Strom-Einspeisung {YYYY} {MM}"
     no_prefix: true
 
   - pattern: 'Grundsteuer|Große Kreisstadt Calw'
-    gegenkonto: "2280"
-    kuerzel: "Grundsteuer Calw {YYYY}"
+    gegenkonto: "4244"
+    kuerzel: "Grundsteuer Calw Q {Q} {YYYY}"
     no_prefix: true
 
   - pattern: 'Sonstige Kartenleistungen|Kartenpreisbelastung'
@@ -150,22 +154,22 @@ rules:
     beleg1: "~auszug"
 
   - pattern: 'Rossmann'
-    gegenkonto: "6815"
-    kuerzel: "Rossmann"
+    gegenkonto: "4250"
+    kuerzel: "Rossmann Reiniger"
 
   - pattern: 'Pantina|Arjanit Pantina'
-    gegenkonto: "70104"
+    gegenkonto: "70116"
     kuerzel: "Pantina Reinigung"
 
   - pattern: 'D\.O\.G\. Holding GmbH Einzahlung'
-    gegenkonto: "1290"
+    gegenkonto: "1360"
     kuerzel: "Einzahlung {MM} {YYYY}"
     no_prefix: true
 
   - pattern: 'FLORIAN TEUFEL|Florian Teufel'
-    gegenkonto: "70104"
+    gegenkonto: "70123"
     kuerzel: "Florian Teufel Gartenbau"
 
   - pattern: 'ctm Cloud Terminology'
-    gegenkonto: "70104"
+    gegenkonto: "70301"
     kuerzel: "ctm Cloud Terminology"

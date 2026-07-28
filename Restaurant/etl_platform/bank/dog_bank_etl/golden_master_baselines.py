@@ -31,6 +31,8 @@ CTM = TenantBaseline(
         "Umsatz: SOLL=-1321.16 IST=-321.16 | P. Massion 04 2026",
         "EXTRA in IST: BU=1750 B2=4 | VL 04 2026",
         "EXTRA in IST: BU=1740 B2=4 | F. Massion 04 2026",
+        # RE 006/007-PDFs fehlen lokal → kein Invoice-Split
+        "Umsatz: SOLL=8975.58 IST=14547.76 | ZE-D.O.G. Dokument GmbH",
     }),
 )
 
@@ -74,9 +76,9 @@ DOG_HOLDING = TenantBaseline(
     }),
     extra_rows=frozenset({
         ("1703", "46", "Auszahlung Ramtel12 Darlehen"),
-        ("1740", "47", "M. Chen 04 2026"),
+        ("1740", "47", "Chen 04 2026"),
         ("1740", "47", "F. Massion 04 2026"),
-        ("70104", "47", "ZA-Softwareüberlassung SFirm"),
+        ("4970", "47", "SFirm 04 2026"),
         ("4970", "47", "Ebics 04 2026"),
         ("4970", "47", "Bankgebühr 04 2026"),
     }),

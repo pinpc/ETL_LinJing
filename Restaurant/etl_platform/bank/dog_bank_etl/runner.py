@@ -326,6 +326,7 @@ _DATE_PLACEHOLDERS = (
     "{YYYY MM}",
     "{MM}",
     "{YYYY}",
+    "{Q}",
     "{MM1}",
     "{YYYY1}",
     "{MM2}",
@@ -348,11 +349,11 @@ def _extract_period_range(buchungstext: str) -> tuple[str, str, str, str] | None
 
 _RE_BEITRAG_MMYY = re.compile(r"BEITRAG\s+(\d{2})(\d{2})-\d{4}", re.IGNORECASE)
 _RE_MON_ABBR = re.compile(
-    r"\b(JAN|FEB|MÄR|MAR|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ)\.(\d{2})\b",
+    r"\b(JAN|FEB|MÄR|MAR|MRZ|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ)\.(\d{2})\b",
     re.IGNORECASE,
 )
 _MON_ABBR_TO_MM = {
-    "JAN": "01", "FEB": "02", "MÄR": "03", "MAR": "03", "APR": "04",
+    "JAN": "01", "FEB": "02", "MÄR": "03", "MAR": "03", "MRZ": "03", "APR": "04",
     "MAI": "05", "JUN": "06", "JUL": "07", "AUG": "08", "SEP": "09",
     "OKT": "10", "NOV": "11", "DEZ": "12",
 }
@@ -393,7 +394,10 @@ def _resolve_placeholders(
             .replace("{YYYY2}", yyyy2)
         )
 
-    if not any(ph in kuerzel for ph in ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}")):
+    if not any(
+        ph in kuerzel
+        for ph in ("{MM.YYYY}", "{MM YYYY}", "{YYYY MM}", "{MM}", "{YYYY}", "{Q}")
+    ):
         return kuerzel.strip()
 
     period = _extract_period_mm_yyyy(buchungstext)
@@ -410,6 +414,7 @@ def _resolve_placeholders(
             yyyy = str(fallback_date.year)
         else:
             mm = yyyy = ""
+    quarter = str((int(mm) - 1) // 3 + 1) if mm.isdigit() else ""
     return (
         kuerzel
         .replace("{MM.YYYY}", f"{mm}.{yyyy}")
@@ -417,6 +422,7 @@ def _resolve_placeholders(
         .replace("{YYYY MM}", f"{yyyy} {mm}")
         .replace("{MM}", mm)
         .replace("{YYYY}", yyyy)
+        .replace("{Q}", quarter)
     ).strip()
 
 
@@ -464,6 +470,7 @@ _RE_BELEG_RENR     = re.compile(
     r"\b(?:ReNr\.?|Re-Nr\.?|RNR|Rechnungsnummer)\s+(?:RE-|AR-)?([^\s+,;]+\d)",
     re.IGNORECASE,
 )
+_RE_BELEG_RG_RE    = re.compile(r"\bRg\.?-?Nr\.?\s*(RE\d+)\b", re.IGNORECASE)
 _RE_BELEG_RGN      = re.compile(r"\bRGN\s+0*(\d+)\s+(\d)\b", re.IGNORECASE)
 _RE_BELEG_RG       = re.compile(r"\bRG(20\d{10})\b", re.IGNORECASE)
 _RE_BELEG_DRP      = re.compile(r"\bDRP\s+(\d{6,12})")
@@ -477,6 +484,8 @@ def _extract_beleg1(buchungstext: str) -> str:
         return f"{int(m.group(1)):03d}/{m.group(2)}"
     if m := _RE_BELEG_RE_DASH.search(buchungstext):
         return f"{int(m.group(1)):03d}/{m.group(2)}"
+    if m := _RE_BELEG_RG_RE.search(buchungstext):
+        return m.group(1).upper()
     if m := _RE_BELEG_YEAR_SPACE.search(buchungstext):
         return f"{m.group(1)}-{m.group(2)}"
     if m := _RE_BELEG_ANR.search(buchungstext):
@@ -499,6 +508,23 @@ def _format_auszug_beleg1(auszug_nr: str) -> str:
     if text.isdigit():
         return f"{int(text):02d}"
     return text
+
+
+def _format_period_mm_beleg1(buchungstext: str, fallback_date: date | None = None) -> str:
+    """Beleg1 = Monatsnummer aus Beitrags-/Leistungszeitraum (z. B. BEITRAG 0426 → 04)."""
+    period = _extract_period_mm_yyyy(buchungstext)
+    if period:
+        return period[0]
+    period_range = _extract_period_range(buchungstext)
+    if period_range:
+        return period_range[0]
+    normalized = _normalize_dates(buchungstext)
+    m = _RE_DATE_IN_TEXT.search(normalized)
+    if m:
+        return m.group(2)
+    if fallback_date:
+        return f"{fallback_date.month:02d}"
+    return ""
 
 _RE_VORGANG_PREFIX = re.compile(
     r"^(GutschriftÜberweisung|Gutschrift\s+Überweisung|Gutschrift|"
@@ -563,6 +589,8 @@ def run(tenant_dir: str | Path) -> Path:
         if rule is not None and rule.beleg1 is not None:
             if rule.beleg1 == "~auszug":
                 beleg1_final = _format_auszug_beleg1(tx.auszug_nr)
+            elif rule.beleg1 == "~mm":
+                beleg1_final = _format_period_mm_beleg1(tx.buchungstext, tx.datum)
             else:
                 beleg1_final = rule.beleg1    # explizit aus Config (auch "" möglich)
         else:
