@@ -10,12 +10,21 @@ Bei Agenda-/Excel-Vergleichen immer dieselbe Reihenfolge:
 
 1. **Summe Umsatz** IST vs SOLL (Toleranz 0,01).
 2. Match-Key: `(Datum, Umsatz, BU Gkto)` — BU normalisiert (Trim, `.0` weg).
-3. Nur bei Match: **Buchungstext**, dann **Beleg1/Beleg2**.
+3. Nur bei Match: **Buchungstext**, dann Beleg-Spalten der jeweiligen Fibu-Methode.
 4. Abweichungen klar trennen:
    - Regel/BU/Kürzel (anpassbar in YAML/Mapping)
    - fehlende Quelldaten (PDF, Zeitraum im Text)
    - Display-Split (eine Bankzeile vs. Agenda-Teilbeträge) — kein Hardcode der Teilbeträge
 5. Summe-Zeilen / leere Umsatz-Zeilen (NK-Display) nicht als Fehlbuchungen werten, aber strukturell erwähnen.
 
-Spalten erwartet: `Umsatz`, `BU Gkto`, `Beleg1`, `Beleg2`, `Datum`, `Konto`, `Buchungstext`.  
-Sheet: IST bevorzugt `Final`; SOLL erstes Blatt mit diesen Spalten.
+## Format = Fibu-Methode (nicht global vereinheitlichen)
+
+**Agenda-Format = IST-Final innerhalb derselben Fibu-Familie.**
+
+| Familie | Beleg | Typische Spalten (Final) |
+|---------|--------|---------------------------|
+| **DOG** (ctm, dog_holding, ramtel12) | zwei: `Beleg1`, `Beleg2` | `Umsatz`, `BU Gkto`, `Beleg1`, `Beleg2`, `Datum`, `Konto`, `Buchungstext` (+ optional `Skonto Euro` nur wenn auch Agenda sie hat) |
+| **Asia / Jupiter** | eine: `Beleg 1` | deren Agenda-/Fibu-Header (z. B. `Umsatz Euro`, `Beleg 1`, …) |
+
+Unterschiede zwischen DOG und Asia/Jupiter sind **fachlich bedingt**, kein Angleichungsziel.
+Sheet: IST bevorzugt `Final`; SOLL Blatt mit denselben Spalten der Familie.

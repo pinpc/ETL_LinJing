@@ -7,12 +7,13 @@ alwaysApply: true
 
 ## Ziele (Priorität)
 1. **IST vs SOLL** zuverlässig und nachvollziehbar angleichen.
-2. **Einheitliche Struktur** über Tenants/Module (gleiche Begriffe, gleiche Vergleichs-/Export-Muster).
+2. **Einheitliche Struktur innerhalb der Fibu-Methode** (DOG vs Asia/Jupiter getrennt); gleiche Begriffe/Vergleichsmuster pro Familie.
 3. **Wartung übersichtlich**: wenige klare Stellen für Regeln, Extraktion, Export.
 4. **Code-Menge klein halten**: keine Parallel-Implementierungen, keine „vielleicht später“-Pfade.
 5. **Langzeitig unbenutzten Code entfernen** (tote Module, Legacy-Duplikate, ungenutzte Helfer).
 
-Optimierung heißt hier: Klarheit + Einheitlichkeit + weniger Code — **nicht** Mikro-Performance und nicht große Refactors ohne konkreten Nutzen für den Agenda-Abgleich.
+Optimierung heißt hier: Klarheit + Einheitlichkeit **pro Fibu-Methode** + weniger Code — **nicht** Mikro-Performance und nicht große Refactors ohne Nutzen für den Agenda-Abgleich.
+**Nicht** Asia/Jupiter (1 Beleg) und DOG (2 Belege) zwangsweise auf ein Spaltenlayout pressen.
 
 ## Ablauf (Monats-Nachzug)
 1. **IST** (ETL-Excel Final) vs **SOLL** (Agenda): Summe, Keys `(Datum, Umsatz, BU)`, dann Text/Beleg.
