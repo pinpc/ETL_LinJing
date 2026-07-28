@@ -1,0 +1,27 @@
+---
+description: Monatlichen Agenda-Abgleich für Bank/Kasse ETL nachziehen (Asia, Jupiter, DOG)
+alwaysApply: true
+---
+
+# ETL Agenda nachziehen
+
+Wenn der User IST vs SOLL/Agenda vergleicht, Regeln anpasst oder einen neuen Fibu-Monat nachzieht:
+
+## Ablauf
+1. **IST** (ETL-Excel Final) vs **SOLL** (Agenda) vergleichen: Summe, Keys `(Datum, Umsatz, BU)`, dann Text/Beleg.
+2. Regeln in `tenants/<tenant>/buchungstext.yaml` (DOG) bzw. Asia/Jupiter-Mapping anpassen.
+3. ETL neu laufen (`tenant_local.yaml` = aktueller Monat).
+4. Erneut vergleichen; Restabweichungen nur akzeptieren, wenn sie **nicht** aus dem Banktext ableitbar sind.
+5. **Golden Master** (DOG: Fibu 04) mit temporär deaktivierter `tenant_local.yaml` laufen; Baseline nur bei bewussten Regeländerungen updaten.
+6. **Commit/Push nur auf ausdrücklichen Wunsch.**
+
+## Harte Vorgaben
+- **Kein Hardcoding** von Beträgen, festen Jahren (`2025 + 2026`), Monatsnummern oder Pfaden.
+- Stattdessen Platzhalter `{MM}`, `{YYYY}`, `{Q}`, `{YYYY MM}` und Extraktion aus Banktext / Buchungsdatum.
+- Beleg1: `""` | `~auszug` | `~mm` | Auto aus Text — je nach Agenda, ohne erfundene Nummern.
+- Display-Split (Miete/NK) ist OK, wenn Einzelbeträge nicht im Banktext stehen.
+- Sprache: Deutsch, knapp; keine unnötigen Markdown-Docs.
+
+## Tenants
+- DOG: `ctm`, `dog_holding`, `ramtel12` → `etl_platform/bank/dog_bank_etl`
+- Asia / Jupiter → jeweilige `*_bank_etl` / cashbook; Golden via `tenants/golden_master_scenarios.json`
