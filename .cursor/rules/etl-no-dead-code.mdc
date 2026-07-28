@@ -1,0 +1,13 @@
+---
+description: Langzeitig unbenutzten ETL-Code und tote Legacy-Pfade entfernen
+globs: Restaurant/etl_platform/**/*.py,Restaurant/apps/**/*.py
+alwaysApply: false
+---
+
+# Kein Dead Code
+
+- Vor Abschluss einer Änderung: ungenutzte Imports, tote Funktionen, unerreichbare Branches entfernen.
+- `*_legacy.py` / Wrapper nur behalten, wenn noch ein echter Aufrufer (CLI, Service, Tests) existiert — sonst löschen oder auf den aktiven Pfad umbiegen.
+- Keine „deprecated“-Kopien neben dem Ersatz; kein auskommentierter Altcode auf Vorrat.
+- Ungenutzte Test-Hilfen und verwaiste Scripts im ETL-Baum mitentfernen, wenn der zugehörige Code fällt.
+- Bei Unsicherheit: kurz per Grep/Referenzen prüfen, dann löschen — nicht „sicherheitshalber“ liegen lassen.

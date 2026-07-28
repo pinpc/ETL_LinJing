@@ -1,0 +1,13 @@
+---
+description: Gemeinsame ETL-Helfer statt Tenant-Duplikate; Code-Menge klein halten
+globs: Restaurant/etl_platform/**/*.py
+alwaysApply: false
+---
+
+# Shared Helpers / schlanke Struktur
+
+- **Ein Pfad pro Concern:** Datum/Platzhalter, Beleg-Extraktion, PDF-Betrag/Datum, Excel-Final-Export.
+- Bestehende Shared-Module nutzen bzw. erweitern (`bank/pdf_invoice_common`, `bank/money_utils`, `shared/*`) statt Copy-Paste in `asia_bank_etl` / `jupiter_bank_etl` / `dog_bank_etl`.
+- Tenant-Unterschiede gehören in **Config/YAML/Mapping**, nicht in verdoppelte Runner-Logik.
+- Neue Abstraktion nur, wenn sie **mindestens zwei** konkrete Aufrufer entlastet — sonst inline/lokal lassen.
+- Keine Parallel-Pipeline „alt + neu“; bei Migration den alten Aufrufer umbiegen und Duplikat entfernen.

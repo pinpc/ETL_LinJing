@@ -1,0 +1,21 @@
+---
+description: Einheitlicher IST vs SOLL/Agenda Vergleich für Bank/Kasse ETL
+globs: Restaurant/etl_platform/**/*.py,Restaurant/tenants/**/*.yaml,Restaurant/apps/etl_cli/**/*.py
+alwaysApply: false
+---
+
+# IST vs SOLL Vergleich
+
+Bei Agenda-/Excel-Vergleichen immer dieselbe Reihenfolge:
+
+1. **Summe Umsatz** IST vs SOLL (Toleranz 0,01).
+2. Match-Key: `(Datum, Umsatz, BU Gkto)` — BU normalisiert (Trim, `.0` weg).
+3. Nur bei Match: **Buchungstext**, dann **Beleg1/Beleg2**.
+4. Abweichungen klar trennen:
+   - Regel/BU/Kürzel (anpassbar in YAML/Mapping)
+   - fehlende Quelldaten (PDF, Zeitraum im Text)
+   - Display-Split (eine Bankzeile vs. Agenda-Teilbeträge) — kein Hardcode der Teilbeträge
+5. Summe-Zeilen / leere Umsatz-Zeilen (NK-Display) nicht als Fehlbuchungen werten, aber strukturell erwähnen.
+
+Spalten erwartet: `Umsatz`, `BU Gkto`, `Beleg1`, `Beleg2`, `Datum`, `Konto`, `Buchungstext`.  
+Sheet: IST bevorzugt `Final`; SOLL erstes Blatt mit diesen Spalten.
