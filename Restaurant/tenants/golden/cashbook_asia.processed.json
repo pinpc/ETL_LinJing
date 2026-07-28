@@ -104,15 +104,15 @@
     "amount": -4.4,
     "booking_date": "2026-04-05",
     "booking_text": "Trinkgeld",
-    "bu_gkto": "1360",
-    "beleg_1": ""
+    "bu_gkto": "4140",
+    "beleg_1": "Z073"
   },
   {
     "tenant_id": "asia",
     "module_name": "cashbook",
     "amount": 4.4,
     "booking_date": "2026-04-05",
-    "booking_text": "Umsatz 0 %",
+    "booking_text": "Trinkgeld",
     "bu_gkto": "4140",
     "beleg_1": "Z073"
   },
@@ -159,7 +159,7 @@
     "booking_date": "2026-04-06",
     "booking_text": "an Bank",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "01"
   },
   {
     "tenant_id": "asia",
@@ -212,15 +212,15 @@
     "amount": -7.0,
     "booking_date": "2026-04-10",
     "booking_text": "Trinkgeld",
-    "bu_gkto": "1360",
-    "beleg_1": ""
+    "bu_gkto": "4140",
+    "beleg_1": "Z077"
   },
   {
     "tenant_id": "asia",
     "module_name": "cashbook",
     "amount": 7.0,
     "booking_date": "2026-04-10",
-    "booking_text": "Umsatz 0 %",
+    "booking_text": "Trinkgeld",
     "bu_gkto": "4140",
     "beleg_1": "Z077"
   },
@@ -267,7 +267,7 @@
     "booking_date": "2026-04-12",
     "booking_text": "an Bank",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "02"
   },
   {
     "tenant_id": "asia",
@@ -311,15 +311,15 @@
     "amount": -2.5,
     "booking_date": "2026-04-15",
     "booking_text": "Trinkgeld",
-    "bu_gkto": "1360",
-    "beleg_1": ""
+    "bu_gkto": "4140",
+    "beleg_1": "Z082"
   },
   {
     "tenant_id": "asia",
     "module_name": "cashbook",
     "amount": 2.5,
     "booking_date": "2026-04-15",
-    "booking_text": "Umsatz 0 %",
+    "booking_text": "Trinkgeld",
     "bu_gkto": "4140",
     "beleg_1": "Z082"
   },
@@ -375,7 +375,7 @@
     "booking_date": "2026-04-17",
     "booking_text": "per Überweisung",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "03"
   },
   {
     "tenant_id": "asia",
@@ -438,7 +438,7 @@
     "booking_date": "2026-04-20",
     "booking_text": "an Bank",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
@@ -455,15 +455,15 @@
     "amount": -12.52,
     "booking_date": "2026-04-21",
     "booking_text": "Trinkgeld",
-    "bu_gkto": "1360",
-    "beleg_1": ""
+    "bu_gkto": "4140",
+    "beleg_1": "Z088"
   },
   {
     "tenant_id": "asia",
     "module_name": "cashbook",
     "amount": 12.52,
     "booking_date": "2026-04-21",
-    "booking_text": "Umsatz 0 %",
+    "booking_text": "Trinkgeld",
     "bu_gkto": "4140",
     "beleg_1": "Z088"
   },
@@ -573,7 +573,7 @@
     "booking_date": "2026-04-25",
     "booking_text": "an Bank",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "05"
   },
   {
     "tenant_id": "asia",
@@ -663,7 +663,7 @@
     "booking_date": "2026-04-29",
     "booking_text": "an Bank",
     "bu_gkto": "1360",
-    "beleg_1": ""
+    "beleg_1": "06"
   },
   {
     "tenant_id": "asia",

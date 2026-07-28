@@ -26,12 +26,25 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-_EDEKA_CC_GLOB = "*C+C Grossmarkt*.pdf"
+_EDEKA_CC_GLOB = "*C+C*.pdf"
 _WASH_SECTION = re.compile(r"Wasch/Putz/Reinigung", re.I)
 _RE_NR = re.compile(r"Rechnung-Nr\.?\s*:?\s*(\d+)", re.I)
+_RE_NR_UNION = re.compile(r"Nummer:\s*(\d+)", re.I)
 _RE_DATUM = re.compile(r"Rechnungsdatum\s*:\s*(\d{2}\.\d{2}\.\d{4})", re.I)
+_RE_DATUM_UNION = re.compile(r"Datum:\s*(\d{2}\.\d{2}\.\d{4})", re.I)
 _MWST_7_LINE = re.compile(r"7\s*,\s*00\s*=\s*1", re.I)
 _MWST_19_LINE = re.compile(r"19\s*,\s*00\s*=\s*2", re.I)
+# Union-Layout: keine MwSt | Leergut 7% | Leergut 19% | 7% | 19% | Gesamt
+_RE_UNION_GESAMT = re.compile(
+    r"Gesamt\s+"
+    r"(-?[\d.]+,\d{2})\s+"
+    r"(-?[\d.]+,\d{2})\s+"
+    r"(-?[\d.]+,\d{2})\s+"
+    r"(-?[\d.]+,\d{2})\s+"
+    r"(-?[\d.]+,\d{2})\s+"
+    r"(-?[\d.]+,\d{2})",
+    re.I,
+)
 
 
 @dataclass
@@ -126,8 +139,8 @@ def _parse_edeka_cc(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaInvoi
         empty_row.hinweis = "Kein Text (OCR fehlgeschlagen oder leer)"
         return empty_row
 
-    re_nr_m = _RE_NR.search(text)
-    re_datum_m = _RE_DATUM.search(text)
+    re_nr_m = _RE_NR.search(text) or _RE_NR_UNION.search(text)
+    re_datum_m = _RE_DATUM.search(text) or _RE_DATUM_UNION.search(text)
     we7, we19 = _parse_edeka_mwst_summary(text)
     reinigung = _parse_edeka_wasch_zwischensumme(text)
     gesamt = _parse_edeka_gesamtbetrag(text)
@@ -175,6 +188,10 @@ def _parse_edeka_gesamtbetrag(text: str) -> float | None:
     if match:
         return parse_german_euro_amount(match.group(1))
 
+    union = _RE_UNION_GESAMT.search(text)
+    if union:
+        return parse_german_euro_amount(union.group(6))
+
     lines = text.splitlines()
     for index, line in enumerate(lines):
         if "Gesamtwarenwert" in line and "Gesamtbetrag" in line:
@@ -196,6 +213,21 @@ def _parse_edeka_gesamtbetrag(text: str) -> float | None:
     return None
 
 
+def _parse_union_mwst_summary(text: str) -> tuple[float | None, float | None]:
+    """
+    Union-Rechnungsfuß: Spalten keineMwSt | Leergut7 | Leergut19 | 7% | 19% | Gesamt.
+    WE 7 % = Leergut7 + 7 %, WE 19 % = Leergut19 + 19 %.
+    """
+    match = _RE_UNION_GESAMT.search(text)
+    if not match:
+        return None, None
+    leergut7 = parse_german_euro_amount(match.group(2))
+    leergut19 = parse_german_euro_amount(match.group(3))
+    we7 = parse_german_euro_amount(match.group(4))
+    we19 = parse_german_euro_amount(match.group(5))
+    return round(leergut7 + we7, 2), round(leergut19 + we19, 2)
+
+
 def _parse_edeka_mwst_summary(text: str) -> tuple[float | None, float | None]:
     """Gesamtbeträge der 7%- und 19%-Zeile (Spalte „Gesamt“)."""
     we7 = we19 = None
@@ -213,6 +245,10 @@ def _parse_edeka_mwst_summary(text: str) -> tuple[float | None, float | None]:
 
     if we7 is not None and we19 is not None:
         return we7, we19
+
+    union7, union19 = _parse_union_mwst_summary(text)
+    if union7 is not None and union19 is not None:
+        return union7, union19
 
     for index, line in enumerate(lines):
         if "MwSt Betrag Gesamt" in line:
@@ -267,3 +303,4 @@ def _parse_edeka_wasch_zwischensumme(text: str) -> float:
             if match:
                 return parse_german_euro_amount(match.group(1))
     return 0.0
+

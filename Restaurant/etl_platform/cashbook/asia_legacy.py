@@ -1,7 +1,7 @@
 from __future__ import annotations
 
 from dataclasses import dataclass, replace
-from datetime import datetime
+from datetime import date, datetime
 from decimal import Decimal, InvalidOperation
 import os
 from pathlib import Path
@@ -35,8 +35,7 @@ BU_GKTO_TIPS_0 = "4140"
 
 BOOKING_TEXT_ALLO_PAY = "AllO Pay"
 BOOKING_TEXT_TIPS = "Trinkgeld"
-# Agenda SOLL uses the spelling "Trinkegeld" for the tip residual row.
-BOOKING_TEXT_TIPS_0 = "Trinkegeld"
+BOOKING_TEXT_TIPS_0 = "Trinkgeld"
 BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
 BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
 BOOKING_TEXT_BANK = "an Bank"
@@ -137,18 +136,21 @@ def convert_number(value: str) -> Decimal:
 
 
 def parse_date(value: Any) -> str:
+    """Normalize dates to Agenda format ``DD.MM.YYYY``."""
     if value is None:
         return ""
     if isinstance(value, datetime):
-        return value.date().isoformat()
+        return value.strftime("%d.%m.%Y")
+    if isinstance(value, date):
+        return value.strftime("%d.%m.%Y")
 
     text = str(value).strip()
     if text == "":
         return ""
 
-    for fmt in ("%d.%m.%Y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
+    for fmt in ("%d.%m.%Y", "%d.%m.%y", "%Y-%m-%d", "%d/%m/%Y", "%m/%d/%Y", "%Y/%m/%d"):
         try:
-            return datetime.strptime(text, fmt).date().isoformat()
+            return datetime.strptime(text, fmt).strftime("%d.%m.%Y")
         except ValueError:
             pass
 
@@ -553,7 +555,7 @@ def _write_rows_sheet(workbook, rows: Iterable[BuchungRow], sheet_name: str) -> 
                 float(row.umsatz_euro),
                 row.bu_gkto,
                 row.beleg_1,
-                row.datum,
+                row.datum if not row.datum else parse_date(row.datum),
                 row.kost_1,
                 row.bank,
                 row.buchungstext,
