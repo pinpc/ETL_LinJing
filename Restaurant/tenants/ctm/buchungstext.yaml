@@ -1,11 +1,13 @@
 # Buchungstext-Regeln für CTM Cloud Terminology Management GmbH
 # pattern: Regex auf Buchungstext (case-insensitiv) — einfache Anführungszeichen verwenden!
-# gegenkonto:  Kontierungsnummer
-# kuerzel:     Kurztext im Final-Sheet (Platzhalter: {MM.YYYY} {MM YYYY} {MM} {YYYY})
+# gegenkonto:  Kontierungsnummer (ZE / Fallback)
+# gegenkonto_s: BU bei negativem Umsatz (optional, z. B. 70401 statt 10401)
+# kuerzel:     Kurztext im Final-Sheet (Platzhalter: {MM.YYYY} {MM YYYY} {MM} {YYYY} {Q})
 # no_prefix:   true  → kein ZA-/ZE-Präfix
-# beleg1:      "" = leer | "~auszug" = Auszugnummer | sonst: fester Wert
-# split_re:    true → RE-Nummern splitten; invoice_dir optional
+# beleg1:      "" = leer | "~auszug" | "~mm" | sonst: fester Wert
+# split_re:    true → RE-Nummern splitten; Beträge aus Rechnungs-PDFs (kein Hardcode)
 #              (fehlt/ "~source" → parent von source_dir, z. B. Fibu-Monatsordner)
+# amount_formula: kst | soli → KSt + 5,5 % SolZ aus Zahlbetrag
 rules:
   - pattern: 'Nürnberger Lebensversicherung|NLV LEBENSVERS'
     gegenkonto: "1748"
@@ -14,17 +16,26 @@ rules:
     beleg1: ""
 
   - pattern: 'D\.O\.G\. HOLDING|HOLDING GMBH'
-    gegenkonto: "10401"
+    gegenkonto: "10404"
     kuerzel: "D.O.G. Holding GmbH"
 
   - pattern: 'D\.O\.G\.|DOG.*Dokumentation'
     gegenkonto: "10401"
+    gegenkonto_s: "70401"
     kuerzel: "D.O.G. Dokument GmbH"
     split_re: true
 
   - pattern: 'Telekom.*Mobilfunk|Mobilfunk Kundenkonto|Telekom Deutschland'
     gegenkonto: "71904"
     kuerzel: "Telekom Deutschland"
+
+  - pattern: 'Klarna.*FROG|Purchase at FROG'
+    gegenkonto: "1610"
+    kuerzel: "FROG.passion"
+
+  - pattern: 'Klarna.*Kaufland|Purchase at Kaufland'
+    gegenkonto: "1610"
+    kuerzel: "Kaufland"
 
   - pattern: 'Klarna'
     gegenkonto: "70105"
@@ -33,6 +44,23 @@ rules:
   - pattern: 'STRATO'
     gegenkonto: "70104"
     kuerzel: "Strato GmbH"
+
+  - pattern: 'KOERPST|K[oö]rperschaft'
+    gegenkonto: "2200"
+    kuerzel: "KST VZ Q {Q} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+    fixed_split:
+      - gegenkonto: "2200"
+        kuerzel: "KST VZ Q {Q} {YYYY}"
+        amount_formula: kst
+        no_prefix: true
+        beleg1: ""
+      - gegenkonto: "2208"
+        kuerzel: "Solizu KST VZ Q {Q} {YYYY}"
+        amount_formula: soli
+        no_prefix: true
+        beleg1: ""
 
   - pattern: 'Finanzamt.*LOHNST|LOHNST.*Finanzamt|070/050'
     gegenkonto: "1741"
@@ -67,6 +95,11 @@ rules:
     kuerzel: "VL {MM} {YYYY}"
     no_prefix: true
     beleg1: "~auszug"
+
+  - pattern: '\bVL\s+20\d{2}\b|\bVWL\s+20\d{2}\b'
+    gegenkonto: "1750"
+    kuerzel: "VWL {YYYY}"
+    no_prefix: true
 
   - pattern: 'Ping Zhou'
     gegenkonto: "80500"
@@ -153,3 +186,15 @@ rules:
   - pattern: 'NeS GmbH'
     gegenkonto: "71400"
     kuerzel: "NeS GmbH"
+
+  - pattern: 'Litkiewicz'
+    gegenkonto: "71202"
+    kuerzel: "Litkiewicz"
+
+  - pattern: 'Tchibo'
+    gegenkonto: "1610"
+    kuerzel: "Tchibo"
+
+  - pattern: 'Bundesanzeiger'
+    gegenkonto: "70205"
+    kuerzel: "Bundesanzeiger Verlag"

@@ -34,6 +34,20 @@ _RE_TX = re.compile(
     r"\s*$"
 )
 
+# OCR: "2 4.06.2026Überweisung" → "24.06.2026 Überweisung"
+_RE_OCR_SPLIT_DATE = re.compile(r"^(\d)\s+(\d\.\d{2}\.\d{4})(\s*)(.*)$")
+
+
+def _normalize_ocr_line(line: str) -> str:
+    """Fügt zerlegte Tagesziffern wieder zusammen und trennt den Vorgang."""
+    m = _RE_OCR_SPLIT_DATE.match(line)
+    if not m:
+        return line
+    rest = m.group(4)
+    if rest:
+        return f"{m.group(1)}{m.group(2)} {rest}"
+    return f"{m.group(1)}{m.group(2)}"
+
 _RE_KONTOSTAND = re.compile(
     r"^Kontostand\s+am\b|^Gesamtumsatzsummen|^Anzahl\s+Anlagen|"
     r"^Der\s+Kontostand|^Datum\s+Erl|"
@@ -132,7 +146,7 @@ def parse_pdf(pdf_path: str | Path) -> list[KskTransaction]:
                 text = page.extract_text() or ""
                 page_lines = text.split("\n")
                 for line in page_lines:
-                    stripped = line.strip()
+                    stripped = _normalize_ocr_line(line.strip())
                     if _RE_SECTION_SKIP.match(stripped):
                         in_appendix = True
                     if in_appendix:

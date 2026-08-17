@@ -33,6 +33,9 @@ CTM = TenantBaseline(
         "EXTRA in IST: BU=1740 B2=4 | F. Massion 04 2026",
         # RE 006/007-PDFs fehlen lokal → kein Invoice-Split
         "Umsatz: SOLL=8975.58 IST=14547.76 | ZE-D.O.G. Dokument GmbH",
+        # Klarna Kaufland.de: Agenda 04 noch Avesol 70105; IST 1610 wie Agenda 06 / Rechnungen
+        "FEHLT in IST: BU=70105 B2=4 | ZA-Avesol GmbH",
+        "EXTRA in IST: BU=1610 B2=4 | ZA-Kaufland",
     }),
 )
 

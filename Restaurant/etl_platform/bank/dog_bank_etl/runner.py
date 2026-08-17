@@ -6,7 +6,7 @@ import logging
 import re
 from dataclasses import dataclass, field
 from datetime import date
-from decimal import Decimal
+from decimal import ROUND_HALF_UP, Decimal
 from pathlib import Path
 
 import yaml
@@ -36,6 +36,7 @@ class FixedSplitRow:
     use_tx_betrag: bool = True
     betrag: Decimal | None = None
     amount_regex: list[str] = field(default_factory=list)
+    amount_formula: str = ""  # "kst" | "soli" (KSt + 5,5 % SolZ, keine festen Beträge)
     beleg1: str = ""
     no_prefix: bool = False
 
@@ -46,6 +47,7 @@ class BuchungstextRule:
     pattern: re.Pattern[str]
     gegenkonto: str
     kuerzel: str              # Anzeigename / Kürzel im Buchungstext (optional)
+    gegenkonto_s: str = ""    # optional: BU bei negativem Umsatz (z. B. 70401 statt 10401)
     beleg1: str | None = None # None = auto, "" = leer, "~auszug" = Auszugnummer
     no_prefix: bool = False   # True: kein ZA-/ZE-Präfix im Final-Sheet
     split_re: bool = False    # True: RE NNN/YYYY-Nummern als separate Final-Zeilen
@@ -73,6 +75,17 @@ _RE_TEUR = re.compile(r"(\d+)\s*TEUR", re.IGNORECASE)
 
 def _parse_fixed_split_entry(fs: dict) -> FixedSplitRow:
     """Parst einen fixed_split-Eintrag aus buchungstext.yaml."""
+    formula = str(fs.get("amount_formula", "")).strip()
+    if formula:
+        return FixedSplitRow(
+            gegenkonto=str(fs.get("gegenkonto", "")),
+            kuerzel=str(fs.get("kuerzel", "")),
+            use_tx_betrag=False,
+            betrag=None,
+            amount_formula=formula,
+            beleg1=str(fs.get("beleg1", "")),
+            no_prefix=bool(fs.get("no_prefix", False)),
+        )
     amount_regex_raw = fs.get("amount_regex")
     if amount_regex_raw:
         amount_regex = (
@@ -121,6 +134,7 @@ def _load_rules(buchungstext_yaml: Path) -> list[BuchungstextRule]:
         rules.append(BuchungstextRule(
             pattern=re.compile(pattern_str, re.IGNORECASE | re.DOTALL),
             gegenkonto=str(entry.get("gegenkonto", "")),
+            gegenkonto_s=str(entry.get("gegenkonto_s", "") or ""),
             kuerzel=str(entry.get("kuerzel", "")),
             beleg1=str(beleg1_val) if beleg1_val is not None else None,
             no_prefix=bool(entry.get("no_prefix", False)),
@@ -163,6 +177,26 @@ def load_tenant_config(tenant_dir: str | Path) -> DogTenantConfig:
 # Gegenkonto-Lookup und Buchungstext-Aufbereitung
 # ---------------------------------------------------------------------------
 
+_SOLI_ON_KST = Decimal("1.055")  # KSt + gesetzl. SolZ 5,5 %
+
+
+def _rule_gegenkonto(rule: BuchungstextRule | None, tx: KskTransaction) -> str:
+    if rule is None:
+        return ""
+    if tx.betrag < 0 and rule.gegenkonto_s:
+        return rule.gegenkonto_s
+    return rule.gegenkonto
+
+
+def _kst_soli_amounts(tx_betrag: Decimal) -> tuple[Decimal, Decimal]:
+    """KSt und SolZ 5,5 % aus dem Zahlbetrag (Vorzeichen wie Bankzeile)."""
+    sign = Decimal(-1) if tx_betrag < 0 else Decimal(1)
+    total = abs(tx_betrag)
+    kst = (total / _SOLI_ON_KST).quantize(Decimal("0.01"), rounding=ROUND_HALF_UP)
+    soli = total - kst
+    return sign * kst, sign * soli
+
+
 def _extract_amount_from_text(text: str, patterns: list[str]) -> Decimal | None:
     """Summiert Beträge aus Buchungstext (Regex-Gruppe 1 je Pattern, oder TEUR-Muster)."""
     total = Decimal("0")
@@ -182,6 +216,13 @@ def _extract_amount_from_text(text: str, patterns: list[str]) -> Decimal | None:
 
 def _fixed_split_umsatz(fs: FixedSplitRow, tx: KskTransaction) -> Decimal | None:
     """Ermittelt Umsatz für eine fixed_split-Zeile."""
+    if fs.amount_formula:
+        kst, soli = _kst_soli_amounts(tx.betrag)
+        if fs.amount_formula == "kst":
+            return kst
+        if fs.amount_formula == "soli":
+            return soli
+        return None
     if fs.amount_regex:
         amt = _extract_amount_from_text(tx.buchungstext, fs.amount_regex)
         if amt is None:
@@ -241,6 +282,12 @@ def _apply_fixed_split(
                 cfg.display_name, fs.amount_regex,
             )
             return None
+        if fs.amount_formula and row_umsatz is None:
+            logger.warning(
+                "[%s] Split übersprungen – unbekannte amount_formula: %s",
+                cfg.display_name, fs.amount_formula,
+            )
+            return None
         split_rows.append((fs, row_umsatz))
     return [
         _final_row(
@@ -282,16 +329,30 @@ def _apply_split_re(
     resolved = [(ref, *lookup_invoice(ref, invoice_dir)) for ref in split_refs]
     missing = [ref for ref, amt, _ in resolved if not amt]
     if missing:
-        logger.warning(
-            "[%s] Split übersprungen – Rechnungen nicht gefunden: %s",
-            cfg.display_name, ", ".join(missing),
-        )
-        return None
+        found_sum = sum((amt for _ref, amt, _dt in resolved if amt), Decimal("0"))
+        remainder = abs(tx.betrag) - found_sum
+        if len(missing) == 1 and remainder > 0:
+            miss = missing[0]
+            resolved = [
+                (ref, remainder if ref == miss else amt, dt)
+                for ref, amt, dt in resolved
+            ]
+            logger.info(
+                "[%s] Split: Restbetrag %s der fehlenden Rechnung %s zugeordnet",
+                cfg.display_name, remainder, miss,
+            )
+        else:
+            logger.warning(
+                "[%s] Split übersprungen – Rechnungen nicht gefunden: %s",
+                cfg.display_name, ", ".join(missing),
+            )
+            return None
+    bu = _rule_gegenkonto(rule, tx)
     return [
         _final_row(
             tx, cfg,
             umsatz=sign * inv_betrag,
-            bu_gkto=rule.gegenkonto,
+            bu_gkto=bu,
             beleg1_auto=beleg1_auto,
             beleg1_final=ref,
             bt_full=bt_full,
@@ -357,6 +418,18 @@ _MON_ABBR_TO_MM = {
     "MAI": "05", "JUN": "06", "JUL": "07", "AUG": "08", "SEP": "09",
     "OKT": "10", "NOV": "11", "DEZ": "12",
 }
+# Körperschaftsteuer-Vorauszahlung: "2VJ.26" → Quartal 2, Jahr 2026
+_RE_VJ = re.compile(r"\b(\d)\s*VJ\.(\d{2})\b", re.IGNORECASE)
+# VL/VWL-Jahr im Text, z. B. "VL 2025 Rückzahlung"
+_RE_VL_YYYY = re.compile(r"\b(?:VL|VWL)\s+(20\d{2})\b", re.IGNORECASE)
+
+
+def _extract_vj_q_yyyy(buchungstext: str) -> tuple[str, str] | None:
+    """Vorauszahlungs-Quartal und Jahr aus z. B. KOERPST 2VJ.26."""
+    m = _RE_VJ.search(buchungstext)
+    if not m:
+        return None
+    return m.group(1), f"20{m.group(2)}"
 
 
 def _extract_period_mm_yyyy(buchungstext: str) -> tuple[str, str] | None:
@@ -415,6 +488,13 @@ def _resolve_placeholders(
         else:
             mm = yyyy = ""
     quarter = str((int(mm) - 1) // 3 + 1) if mm.isdigit() else ""
+    vj = _extract_vj_q_yyyy(buchungstext)
+    if vj and "{Q}" in kuerzel:
+        quarter, yyyy = vj
+    elif "{YYYY}" in kuerzel and "{MM}" not in kuerzel and "{Q}" not in kuerzel:
+        vl = _RE_VL_YYYY.search(buchungstext)
+        if vl:
+            yyyy = vl.group(1)
     return (
         kuerzel
         .replace("{MM.YYYY}", f"{mm}.{yyyy}")
@@ -429,22 +509,30 @@ def _resolve_placeholders(
 # Split-Referenz-Extraktion: RE NNN/YYYY  oder  JJJJ-NNN[+NNN…]
 _RE_SPLIT_AFTER_RE  = re.compile(r"\bRE\b(.*)", re.DOTALL | re.IGNORECASE)
 _RE_SPLIT_NNN_YYYY  = re.compile(r"\b(\d{3}/\d{4})\b")    # 006/2026
+# 010+011/2026 (gemeinsames Jahr hinter der letzten Nummer)
+_RE_SPLIT_NNN_PLUS_YYYY = re.compile(r"\b((?:\d{3}\+)+\d{3})/(\d{4})\b")
 # Erkennt "2026-008" allein oder "2026-008+011" (mehrere mit gemeinsamem Jahres-Prefix)
 _RE_SPLIT_JJJJ_NNN  = re.compile(r"\b(20\d{2})-(\d{3})((?:\+\d{3})*)\b")
+# OCR: "20 26-004" → "2026-004"
+_RE_OCR_YEAR_SPACE = re.compile(r"\b(20)\s+(\d{2}-\d{3})\b")
 
 
 def _extract_split_refs(buchungstext: str) -> list[str]:
     """Gibt alle Split-Rechnungsnummern zurück.
-    Erkennt NNN/YYYY (nach 'RE') und JJJJ-NNN (z.B. 2026-008 oder 2026-008+011)."""
-    # RE NNN/YYYY: nur nach dem Schlüsselwort "RE" suchen
-    m = _RE_SPLIT_AFTER_RE.search(buchungstext)
+    Erkennt NNN/YYYY (nach 'RE'), NNN+NNN/YYYY und JJJJ-NNN."""
+    text = _RE_OCR_YEAR_SPACE.sub(r"\1\2", buchungstext)
+    m = _RE_SPLIT_AFTER_RE.search(text)
     if m:
-        refs = _RE_SPLIT_NNN_YYYY.findall(m.group(1))
+        after = m.group(1)
+        plus = _RE_SPLIT_NNN_PLUS_YYYY.search(after)
+        if plus:
+            nums, year = plus.group(1), plus.group(2)
+            return [f"{n}/{year}" for n in nums.split("+")]
+        refs = _RE_SPLIT_NNN_YYYY.findall(after)
         if refs:
             return refs
-    # JJJJ-NNN[+NNN…]: Jahres-Prefix + erste Nummer + optionale Folgennummern
     refs: list[str] = []
-    for m in _RE_SPLIT_JJJJ_NNN.finditer(buchungstext):
+    for m in _RE_SPLIT_JJJJ_NNN.finditer(text):
         year, first, rest = m.group(1), m.group(2), m.group(3)
         refs.append(f"{year}-{first}")
         for extra in re.findall(r"\d{3}", rest):
@@ -456,11 +544,13 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 # 1. RE NNN/YYYY oder RE NNN-YYYY → "006/2026"
 # 2. JJJJ-NNN           → "2026-008"  (Ping Zhou, Jahresformat)
 # 3. ReNr/RNR/Re-Nr     → alphanumerische Rechnungsnummern ("AR26-391", "2026-008")
-# 4. RGN (Vodafone)     → Rechnungsnummer aus "RGN 00229874854 1"
-# 5. RG                 → "RG20260005566710"
-# 6. DRP                → sechsstellige KSK-Referenz
-# 7. Kd.-Nr./KdNr.      → Kundennummer
-# 8. erste lange Zahl   → Fallback (6–15 Stellen)
+# 4. RG + lange Zahl    → Telekom-Rechnungsnr. (vor Kd-Nr.)
+# 5. RGN (Vodafone)     → Rechnungsnummer aus "RGN 00229874854 1"
+# 6. RG20…              → "RG20260005566710"
+# 7. DRP                → "DRP" + Ziffern (Agenda)
+# 8. VL/VWL + Jahr      → "VWL-2025"
+# 9. Kd.-Nr./KdNr.      → Kundennummer
+# 10. erste lange Zahl  → Fallback (6–15 Stellen)
 _RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+)/(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_RE_DASH  = re.compile(r"\bRE\s+(\d+)-(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
@@ -471,9 +561,11 @@ _RE_BELEG_RENR     = re.compile(
     re.IGNORECASE,
 )
 _RE_BELEG_RG_RE    = re.compile(r"\bRg\.?-?Nr\.?\s*(RE\d+)\b", re.IGNORECASE)
+_RE_BELEG_RG_NUM   = re.compile(r"\bRG\s+(\d{8,})\b", re.IGNORECASE)
 _RE_BELEG_RGN      = re.compile(r"\bRGN\s+0*(\d+)\s+(\d)\b", re.IGNORECASE)
 _RE_BELEG_RG       = re.compile(r"\bRG(20\d{10})\b", re.IGNORECASE)
-_RE_BELEG_DRP      = re.compile(r"\bDRP\s+(\d{6,12})")
+_RE_BELEG_DRP      = re.compile(r"\bDRP\s*(\d{6,12})", re.IGNORECASE)
+_RE_BELEG_VL       = re.compile(r"\bVL\s+(20\d{2})\b", re.IGNORECASE)
 _RE_BELEG_KDNR     = re.compile(r"\bKd\.?-?Nr\.?\s*(\d{5,})", re.IGNORECASE)
 _RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
 
@@ -490,12 +582,21 @@ def _extract_beleg1(buchungstext: str) -> str:
         return f"{m.group(1)}-{m.group(2)}"
     if m := _RE_BELEG_ANR.search(buchungstext):
         return f"{int(m.group(1)):09d}"
-    for pat in (_RE_BELEG_YEAR_NUM, _RE_BELEG_RENR, _RE_BELEG_DRP, _RE_BELEG_KDNR):
-        if m := pat.search(buchungstext):
-            return m.group(1)
+    if m := _RE_BELEG_YEAR_NUM.search(buchungstext):
+        return m.group(1)
+    if m := _RE_BELEG_RENR.search(buchungstext):
+        return m.group(1)
+    if m := _RE_BELEG_RG_NUM.search(buchungstext):
+        return m.group(1)
     if m := _RE_BELEG_RGN.search(buchungstext):
         return str(int(m.group(1))) + m.group(2)
     if m := _RE_BELEG_RG.search(buchungstext):
+        return m.group(1)
+    if m := _RE_BELEG_DRP.search(buchungstext):
+        return f"DRP{m.group(1)}"
+    if m := _RE_BELEG_VL.search(buchungstext):
+        return f"VWL-{m.group(1)}"
+    if m := _RE_BELEG_KDNR.search(buchungstext):
         return m.group(1)
     if m := _RE_BELEG_REF.search(buchungstext):
         return str(int(m.group(1)))
@@ -601,7 +702,7 @@ def run(tenant_dir: str | Path) -> Path:
         # ---- Kontoauszug-Sheet: immer 1:1, unveraendert ----
         konto_rows.append(ExportRow(
             umsatz=tx.betrag,
-            bu_gkto=rule.gegenkonto if rule else "",
+            bu_gkto=_rule_gegenkonto(rule, tx) if rule else "",
             beleg1=beleg1_auto,
             beleg1_final=beleg1_final,
             beleg2=tx.auszug_nr,

@@ -18,6 +18,7 @@ import pdfplumber
 _RE_BRUTTO = re.compile(
     r"(?:Gesamt\s*\(Brutto\)\s*/?\s*)?Rechnungsbetrag\s+([\d.,]+)"
     r"|Gesamt\s*\(Brutto\)[:\s]+([\d.,]+)"   # "Gesamt (Brutto): 303,45 €"
+    r"|Rechnungsendbetrag[:\s]+([\d.,]+)"    # DOG-Ausgangsrechnung
 )
 # "Rechnungsdatum" kann als Spaltenheader oder mit Doppelpunkt stehen
 _RE_RECHNUNG_DATUM = re.compile(
@@ -26,6 +27,7 @@ _RE_RECHNUNG_DATUM = re.compile(
 )
 _RE_REF_NNN_YYYY  = re.compile(r"^(\d+)/(\d{4})$")       # "006/2026"
 _RE_REF_JJJJ_NNN = re.compile(r"^(20\d{2}-\d{3})$")     # "2026-008"
+_RE_FIBU_MONTH = re.compile(r"Fibu\s+(\d{1,2})\s+(20\d{2})", re.IGNORECASE)
 
 
 def _parse_german_decimal(s: str) -> Decimal:
@@ -33,22 +35,70 @@ def _parse_german_decimal(s: str) -> Decimal:
     return Decimal(s.replace(".", "").replace(",", "."))
 
 
+def _invoice_glob(ref: str, search_dir: Path) -> Path | None:
+    """Eine Suche in search_dir; None wenn Ordner fehlt oder kein Treffer."""
+    if not search_dir.exists():
+        return None
+    ref = ref.strip()
+    m = _RE_REF_NNN_YYYY.match(ref)
+    if m:
+        nr, year = m.group(1), m.group(2)
+        hits = sorted(search_dir.rglob(f"RE {nr}-{year}*.pdf"))
+        return hits[0] if hits else None
+    m = _RE_REF_JJJJ_NNN.match(ref)
+    if m:
+        hits = sorted(search_dir.rglob(f"*{ref}*.pdf"))
+        return hits[0] if hits else None
+    return None
+
+
+def _fibu_search_dirs(search_dir: Path) -> list[Path]:
+    """Aktueller Fibu-Ordner plus vorherige Monate (ohne Parent-Listing)."""
+    dirs: list[Path] = []
+    seen: set[str] = set()
+
+    def add(path: Path) -> None:
+        key = str(path).lower()
+        if key not in seen:
+            seen.add(key)
+            dirs.append(path)
+
+    add(search_dir)
+    fibu = None
+    if _RE_FIBU_MONTH.search(search_dir.name):
+        fibu = search_dir
+    elif _RE_FIBU_MONTH.search(search_dir.parent.name):
+        fibu = search_dir.parent
+        add(fibu)
+    if fibu is None:
+        return dirs
+    m = _RE_FIBU_MONTH.search(fibu.name)
+    mm, yyyy = int(m.group(1)), int(m.group(2))
+    parent = fibu.parent
+    for delta in range(1, 7):
+        month = mm - delta
+        year = yyyy
+        if month <= 0:
+            month += 12
+            year -= 1
+        for cand in (parent / f"Fibu {month:02d} {year}", parent / f"Fibu {month} {year}"):
+            if cand.exists():
+                add(cand)
+    return dirs
+
+
 def find_invoice_pdf(ref: str, search_dir: Path) -> Path | None:
     """Findet PDF rekursiv in search_dir passend zur Rechnungsnummer.
 
     NNN/YYYY  → sucht 'RE NNN-YYYY*.pdf'   (z. B. 006/2026 → RE 006-2026*.pdf)
     JJJJ-NNN  → sucht '*JJJJ-NNN*.pdf'    (z. B. 2026-008 → *2026-008*.pdf)
+
+    Zusätzlich: vorherige Fibu-Monate desselben Mandanten (Zahlung oft später).
     """
-    ref = ref.strip()
-    m = _RE_REF_NNN_YYYY.match(ref)
-    if m:
-        nr, year = m.group(1), m.group(2)
-        hits = list(search_dir.rglob(f"RE {nr}-{year}*.pdf"))
-        return hits[0] if hits else None
-    m = _RE_REF_JJJJ_NNN.match(ref)
-    if m:
-        hits = list(search_dir.rglob(f"*{ref}*.pdf"))
-        return hits[0] if hits else None
+    for folder in _fibu_search_dirs(search_dir):
+        hit = _invoice_glob(ref, folder)
+        if hit is not None:
+            return hit
     return None
 
 
@@ -61,7 +111,7 @@ def read_invoice_pdf(pdf_path: Path) -> tuple[Decimal, date | None]:
 
     # Betrag
     m = _RE_BRUTTO.search(text)
-    raw_amt = (m.group(1) or m.group(2)) if m else None
+    raw_amt = next((g for g in m.groups() if g), None) if m else None
     betrag = _parse_german_decimal(raw_amt) if raw_amt else Decimal("0")
 
     # Datum (Gruppe 1 = gleiche Zeile, Gruppe 2 = nächste Zeile)
