@@ -14,7 +14,18 @@ SHEET_WOLT = "Wolt"
 SHEET_ZHOU = "Zhou"
 
 
-def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) -> None:
+def beleg_month_from_rows(all_rows: list[tuple]) -> str:
+    """Beleg 1 = Monatsnummer aus erster Buchung (Agenda: 6 für Juni)."""
+    for _betrag, _bu, datum, _text in all_rows:
+        month = getattr(datum, "month", None)
+        if month:
+            return str(month)
+    return "1"
+
+
+def build_final_sheet(
+    wb: Workbook, bank: str, kost: str, rechnung_map: dict, beleg: str
+) -> None:
     ws_konto = wb["Kontoauszug"]
     ws_allo = wb["Allopay"]
 
@@ -170,14 +181,14 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) ->
                 write_row(
                     ws_final,
                     final_idx,
-                    [total_amount, "1360", "01", bu_tag, bank, kost, f"all0pay {ds_label}"],
+                    [total_amount, "1360", beleg, bu_tag, bank, kost, f"all0pay {ds_label}"],
                 )
                 final_running += total_amount
                 final_idx += 1
                 write_row(
                     ws_final,
                     final_idx,
-                    [total_fee, "4970", "01", bu_tag, bank, kost, f"all0pay Gebühr {ds_label}"],
+                    [total_fee, "4970", beleg, bu_tag, bank, kost, f"all0pay Gebühr {ds_label}"],
                 )
                 final_running += total_fee
                 final_idx += 1
@@ -200,7 +211,7 @@ def build_final_sheet(wb: Workbook, bank: str, kost: str, rechnung_map: dict) ->
                 expanded_rows = expand_transaction(tx, rechnung_map)
                 if len(expanded_rows) > 1:
                     for betrag2, bu2, datum2, txt2 in expanded_rows:
-                        write_row(ws_final, final_idx, [betrag2, bu2, "01", datum2, bank, kost, txt2])
+                        write_row(ws_final, final_idx, [betrag2, bu2, beleg, datum2, bank, kost, txt2])
                         final_running += betrag2
                         final_idx += 1
                     continue
@@ -394,7 +405,10 @@ def build_workbook(
     rechnung_map: dict,
     wolt_audit: list | None = None,
     zhou_audit: list | None = None,
+    beleg: str | None = None,
 ) -> tuple[int, float]:
+    beleg = beleg or beleg_month_from_rows(all_rows)
+
     def thin():
         t = Side(style="thin", color="CCCCCC")
         return Border(left=t, right=t, top=t, bottom=t)
@@ -420,7 +434,7 @@ def build_workbook(
 
     running = 0.0
     for i, (betrag, bu, datum, text) in enumerate(all_rows, 2):
-        vals = [betrag, bu, "01", datum, bank, kost, text]
+        vals = [betrag, bu, beleg, datum, bank, kost, text]
         for col, (v, aln, fmt) in enumerate(zip(vals, ALNS, FMTS), 1):
             cell = ws.cell(row=i, column=col, value=v)
             cell.border = thin()
@@ -464,7 +478,7 @@ def build_workbook(
                 (round(-sr["fee"], 2), "4970", f"allO pay Gebühr {ds2}"),
             ]
             for betrag2, bu2, txt2 in pairs:
-                vals2 = [betrag2, bu2, "01", bu_tag, bank, kost, txt2]
+                vals2 = [betrag2, bu2, beleg, bu_tag, bank, kost, txt2]
                 for col, (v, aln, fmt) in enumerate(zip(vals2, ALNS, FMTS), 1):
                     cell = ws2.cell(row=row_idx, column=col, value=v)
                     cell.border = thin()
@@ -475,7 +489,7 @@ def build_workbook(
                 row_idx += 1
         print(f"   Sheet Allopay: {len(stripe_rows)} Stripe-Dateien -> {row_idx - 2} Zeilen")
 
-        build_final_sheet(wb, bank, kost, rechnung_map)
+        build_final_sheet(wb, bank, kost, rechnung_map, beleg)
 
     wb.save(output_path)
     return len(all_rows), round(running, 2)

@@ -9,7 +9,7 @@ _logging.silence_pdfminer()
 
 from .config import BANK, KOST
 from .expansion import single_row_from_statement
-from .excel_export import build_workbook
+from .excel_export import beleg_month_from_rows, build_workbook
 from .invoices import load_invoices, wolt_resolution_warning_lines, zhou_resolution_warning_lines
 from .sqlite_export import save_konto_jupiter
 from .statement import extract_statements
@@ -42,7 +42,7 @@ class JupiterBankETL:
             source_dir, self.rechnung_map, self.stripe_rows, self.wolt_audit, self.zhou_audit
         )
 
-    def build_excel(self, all_rows: list[tuple], output_path: str) -> tuple[int, float]:
+    def build_excel(self, all_rows: list[tuple], output_path: str, beleg: str) -> tuple[int, float]:
         return build_workbook(
             all_rows,
             output_path,
@@ -52,10 +52,11 @@ class JupiterBankETL:
             self.rechnung_map,
             self.wolt_audit,
             self.zhou_audit,
+            beleg=beleg,
         )
 
-    def save_sqlite(self, all_rows: list[tuple], db_path: str) -> None:
-        save_konto_jupiter(all_rows, db_path, self.bank, self.kost)
+    def save_sqlite(self, all_rows: list[tuple], db_path: str, beleg: str) -> None:
+        save_konto_jupiter(all_rows, db_path, self.bank, self.kost, beleg=beleg)
 
     def run(
         self,
@@ -108,10 +109,11 @@ class JupiterBankETL:
         for tx in self.transactions:
             self.all_rows.extend(single_row_from_statement(tx, self.rechnung_map))
 
-        count, total = self.build_excel(self.all_rows, output_path)
+        beleg = beleg_month_from_rows(self.all_rows)
+        count, total = self.build_excel(self.all_rows, output_path, beleg)
 
         if sqlite_path:
-            self.save_sqlite(self.all_rows, sqlite_path)
+            self.save_sqlite(self.all_rows, sqlite_path, beleg)
 
         print(f"\n{'=' * 60}")
         print(f"OK: {count} Zeilen -> {os.path.basename(output_path)}")

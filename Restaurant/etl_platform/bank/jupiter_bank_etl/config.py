@@ -20,7 +20,7 @@ FIBU_RULES = [
     (re.compile(r"EINZAHLUNG|Einzahlung|GS Schwangau|Kontoauszug Nr", re.I), "H", "1360", "von Kasse"),
     (re.compile(r"Ling\s+Jin.*Ausleihen|Ausleihen.*Ling\s+Jin", re.I), "H", "1890", "Ling Jin Ausleihen"),
     (re.compile(r"Ling\s+Jin.*Ausleihen|Ausleihen.*Ling\s+Jin", re.I), "S", "1890", "Ling Jin Ausleihen"),
-    (re.compile(r"Vodafone", re.I), "S", "904920", "Vodafone Internet"),
+    (re.compile(r"Vodafone", re.I), "S", "904925", "Vodafone Internet"),
     (re.compile(r"CHECK24 Vergleichsportal", re.I), "H", "1890", "CHECK24 Private"),
     (re.compile(r"CHECK24 Vergleichsportal", re.I), "S", "1800", "CHECK24 Private"),
     (
@@ -34,6 +34,8 @@ FIBU_RULES = [
     (re.compile(r"meistro.*65741", re.I), "S", "904240", "meistro Energie Strom"),
     (re.compile(r"meistro", re.I), "S", "904240", "meistro Energie"),
     (re.compile(r"ORIENT\s+SHOP\s+TRINH", re.I), "S", "3300", "ORIENT SHOP WE 7%"),
+    (re.compile(r"Weingut\s+Beck|Hedesheimer", re.I), "S", "3400", "Weingut Beck Hedesheimer Hof WE 19 %"),
+    (re.compile(r"\bADSA\b", re.I), "S", "480", "ADSA"),
     (re.compile(r"HAMBERGER|Grossmarkt", re.I), "S", "3300", "HAMBERGER Wareneinkauf"),
     (re.compile(r"METRO SAGT DANKE|METRO DEUTSCHLAND", re.I), "S", "3300", "Metro WE7%"),
     (re.compile(r"Paulaner", re.I), "S", "3400", "Paulaner Getränke"),
@@ -52,6 +54,7 @@ FIBU_RULES = [
     (re.compile(r"AVIA|Tankstelle", re.I), "S", "904530", "Avia Tanken"),
     (re.compile(r"JET OLV|PAYONE", re.I), "S", "904530", "JET Tanken"),
     (re.compile(r"V-MARKT TANKA FUS", re.I), "S", "904530", "V-MARKT Tanken"),
+    (re.compile(r"\bShell\b", re.I), "S", "904530", "Shell Tanken"),
     (re.compile(r"AOK[-\\s]?Bayern", re.I), "S", "1743", "AOK Bayern Beitrag"),
     (re.compile(r"AOK[-\\s]?Bayern", re.I), "H", "1743", "AOK Bayern Beitrag"),
     (

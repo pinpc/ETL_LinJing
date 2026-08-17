@@ -7,11 +7,14 @@ from .config import SQLITE_TABLE_KONTO
 from .utils import datum_iso
 
 
-def save_konto_jupiter(all_rows: list[tuple], db_path: str, bank: str, kost: str) -> None:
+def save_konto_jupiter(
+    all_rows: list[tuple], db_path: str, bank: str, kost: str, beleg: str | None = None
+) -> None:
     db_path = os.path.normpath(db_path)
     db_dir = os.path.dirname(db_path)
     if db_dir:
         os.makedirs(db_dir, exist_ok=True)
+    beleg_1 = beleg or "1"
     conn = sqlite3.connect(db_path)
     try:
         conn.execute(
@@ -27,7 +30,7 @@ def save_konto_jupiter(all_rows: list[tuple], db_path: str, bank: str, kost: str
         )
         conn.execute(f"DELETE FROM {SQLITE_TABLE_KONTO}")
         rows = [
-            (betrag, bu or "", "01", datum_iso(datum), bank, kost, text or "")
+            (betrag, bu or "", beleg_1, datum_iso(datum), bank, kost, text or "")
             for betrag, bu, datum, text in all_rows
         ]
         conn.executemany(

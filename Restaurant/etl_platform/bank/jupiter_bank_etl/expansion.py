@@ -55,10 +55,9 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
             rows.append((round(rabatt, 2), "8780", datum, f"Wolt Rabatt 7 % {tf}"))
         if provision:
             rows.append((round(provision, 2), "804760", datum, f"Wolt Provision 7 % {tf}"))
-        if provision19:
-            rows.append((round(provision19, 2), "804760", datum, f"Wolt Provision 19 % {tf}"))
-        if gebühr:
-            rows.append((round(-gebühr, 2), "904760", datum, f"Wolt Gebühr 19% {tf}"))
+        cost19 = round(provision19 - gebühr, 2)
+        if cost19:
+            rows.append((cost19, "904760", datum, f"Wolt Provision 19 % {tf}"))
         return rows if rows else [(betrag, "8300", datum, f"Wolt {tf}")]
 
     if key in rechnung_map and rechnung_map[key][0] == "ZHOU_SPLIT":
@@ -66,15 +65,13 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
         parts = data.split("|")
         we7 = float(parts[0])
         we19 = float(parts[1]) if len(parts) > 1 else 0.0
-        ref = parts[2] if len(parts) > 2 else ""
-        label_suffix = ref if ref else ""
         if abs(round(we7 + we19, 2) - key) > 0.05:
             return [(betrag, "3300", datum, "Zhou Wareneinkauf")]
         rows = []
         if we7:
-            rows.append((round(-we7, 2), "3300", datum, f"Zhou 7 % {label_suffix}".strip()))
+            rows.append((round(-we7, 2), "3300", datum, "Zhou WE 7 %"))
         if we19:
-            rows.append((round(-we19, 2), "3400", datum, f"Zhou 19 % {label_suffix}".strip()))
+            rows.append((round(-we19, 2), "3400", datum, "Zhou WE 19 %"))
         return rows if rows else [(betrag, "3300", datum, "Zhou Wareneinkauf")]
 
     if key in rechnung_map and rechnung_map[key][0] == "HAMBERGER_SPLIT":
@@ -82,15 +79,21 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
         parts = data.split("|")
         we7 = float(parts[0])
         we19 = float(parts[1])
-        ds = parts[2]
-        if abs(round(we7 + we19, 2) - key) > 0.02:
-            return [(betrag, "3300", datum, f"HAMBERGER Wareneinkauf {ds}")]
+        pack = float(parts[3]) if len(parts) > 3 else 0.0
+        clean = float(parts[4]) if len(parts) > 4 else 0.0
+        pack_label = parts[5] if len(parts) > 5 else "Menüschale"
+        if abs(round(we7 + we19 + pack + clean, 2) - key) > 0.02:
+            return [(betrag, "3300", datum, "HAMBERGER Wareneinkauf")]
         rows = []
-        if we7 > 0:
-            rows.append((round(-we7, 2), "3300", datum, f"HAMBERGER WE 7% {ds}"))
-        if we19 > 0:
-            rows.append((round(-we19, 2), "3400", datum, f"HAMBERGER WE 19% {ds}"))
-        return rows if rows else [(betrag, "3300", datum, f"HAMBERGER {ds}")]
+        if we7:
+            rows.append((round(-we7, 2), "3300", datum, "HAMBERGER WE 7%"))
+        if we19:
+            rows.append((round(-we19, 2), "3400", datum, "HAMBERGER WE 19%"))
+        if pack:
+            rows.append((round(-pack, 2), "904710", datum, f"HAMBERGER {pack_label}"))
+        if clean:
+            rows.append((round(-clean, 2), "904250", datum, "HAMBERGER Reinigung"))
+        return rows if rows else [(betrag, "3300", datum, "HAMBERGER Wareneinkauf")]
 
     if key in rechnung_map and rechnung_map[key][0] == "UBER_SPLIT":
         _, data = rechnung_map[key]

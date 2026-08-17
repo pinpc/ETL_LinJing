@@ -28,15 +28,83 @@ def _wolt_probe_summe(
     return round(umsatz + rabatt + provision + provision19 - gebühr, 2)
 
 
+_RE_HAM_VAT7 = re.compile(
+    r"7,00\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+"
+    r"[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+([\d.]+,\d{2}-?)"
+)
+_RE_HAM_VAT19 = re.compile(
+    r"19,00\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+"
+    r"[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+([\d.]+,\d{2}-?)"
+)
+_RE_HAM_ITEM = re.compile(r"([\d.]+,\d{2}-?)\s+([12])\s+(\d+)\s*[A-Za-z]?\s*$")
+_RE_HAM_HEADER_LETTERS = re.compile(r"[^A-Za-zÄÖÜäöü]")
+
+
+def _signed_de_amount(raw: str) -> float:
+    text = raw.strip()
+    negative = text.endswith("-")
+    if negative:
+        text = text[:-1]
+    value = de_float(text)
+    return -value if negative else value
+
+
+def _undouble_header(line: str) -> str | None:
+    letters = _RE_HAM_HEADER_LETTERS.sub("", line)
+    if len(letters) < 8 or len(letters) % 2:
+        return None
+    if not all(letters[i] == letters[i + 1] for i in range(0, len(letters) - 1, 2)):
+        return None
+    out: list[str] = []
+    i = 0
+    while i < len(line):
+        if i + 1 < len(line) and line[i] == line[i + 1]:
+            out.append(line[i])
+            i += 2
+        else:
+            out.append(line[i])
+            i += 1
+    return "".join(out).strip()
+
+
+def _hamberger_19_bucket(header: str, article: str) -> str:
+    h = header.lower()
+    a = article.lower()
+    if any(
+        token in h
+        for token in (
+            "wasch",
+            "putz",
+            "pflege",
+            "geschirr",
+            "küchentuch",
+            "kuchentuch",
+            "toiletten",
+            "kosmetik",
+            "bürste",
+            "burste",
+            "besen",
+        )
+    ):
+        return "clean"
+    if "einweg" in h or any(
+        token in a for token in ("menue", "menü", "hamburgerbox", "verpackung", "becher", "deckel", "serviette")
+    ):
+        return "pack"
+    return "we19"
+
+
+def _hamberger_pack_label(articles: list[str]) -> str:
+    blob = " ".join(articles).lower()
+    if any(token in blob for token in ("menue", "menü", "hamburgerbox")):
+        return "Menüschale"
+    return "Verpackungsmaterial"
+
+
 def _parse_hamberger(filepath: str, rm: dict) -> None:
     try:
         with pdfplumber.open(filepath) as pdf:
-            txt = ""
-            for page in reversed(pdf.pages):
-                t = page.extract_text() or ""
-                if t.strip():
-                    txt = t
-                    break
+            txt = "\n".join((page.extract_text() or "") for page in pdf.pages)
     except Exception:
         return
 
@@ -48,31 +116,54 @@ def _parse_hamberger(filepath: str, rm: dict) -> None:
 
     we7 = we19 = 0.0
     for line in txt.split("\n"):
-        m7 = re.search(
-            r"7,00\s+[\d.]+,\d{2}\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+"
-            r"([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})",
-            line,
-        )
+        m7 = _RE_HAM_VAT7.search(line)
         if m7:
-            we7 = de_float(m7.group(3))
-
-        m19 = re.search(
-            r"19,00\s+[\d.]+,\d{2}\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+"
-            r"([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})",
-            line,
-        )
+            we7 = _signed_de_amount(m7.group(1))
+        m19 = _RE_HAM_VAT19.search(line)
         if m19:
-            we19 = de_float(m19.group(3))
+            we19 = _signed_de_amount(m19.group(1))
 
     gesamt = round(we7 + we19, 2)
-    if gesamt <= 0:
+    if gesamt == 0:
         return
 
-    key = gesamt
-    if we7 > 0 and we19 > 0:
-        rm[key] = ("HAMBERGER_SPLIT", f"{we7}|{we19}|{ds}")
-    elif we7 > 0:
-        rm[key] = ("HAMBERGER_SPLIT", f"{we7}|0|{ds}")
+    pack_net = 0.0
+    clean_net = 0.0
+    pack_articles: list[str] = []
+    header = ""
+    for line in txt.split("\n"):
+        stripped = line.strip()
+        undoubled = _undouble_header(stripped)
+        if undoubled:
+            header = undoubled
+            continue
+        item = _RE_HAM_ITEM.search(stripped)
+        if not item or item.group(2) != "2":
+            continue
+        net = _signed_de_amount(item.group(1))
+        bucket = _hamberger_19_bucket(header, stripped)
+        if bucket == "pack":
+            pack_net += net
+            pack_articles.append(stripped)
+        elif bucket == "clean":
+            clean_net += net
+
+    pack = round(pack_net * 1.19, 2) if pack_net else 0.0
+    clean = round(clean_net * 1.19, 2) if clean_net else 0.0
+    we19_rest = round(we19 - pack - clean, 2)
+    if abs(we19_rest) <= 0.02:
+        if clean:
+            clean = round(clean + we19_rest, 2)
+            we19_rest = 0.0
+        elif pack:
+            pack = round(pack + we19_rest, 2)
+            we19_rest = 0.0
+    pack_label = _hamberger_pack_label(pack_articles) if pack else "Menüschale"
+
+    rm[round(abs(gesamt), 2)] = (
+        "HAMBERGER_SPLIT",
+        f"{we7}|{we19_rest}|{ds}|{pack}|{clean}|{pack_label}",
+    )
 
 
 def _zhou_summary_amounts(txt: str) -> tuple[float, float, float]:
@@ -466,9 +557,7 @@ def _wolt_erwartung_final(
         n += 1
     if provision:
         n += 1
-    if provision19:
-        n += 1
-    if gebühr:
+    if provision19 or gebühr:
         n += 1
     if not n:
         return "1 FiBu-Zeile (8300)"
@@ -561,6 +650,34 @@ def _parse_xxl_gastro(filepath: str, rm: dict) -> None:
     rm[total] = ("", "XXL Gastro Anlagen")
 
 
+def _parse_adsa(filepath: str, rm: dict) -> None:
+    """ADSA-Rechnung: Anlagenkonto + Positionsbeschreibung aus dem PDF."""
+    try:
+        with pdfplumber.open(filepath) as pdf:
+            txt = "\n".join((page.extract_text() or "") for page in pdf.pages)
+    except Exception:
+        return
+
+    total_match = re.search(r"Gesamtbetrag brutto\s+([\d.]+,\d{2})", txt)
+    if not total_match:
+        return
+    total = round(de_float(total_match.group(1)), 2)
+    if total <= 0:
+        return
+
+    m_re = re.search(r"Rechnungs-Nr\.\s+(RE-\d+)", txt, re.I)
+    re_nr = m_re.group(1) if m_re else ""
+    m_pos = re.search(r"^\s*\d+\.\s+(.+?)\s+([\d.]+,\d{2})\s+Stk", txt, re.M)
+    if m_pos and re_nr:
+        name = re.sub(r"\s+", " ", m_pos.group(1)).strip()
+        qty = de_float(m_pos.group(2))
+        qty_s = str(int(qty)) if abs(qty - int(qty)) < 0.001 else str(qty).replace(".", ",")
+        rm[total] = ("480", f"ADSA GmbH {re_nr}, {qty_s} x {name}")
+        return
+    if re_nr:
+        rm[total] = ("480", f"ADSA GmbH {re_nr}")
+
+
 def load_invoices(
     source_dir: str,
     rechnung_map: dict,
@@ -597,6 +714,9 @@ def load_invoices(
                     ok += 1
                 elif "xxl" in fl and "gastro" in fl:
                     _parse_xxl_gastro(fpath, rechnung_map)
+                    ok += 1
+                elif "adsa" in fl:
+                    _parse_adsa(fpath, rechnung_map)
                     ok += 1
                 else:
                     skip += 1
