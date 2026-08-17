@@ -35,6 +35,7 @@ BU_GKTO_ALLOPAY_EXPENSE = int(_ACCOUNTS["allopay_expense"])
 BU_GKTO_BAUMARKT_EXPENSE = int(_ACCOUNTS["baumarkt_expense"])
 BU_GKTO_FISCH_FOOD = int(_ACCOUNTS["fisch_food"])
 BU_GKTO_PERSONALZIMMER = int(_ACCOUNTS["personalzimmer"])
+BU_GKTO_FOOD_BEHAELTER = int(_ACCOUNTS.get("food_behaelter", 904710))
 BU_GKTO_INCOME = int(_ACCOUNTS["income"])
 BU_GKTO_ALLOPAY_19 = int(_ACCOUNTS["allopay_19"])
 BU_GKTO_ALLOPAY_7 = int(_ACCOUNTS["allopay_7"])
@@ -45,10 +46,12 @@ XL_EURO_NUM_FMT = str(_DEFAULTS["xl_euro_num_fmt"])
 XL_DATE_FMT = "DD.MM.YYYY"
 BOOKING_TEXT_ALLO_PAY = "AllO Pay"
 BOOKING_TEXT_TIPS = "Trinkgeld"
-BOOKING_TEXT_TIPS_0 = "Umsatz 0 %"
+BOOKING_TEXT_TIPS_0 = "Trinkgeld"
 BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
 BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
-BOOKING_TEXT_FISHFOOD_EW_7 = "Fishfood EW 7%"
+BOOKING_TEXT_FISHFOOD_WE_7 = "Fishfood WE 7%"
+BOOKING_TEXT_FOOD_WE_7 = "Food WE 7%"
+BOOKING_TEXT_ASIA_MARKT_WE_7 = "Asia Markt WE 7%"
 BOOKING_TEXT_AN_BANK = "an Bank"
 BOOKING_TEXT_BANK_DEPOSIT = "Bankeinzahlung"
 
@@ -262,12 +265,45 @@ def _is_fish_buchungstext(text: str) -> bool:
     return "fisch" in text_lower or "fish" in text_lower
 
 
+def _is_food_behaelter_buchungstext(text: str) -> bool:
+    lowered = _buchungstext_lower(text)
+    return "behälter" in lowered or "behaelter" in lowered
+
+
+def _is_asia_markt_buchungstext(text: str) -> bool:
+    return "asia markt" in _buchungstext_lower(text)
+
+
+def _is_einkaufen_buchungstext(text: str) -> bool:
+    lowered = _buchungstext_lower(text)
+    return "einkaufen" in lowered and not _is_fish_buchungstext(lowered)
+
+
 def _is_baumarkt_buchungstext(text: str) -> bool:
     return "baumarkt" in _buchungstext_lower(text)
 
 
 def _is_personalzimmer_buchungstext(text: str) -> bool:
-    return "personalzimmer" in _buchungstext_lower(text)
+    return "personalzimmer" in _buchungstext_lower(text) or "miete wohnung" in _buchungstext_lower(text)
+
+
+def _is_tips_buchungstext(text: str) -> bool:
+    lowered = _buchungstext_lower(text)
+    return lowered in {BOOKING_TEXT_TIPS.lower(), BOOKING_TEXT_TIPS_0.lower()}
+
+
+def _month_beleg(datum: str) -> str:
+    parsed = parse_date(datum)
+    if len(parsed) >= 10 and parsed[2] == "." and parsed[5] == ".":
+        return parsed[3:5]
+    return ""
+
+
+def _miete_wohnung_text(datum: str) -> str:
+    parsed = parse_date(datum)
+    if len(parsed) >= 10 and parsed[2] == "." and parsed[5] == ".":
+        return f"Miete Wohnung München {parsed[3:5]} {parsed[6:10]}"
+    return "Miete Wohnung München"
 
 
 def normalize_final_row(row: BuchungRow) -> BuchungRow:
@@ -278,11 +314,28 @@ def normalize_final_row(row: BuchungRow) -> BuchungRow:
     )
     text_lower = _buchungstext_lower(normalized.buchungstext)
 
+    if _is_personalzimmer_buchungstext(text_lower):
+        return replace(normalized, buchungstext=_miete_wohnung_text(normalized.datum))
+    if _is_asia_markt_buchungstext(text_lower):
+        return replace(normalized, buchungstext=BOOKING_TEXT_ASIA_MARKT_WE_7)
     if _is_fish_buchungstext(text_lower):
-        return replace(normalized, buchungstext=BOOKING_TEXT_FISHFOOD_EW_7)
+        return replace(normalized, buchungstext=BOOKING_TEXT_FISHFOOD_WE_7)
+    if _is_einkaufen_buchungstext(text_lower):
+        return replace(normalized, buchungstext=BOOKING_TEXT_FOOD_WE_7)
     if text_lower == BOOKING_TEXT_BANK_DEPOSIT.lower():
         return replace(normalized, buchungstext=BOOKING_TEXT_AN_BANK)
     return normalized
+
+
+def assign_final_belege(rows: list[BuchungRow]) -> list[BuchungRow]:
+    """Trinkgeld-Ausgabe: Beleg = Monat aus Datum. Einnahme-Trinkgeld behält Z-Beleg."""
+    result: list[BuchungRow] = []
+    for row in sort_rows_by_date(rows):
+        if _is_tips_buchungstext(row.buchungstext) and row.umsatz_euro < 0:
+            result.append(replace(row, beleg_1=_month_beleg(row.datum)))
+            continue
+        result.append(row)
+    return result
 
 
 def _index_allopay_by_date(
@@ -312,7 +365,7 @@ def _build_safe_allopay_beleg_by_date(allopay_rows: list[BuchungRow]) -> dict[st
 
 
 def _finalize_final_rows(rows: Iterable[BuchungRow]) -> list[BuchungRow]:
-    return sort_rows_by_date(normalize_final_row(row) for row in rows)
+    return assign_final_belege(sort_rows_by_date(normalize_final_row(row) for row in rows))
 
 
 def build_trinkgeld_final_row(
@@ -611,9 +664,13 @@ def get_bu_gkto(umsatz: Decimal, text: str) -> int:
         if text_lower == BOOKING_TEXT_TIPS_0.lower():
             return BU_GKTO_TIPS_0
         return BU_GKTO_INCOME
-    if text_lower == BOOKING_TEXT_TIPS.lower():
-        return BU_GKTO_ALLOPAY_EXPENSE
+    if text_lower == BOOKING_TEXT_TIPS.lower() or _is_tips_buchungstext(text_lower):
+        return BU_GKTO_TIPS_0
+    if _is_food_behaelter_buchungstext(text_lower):
+        return BU_GKTO_FOOD_BEHAELTER
     if _is_fish_buchungstext(text_lower):
+        return BU_GKTO_FISCH_FOOD
+    if _is_asia_markt_buchungstext(text_lower) or _is_einkaufen_buchungstext(text_lower):
         return BU_GKTO_FISCH_FOOD
     if _is_baumarkt_buchungstext(text_lower):
         return BU_GKTO_ALLOPAY_EXPENSE
@@ -1091,7 +1148,7 @@ class JupiterKasseETL:
                     umsatz_euro=-remainder_expense,
                     bu_gkto=BU_GKTO_FISCH_FOOD,
                     beleg_1="",
-                    buchungstext=BOOKING_TEXT_FISHFOOD_EW_7,
+                    buchungstext=BOOKING_TEXT_FISHFOOD_WE_7,
                 )
             )
             return split_rows

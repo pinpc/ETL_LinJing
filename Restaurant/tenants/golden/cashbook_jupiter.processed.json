@@ -31,7 +31,7 @@
     "module_name": "cashbook",
     "amount": -206.7,
     "booking_date": "2026-04-02",
-    "booking_text": "Fishfood EW 7%",
+    "booking_text": "Fishfood WE 7%",
     "bu_gkto": "3300",
     "beleg_1": ""
   },
@@ -194,7 +194,7 @@
     "amount": -185.94,
     "booking_date": "2026-04-08",
     "booking_text": "allO Pay + Food Behälter",
-    "bu_gkto": "1360",
+    "bu_gkto": "904710",
     "beleg_1": "Z320"
   },
   {
@@ -256,7 +256,7 @@
     "module_name": "cashbook",
     "amount": -240.5,
     "booking_date": "2026-04-11",
-    "booking_text": "Fishfood EW 7%",
+    "booking_text": "Fishfood WE 7%",
     "bu_gkto": "3300",
     "beleg_1": ""
   },
@@ -346,7 +346,7 @@
     "module_name": "cashbook",
     "amount": -259.2,
     "booking_date": "2026-04-15",
-    "booking_text": "Fishfood EW 7%",
+    "booking_text": "Fishfood WE 7%",
     "bu_gkto": "3300",
     "beleg_1": ""
   },
@@ -553,7 +553,7 @@
     "module_name": "cashbook",
     "amount": -65.5,
     "booking_date": "2026-04-23",
-    "booking_text": "Fishfood EW 7%",
+    "booking_text": "Fishfood WE 7%",
     "bu_gkto": "3300",
     "beleg_1": ""
   },
