@@ -554,7 +554,10 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 _RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+)/(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_RE_DASH  = re.compile(r"\bRE\s+(\d+)-(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
-_RE_BELEG_YEAR_SPACE = re.compile(r"\bRechnung\s+Nr\.?\s+(20\d{2})\s+(\d{3})\b", re.IGNORECASE)
+_RE_BELEG_YEAR_SPACE = re.compile(
+    r"\b(?:Rechnung\s+Nr\.?|ReNr\.?|Re-Nr\.?)\s+(20\d{2})\s+(\d{3})\b",
+    re.IGNORECASE,
+)
 _RE_BELEG_ANR      = re.compile(r"\bANR0*(\d+)\b", re.IGNORECASE)
 _RE_BELEG_RENR     = re.compile(
     r"\b(?:ReNr\.?|Re-Nr\.?|RNR|Rechnungsnummer)\s+(?:RE-|AR-)?([^\s+,;]+\d)",
@@ -585,7 +588,8 @@ def _extract_beleg1(buchungstext: str) -> str:
     if m := _RE_BELEG_YEAR_NUM.search(buchungstext):
         return m.group(1)
     if m := _RE_BELEG_RENR.search(buchungstext):
-        return m.group(1)
+        raw = m.group(1)
+        return str(int(raw)) if raw.isdigit() else raw
     if m := _RE_BELEG_RG_NUM.search(buchungstext):
         return m.group(1)
     if m := _RE_BELEG_RGN.search(buchungstext):
