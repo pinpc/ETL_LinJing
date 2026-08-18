@@ -550,7 +550,8 @@ def _extract_split_refs(buchungstext: str) -> list[str]:
 # 7. DRP                → "DRP" + Ziffern (Agenda)
 # 8. VL/VWL + Jahr      → "VWL-2025"
 # 9. Kd.-Nr./KdNr.      → Kundennummer
-# 10. erste lange Zahl  → Fallback (6–15 Stellen)
+# 10. bei <Händler>     → z. B. "bei OBI" → "Obi"
+# 11. erste lange Zahl  → Fallback (6–15 Stellen)
 _RE_BELEG_RE       = re.compile(r"\bRE\s+(\d+)/(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_RE_DASH  = re.compile(r"\bRE\s+(\d+)-(\d{4})\b", re.IGNORECASE)
 _RE_BELEG_YEAR_NUM = re.compile(r"\b(20\d{2}-\d{3})\b")
@@ -570,6 +571,7 @@ _RE_BELEG_RG       = re.compile(r"\bRG(20\d{10})\b", re.IGNORECASE)
 _RE_BELEG_DRP      = re.compile(r"\bDRP\s*(\d{6,12})", re.IGNORECASE)
 _RE_BELEG_VL       = re.compile(r"\bVL\s+(20\d{2})\b", re.IGNORECASE)
 _RE_BELEG_KDNR     = re.compile(r"\bKd\.?-?Nr\.?\s*(\d{5,})", re.IGNORECASE)
+_RE_BELEG_BEI      = re.compile(r"\bbei\s+([A-Za-zÄÖÜäöüß]{2,})\b", re.IGNORECASE)
 _RE_BELEG_REF      = re.compile(r"\b(\d{6,15})\b")
 
 
@@ -578,7 +580,7 @@ def _extract_beleg1(buchungstext: str) -> str:
     if m := _RE_BELEG_RE.search(buchungstext):
         return f"{int(m.group(1)):03d}/{m.group(2)}"
     if m := _RE_BELEG_RE_DASH.search(buchungstext):
-        return f"{int(m.group(1)):03d}/{m.group(2)}"
+        return f"{int(m.group(1)):03d}-{m.group(2)}"
     if m := _RE_BELEG_RG_RE.search(buchungstext):
         return m.group(1).upper()
     if m := _RE_BELEG_YEAR_SPACE.search(buchungstext):
@@ -602,6 +604,8 @@ def _extract_beleg1(buchungstext: str) -> str:
         return f"VWL-{m.group(1)}"
     if m := _RE_BELEG_KDNR.search(buchungstext):
         return m.group(1)
+    if m := _RE_BELEG_BEI.search(buchungstext):
+        return m.group(1).title()
     if m := _RE_BELEG_REF.search(buchungstext):
         return str(int(m.group(1)))
     return ""

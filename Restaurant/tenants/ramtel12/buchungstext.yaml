@@ -210,6 +210,23 @@ rules:
     kuerzel: "Bankgebühren Geldmarktkonto"
     no_prefix: true
 
+  - pattern: 'KOERPST|K[oö]rperschaft'
+    gegenkonto: "2200"
+    kuerzel: "KST VZ Q {Q} {YYYY}"
+    no_prefix: true
+    beleg1: ""
+    fixed_split:
+      - gegenkonto: "2200"
+        kuerzel: "KST VZ Q {Q} {YYYY}"
+        amount_formula: kst
+        no_prefix: true
+        beleg1: ""
+      - gegenkonto: "2208"
+        kuerzel: "Solizu KST VZ Q {Q} {YYYY}"
+        amount_formula: soli
+        no_prefix: true
+        beleg1: ""
+
   - pattern: 'Finanzamt.*UMS\.ST|UMS\.ST|STEUERNR.*UMS'
     gegenkonto: "1780"
     kuerzel: "USt VA {MM} {YYYY}"
@@ -243,6 +260,10 @@ rules:
     gegenkonto: "74911"
     kuerzel: "Kone GmbH"
 
+  - pattern: 'Boris Artes'
+    gegenkonto: "1610"
+    kuerzel: "Boris Artes Einkauf {MM} {YYYY}"
+
   - pattern: 'ctm Cloud Terminology'
-    gegenkonto: "70104"
+    gegenkonto: "70049"
     kuerzel: "ctm Cloud Terminology"
