@@ -55,14 +55,21 @@ def _parse_german_amount(value: Any) -> Decimal:
     if isinstance(value, (int, float)):
         return Decimal(str(value)).quantize(_EURO)
 
-    text = str(value).replace("€", "").replace("EUR", "").replace("\n", " ")
+    text = str(value).replace("€", "").replace("EUR", "").replace("\n", "")
     text = re.sub(r"\s+", "", text)
     if not text:
         return _ZERO
     if "." in text and "," in text:
-        text = text.replace(".", "").replace(",", ".")
+        # DE: 1.234,56 | US: 1,234.56 — letzter Trenner entscheidet
+        if text.rfind(",") > text.rfind("."):
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", "")
     elif "," in text:
         text = text.replace(",", ".")
+    elif re.fullmatch(r"-?\d{1,3}(?:\.\d{3})+", text):
+        # DE-Tausenderpunkte ohne Dezimalteil, z. B. 31.866
+        text = text.replace(".", "")
     try:
         return Decimal(text).quantize(_EURO)
     except InvalidOperation:
