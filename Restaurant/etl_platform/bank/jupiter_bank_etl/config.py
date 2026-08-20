@@ -17,7 +17,7 @@ FIBU_RULES = [
     (re.compile(r"Stripe|allO", re.I), "H", "1360", "allO pay"),
     (re.compile(r"UBER|Custodian", re.I), "H", "8300", "Uber Umsatz 7 %"),
     (re.compile(r"TAKEAWAY|LIEFERANDO|DERDENGELDEN", re.I), "H", "8300", "LIEFERANDO.DE Umsatz 7 %"),
-    (re.compile(r"EINZAHLUNG|Einzahlung|GS Schwangau|Kontoauszug Nr", re.I), "H", "1360", "von Kasse"),
+    (re.compile(r"EINZAHLUNG|Einzahlung|GS Schwangau|Kontoauszug Nr|Jing\s*Ling", re.I), "H", "1360", "von Kasse"),
     (re.compile(r"Ling\s+Jin.*Ausleihen|Ausleihen.*Ling\s+Jin", re.I), "H", "1890", "Ling Jin Ausleihen"),
     (re.compile(r"Ling\s+Jin.*Ausleihen|Ausleihen.*Ling\s+Jin", re.I), "S", "1890", "Ling Jin Ausleihen"),
     (re.compile(r"Vodafone", re.I), "S", "904925", "Vodafone Internet"),

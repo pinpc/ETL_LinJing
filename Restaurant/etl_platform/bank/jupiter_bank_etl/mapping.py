@@ -64,7 +64,9 @@ def map_booking(
     Priorität: 1. Rechnung (ohne SPLIT, wenn ignore_invoice_splits), 2. FIBU_RULES, 3. leer.
     """
     key = round(abs(tx["betrag"]), 2)
-    beschr = tx["beschreibung"]
+    beschr = (tx.get("beschreibung") or "").strip()
+    # Vorgangstyp als Fallback, wenn PDF-Parser den Kopf (EINZAHLUNG/…) abgeschnitten hat.
+    search_text = beschr or str(tx.get("vorgang_typ") or "").strip()
     richtung = "S" if tx["betrag"] < 0 else "H"
 
     if key in rechnung_map:
@@ -76,7 +78,7 @@ def map_booking(
             return tag, payload
 
     for pattern, richt, kto, label in FIBU_RULES:
-        if richt == richtung and pattern.search(beschr):
+        if richt == richtung and pattern.search(search_text):
             if label == "Miete":
                 clean = _clean_bank_text(beschr)
                 m_miete = re.search(r"(Miete \d{2}\.\d{4}.+)", clean, re.IGNORECASE)
@@ -158,4 +160,5 @@ def map_booking(
                 return kto, _lohn_text(beschr)
             return kto, label
 
-    return "", beschr[:50]
+    fallback = (beschr or str(tx.get("vorgang_typ") or ""))[:50]
+    return "", fallback
