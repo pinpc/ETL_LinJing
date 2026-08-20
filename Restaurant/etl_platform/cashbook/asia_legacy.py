@@ -117,7 +117,12 @@ def convert_number(value: str) -> Decimal:
         return Decimal("0")
 
     if "," in text and "." in text:
-        text = text.replace(",", "")
+        last_comma = text.rfind(",")
+        last_dot = text.rfind(".")
+        if last_comma > last_dot:
+            text = text.replace(".", "").replace(",", ".")
+        else:
+            text = text.replace(",", "")
     elif "," in text:
         parts = text.split(",")
         if len(parts) == 2 and len(parts[1]) == 2:

@@ -16,6 +16,8 @@ from .excel_export import UMSATZ_EURO_NUMBERFORMAT, umsatz_zwei_nachkommastellen
 logger = logging.getLogger(__name__)
 
 _AMOUNT_TOLERANCE = 0.02
+# Bank-AllOpay kann mehrere Stripe-Tage bündeln (typisch Auszahlung über max. 3 Tage).
+_MAX_ALLOPAY_SAMMEL_DAYS = 3
 
 _EDEKA_SPLIT_TEMPLATE: tuple[tuple[str, str], ...] = (
     ("3300", "Edeka WE 7 %"),
@@ -35,6 +37,21 @@ class _EdekaSheetEntry:
     used: bool = field(default=False, compare=False)
 
 
+def _parse_allopay_datum(value: str) -> datetime:
+    return datetime.strptime(value, "%d.%m.%Y")
+
+
+def _format_allopay_day_range(dates: list[str]) -> str:
+    """Datumsbereich für Sammeltext, z. B. ``27-29.06.2026`` oder ``04.07.-06.07.2026``."""
+    parsed = sorted(_parse_allopay_datum(d) for d in dates)
+    first, last = parsed[0], parsed[-1]
+    if first == last:
+        return first.strftime("%d.%m.%Y")
+    if first.month == last.month and first.year == last.year:
+        return f"{first.day:02d}-{last.day:02d}.{first.month:02d}.{first.year}"
+    return f"{first.strftime('%d.%m.')}-{last.strftime('%d.%m.%Y')}"
+
+
 def _write_allopay_final_row(
     ws_final: Worksheet,
     target_row: int,
@@ -52,6 +69,50 @@ def _write_allopay_final_row(
         elif col_idx == 4:
             val = bank_datum
         ws_final.cell(target_row, col_idx, val)
+
+
+def _write_allopay_sammel_rows(
+    ws_final: Worksheet,
+    target_row: int,
+    matched_items: list[dict[str, Any]],
+    matched_days: list[str],
+    *,
+    bank_beleg: Any,
+    bank_datum: Any,
+) -> int:
+    """Schreibt Umsatz- und Gebühr-Sammelzeile für 2–3 Stripe-Tage."""
+    template = list(matched_items[0]["row_values"])
+    day_label = _format_allopay_day_range(matched_days)
+
+    def _sum_and_bu(predicate) -> tuple[float, Any]:
+        selected = [i for i in matched_items if predicate(float(i["betrag"]))]
+        total = round(sum(float(i["betrag"]) for i in selected), 2)
+        bu = selected[0]["row_values"][1] if selected else template[1]
+        return total, bu
+
+    umsatz, umsatz_bu = _sum_and_bu(lambda amount: amount > 0)
+    gebuehr, gebuehr_bu = _sum_and_bu(lambda amount: amount < 0)
+
+    for amount, bu, label in (
+        (umsatz, umsatz_bu, f"allopay {day_label}"),
+        (gebuehr, gebuehr_bu, f"allopay Gebühr {day_label}"),
+    ):
+        if abs(amount) <= _AMOUNT_TOLERANCE:
+            continue
+        row = list(template)
+        row[0] = amount
+        row[1] = bu
+        row[6] = label
+        _write_allopay_final_row(
+            ws_final,
+            target_row,
+            row,
+            bank_beleg=bank_beleg,
+            bank_datum=bank_datum,
+        )
+        target_row += 1
+
+    return target_row
 
 
 def _cell_float(value: Any) -> float | None:
@@ -431,31 +492,49 @@ def erstelle_final_blatt(workbook_path: str) -> None:
                     item
                     for item in allopay_items
                     if not item["used"]
-                    and datetime.strptime(item["datum"], "%d.%m.%Y") < buch_date
+                    and _parse_allopay_datum(item["datum"]) < buch_date
                 ]
                 target = round(betrag, 2)
-                best_comb = _find_best_combination(candidates, target)
+                best_comb, matched_days = _find_best_combination(candidates, target)
 
                 if best_comb:
                     replacements += 1
-                    logger.info(
-                        "Ersetze %s (%.2f €) durch %s Allopay-Zeilen",
-                        text,
-                        betrag,
-                        len(best_comb),
-                    )
-                    # Bankvaluta + Monats-Beleg aus Kontoauszug-Zeile (nicht Stripe-CSV-Datum)
                     bank_beleg = ws_buchungen.cell(src_row, 3).value
                     for item in best_comb:
                         item["used"] = True
-                        _write_allopay_final_row(
+
+                    if len(matched_days) > 1:
+                        logger.info(
+                            "Ersetze %s (%.2f €) durch Allopay-Sammel (%s Tage: %s)",
+                            text,
+                            betrag,
+                            len(matched_days),
+                            _format_allopay_day_range(matched_days),
+                        )
+                        target_row = _write_allopay_sammel_rows(
                             ws_final,
                             target_row,
-                            item["row_values"],
+                            list(best_comb),
+                            matched_days,
                             bank_beleg=bank_beleg,
                             bank_datum=datum,
                         )
-                        target_row += 1
+                    else:
+                        logger.info(
+                            "Ersetze %s (%.2f €) durch %s Allopay-Zeilen",
+                            text,
+                            betrag,
+                            len(best_comb),
+                        )
+                        for item in best_comb:
+                            _write_allopay_final_row(
+                                ws_final,
+                                target_row,
+                                item["row_values"],
+                                bank_beleg=bank_beleg,
+                                bank_datum=datum,
+                            )
+                            target_row += 1
                     continue
                 logger.warning(
                     "Keine passende Kombination für %s (%.2f €)", text, betrag
@@ -510,18 +589,28 @@ def _find_best_combination(
     candidates: list[dict[str, Any]],
     target: float,
     tolerance: float = 0.05,
-) -> tuple[Any, ...] | None:
-    """Findet beste Kombination von Kandidaten mit optimierter Suche (bis max 20 Kombinationen)."""
+    max_days: int = _MAX_ALLOPAY_SAMMEL_DAYS,
+) -> tuple[tuple[dict[str, Any], ...] | None, list[str]]:
+    """Findet Stripe-Tage (max. ``max_days``), deren Netto-Summe zum Bankbetrag passt.
+
+    Gruppierung erfolgt nach Kalendertag (Umsatz + Gebühr gehören zusammen).
+    Rückgabe: (items, tage) oder (None, []).
+    """
     if not candidates:
-        return None
+        return None, []
 
-    limited_candidates = candidates[:20]
-    limited_candidates.sort(key=lambda x: x["betrag"], reverse=True)
+    by_day: dict[str, list[dict[str, Any]]] = {}
+    for item in candidates:
+        by_day.setdefault(item["datum"], []).append(item)
 
-    for k in range(1, min(len(limited_candidates) + 1, 6)):
-        for comb in itertools.combinations(limited_candidates, k):
-            total = sum(c["betrag"] for c in comb)
+    days = sorted(by_day.keys(), key=_parse_allopay_datum)
+    for k in range(1, min(len(days), max_days) + 1):
+        for day_comb in itertools.combinations(days, k):
+            items = tuple(
+                item for day in day_comb for item in by_day[day]
+            )
+            total = round(sum(float(c["betrag"]) for c in items), 2)
             if abs(total - target) <= tolerance:
-                return comb
+                return items, list(day_comb)
 
-    return None
+    return None, []

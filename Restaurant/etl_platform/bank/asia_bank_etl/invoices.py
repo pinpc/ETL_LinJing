@@ -26,12 +26,13 @@ except ImportError:
 
 logger = logging.getLogger(__name__)
 
-_EDEKA_CC_GLOB = "*C+C*.pdf"
+_EDEKA_CC_GLOBS = ("*C&C*.pdf", "*C+C*.pdf")
 _WASH_SECTION = re.compile(r"Wasch/Putz/Reinigung", re.I)
 _RE_NR = re.compile(r"Rechnung-Nr\.?\s*:?\s*(\d+)", re.I)
 _RE_NR_UNION = re.compile(r"Nummer:\s*(\d+)", re.I)
 _RE_DATUM = re.compile(r"Rechnungsdatum\s*:\s*(\d{2}\.\d{2}\.\d{4})", re.I)
 _RE_DATUM_UNION = re.compile(r"Datum:\s*(\d{2}\.\d{2}\.\d{4})", re.I)
+_RE_FILENAME_DATUM = re.compile(r"(\d{2}\.\d{2}\.\d{4})")
 _MWST_7_LINE = re.compile(r"7\s*,\s*00\s*=\s*1", re.I)
 _MWST_19_LINE = re.compile(r"19\s*,\s*00\s*=\s*2", re.I)
 # Union-Layout: keine MwSt | Leergut 7% | Leergut 19% | 7% | 19% | Gesamt
@@ -43,6 +44,12 @@ _RE_UNION_GESAMT = re.compile(
     r"(-?[\d.]+,\d{2})\s+"
     r"(-?[\d.]+,\d{2})\s+"
     r"(-?[\d.]+,\d{2})",
+    re.I,
+)
+_RE_WASH_ZWISCHENSUMME = re.compile(r"Zwischensumme:\s*(-?[\d.]+,\d{2})", re.I)
+_RE_ARTICLE_LINE = re.compile(r"^\d{3,}")
+_RE_SECTION_END = re.compile(
+    r"^(ÜBERTRAG|UBERTRAG|Belegsumme|Gesamt|Steuersatz)\b",
     re.I,
 )
 
@@ -107,7 +114,11 @@ def parse_edeka_invoice(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaI
 
 
 def _scan_edeka_cc_invoices(root: Path, *, ocr_dpi: int | None = None) -> list[EdekaInvoiceRow]:
-    files = sorted(root.glob(_EDEKA_CC_GLOB), key=lambda path: path.name.lower())
+    by_name: dict[str, Path] = {}
+    for pattern in _EDEKA_CC_GLOBS:
+        for path in root.glob(pattern):
+            by_name.setdefault(path.name.lower(), path)
+    files = sorted(by_name.values(), key=lambda path: path.name.lower())
     return [_parse_edeka_cc(path, ocr_dpi=ocr_dpi) for path in files]
 
 
@@ -141,6 +152,13 @@ def _parse_edeka_cc(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaInvoi
 
     re_nr_m = _RE_NR.search(text) or _RE_NR_UNION.search(text)
     re_datum_m = _RE_DATUM.search(text) or _RE_DATUM_UNION.search(text)
+    file_datum_m = _RE_FILENAME_DATUM.search(name)
+    rechnungsdatum = (
+        re_datum_m.group(1)
+        if re_datum_m
+        else (file_datum_m.group(1) if file_datum_m else "")
+    )
+
     we7, we19 = _parse_edeka_mwst_summary(text)
     reinigung = _parse_edeka_wasch_zwischensumme(text)
     gesamt = _parse_edeka_gesamtbetrag(text)
@@ -171,7 +189,7 @@ def _parse_edeka_cc(filepath: Path, *, ocr_dpi: int | None = None) -> EdekaInvoi
     return EdekaInvoiceRow(
         datei=name,
         rechnung_nr=re_nr_m.group(1) if re_nr_m else "",
-        rechnungsdatum=re_datum_m.group(1) if re_datum_m else "",
+        rechnungsdatum=rechnungsdatum,
         we_7_gesamt=we7,
         we_19_gesamt=we19,
         we_19_ohne_reinigung=we19_ohne,
@@ -287,20 +305,40 @@ def _parse_edeka_mwst_summary(text: str) -> tuple[float | None, float | None]:
 
 
 def _parse_edeka_wasch_zwischensumme(text: str) -> float:
+    """Summiert Wasch/Putz/Reinigung: altes Layout via Zwischensumme, neu via Positions-Gesamt."""
     lines = text.splitlines()
     in_section = False
+    line_sum = 0.0
+
     for line in lines:
-        if _WASH_SECTION.search(line):
+        stripped = line.strip()
+        if _WASH_SECTION.search(stripped) and not _RE_ARTICLE_LINE.match(stripped):
             in_section = True
             continue
-        if in_section:
-            stripped = line.strip()
-            if stripped.startswith("Übertrag") or re.match(
-                r"^[A-Za-zäöüÄÖÜ].*Sortiment", stripped
-            ):
-                break
-            match = re.search(r"Zwischensumme:\s*(-?[\d.]+,\d{2})", line, re.I)
-            if match:
-                return parse_german_euro_amount(match.group(1))
-    return 0.0
+        if not in_section:
+            continue
+        if not stripped:
+            continue
+
+        match = _RE_WASH_ZWISCHENSUMME.search(line)
+        if match:
+            return parse_german_euro_amount(match.group(1))
+
+        if _RE_SECTION_END.match(stripped):
+            break
+
+        amounts = last_german_euro_amounts(stripped)
+        if amounts and _RE_ARTICLE_LINE.match(stripped):
+            # Letzter Eurobetrag = Spalte Gesamt (vor MwSt-Kennzeichen).
+            line_sum += amounts[-1]
+            continue
+
+        # reine Artikel-Nr.-Fortsetzung ohne Betrag (neues Layout)
+        if re.match(r"^\d+$", stripped):
+            continue
+
+        # nächste Sortimentsüberschrift (Getränke, Nonfood, …)
+        break
+
+    return round(line_sum, 2)
 

@@ -11,6 +11,10 @@ from Restaurant.etl_platform.bank.asia_bank_etl.buchungstext_mapping import (
 from Restaurant.etl_platform.bank.asia_bank_etl.darlehen_split import (
     expand_sparkasse_darlehen_rows,
 )
+from Restaurant.etl_platform.bank.asia_bank_etl.final_sheet import (
+    _find_best_combination,
+    _format_allopay_day_range,
+)
 
 
 class BelegMonthTests(unittest.TestCase):
@@ -98,6 +102,32 @@ class BuchungstextMappingTests(unittest.TestCase):
         self.assertEqual(rows[0]["BU Gkto"], "1743")
         self.assertEqual(rows[0]["Buchungstext"], "AOK Bayern Beitrag 04 2026")
         self.assertEqual(rows[0]["Umsatz Euro"], -5705.75)
+
+
+class AllopaySammelTests(unittest.TestCase):
+    def test_three_day_net_match(self) -> None:
+        candidates = [
+            {"datum": "27.06.2026", "betrag": 78.0, "row_values": [], "used": False},
+            {"datum": "27.06.2026", "betrag": -2.8, "row_values": [], "used": False},
+            {"datum": "28.06.2026", "betrag": 109.5, "row_values": [], "used": False},
+            {"datum": "28.06.2026", "betrag": -1.22, "row_values": [], "used": False},
+            {"datum": "29.06.2026", "betrag": 392.0, "row_values": [], "used": False},
+            {"datum": "29.06.2026", "betrag": -13.64, "row_values": [], "used": False},
+        ]
+        items, days = _find_best_combination(candidates, 561.84)
+        self.assertIsNotNone(items)
+        self.assertEqual(days, ["27.06.2026", "28.06.2026", "29.06.2026"])
+        self.assertEqual(len(items), 6)
+        self.assertEqual(_format_allopay_day_range(days), "27-29.06.2026")
+
+    def test_max_three_days_only(self) -> None:
+        candidates = [
+            {"datum": f"{d:02d}.06.2026", "betrag": 10.0, "row_values": [], "used": False}
+            for d in range(1, 5)
+        ]
+        items, days = _find_best_combination(candidates, 40.0)
+        self.assertIsNone(items)
+        self.assertEqual(days, [])
 
 
 if __name__ == "__main__":
