@@ -14,6 +14,8 @@ import pdfplumber
 from openpyxl import Workbook, load_workbook
 from openpyxl.styles import Alignment, Border, Font, PatternFill, Side
 
+from .monatsbericht_check import MonatsberichtCheckResult, run_monatsbericht_check
+
 CONFIG_JSON_PATH = Path(__file__).resolve().with_name("jupiter_legacy_config.json")
 
 
@@ -91,6 +93,7 @@ class PipelineResult:
     allopay_count: int
     final_count: int
     pdf_base_dir: Path
+    monatsbericht_check: MonatsberichtCheckResult | None = None
 
 
 def as_text(value: Any) -> str:
@@ -1213,10 +1216,20 @@ class JupiterKasseETL:
             output_path,
         )
 
+        monatsbericht_check = run_monatsbericht_check(
+            self.final_rows,
+            pdf_base_dir,
+            text_umsatz_7=BOOKING_TEXT_UMSATZ_7,
+            text_umsatz_19=BOOKING_TEXT_UMSATZ_19,
+            text_trinkgeld=BOOKING_TEXT_TIPS_0,
+            tolerance=MERGE_TOLERANCE,
+        )
+
         return PipelineResult(
             saved_path=saved_path,
             umsatz_count=umsatz_count,
             allopay_count=allopay_count,
             final_count=final_count,
             pdf_base_dir=pdf_base_dir,
+            monatsbericht_check=monatsbericht_check,
         )
