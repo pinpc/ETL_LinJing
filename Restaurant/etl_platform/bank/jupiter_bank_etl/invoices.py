@@ -166,6 +166,9 @@ def _parse_hamberger(filepath: str, rm: dict) -> None:
     )
 
 
+_RE_ZHOU_DOC = re.compile(r"(Rechnung|Gutschrift)\s+Nr\.?:\s*(\S+)", re.I)
+
+
 def _zhou_summary_amounts(txt: str) -> tuple[float, float, float]:
     """Brutto 7 %, Brutto 19 % und Endbetrag (Summe = Bankzahlung)."""
     we7 = we19 = 0.0
@@ -190,6 +193,25 @@ def _zhou_summary_amounts(txt: str) -> tuple[float, float, float]:
     return we7, we19, endbetrag
 
 
+def _zhou_document_chunks(txt: str) -> list[tuple[str, str, str]]:
+    """RE/GS-Chunks je Belegnummer (Folgeseiten derselben Nr. bleiben zusammen)."""
+    matches = list(_RE_ZHOU_DOC.finditer(txt))
+    if not matches:
+        return []
+    starts: list[tuple[int, str, str]] = []
+    for match in matches:
+        typ = "GS" if match.group(1).lower().startswith("gutschrift") else "RE"
+        nr = match.group(2)
+        if starts and starts[-1][1] == nr:
+            continue
+        starts.append((match.start(), nr, typ))
+    out: list[tuple[str, str, str]] = []
+    for i, (start, nr, typ) in enumerate(starts):
+        end = starts[i + 1][0] if i + 1 < len(starts) else len(txt)
+        out.append((typ, nr, txt[start:end]))
+    return out
+
+
 def _zhou_erwartung_final(we7: float, we19: float, endbetrag: float) -> str:
     probe = round(we7 + we19, 2)
     if endbetrag and abs(probe - endbetrag) > 0.05:
@@ -200,15 +222,21 @@ def _zhou_erwartung_final(we7: float, we19: float, endbetrag: float) -> str:
     return f"{n} FiBu-Zeilen (Zhou 7 % / Zhou 19 %)"
 
 
+def _zhou_register_split(rm: dict, we7: float, we19: float, endbetrag: float, label: str) -> None:
+    key = round(abs(endbetrag), 2)
+    if key > 0:
+        rm[key] = ("ZHOU_SPLIT", f"{abs(we7)}|{abs(we19)}|{label}")
+
+
 def _parse_zhou(filepath: str, rm: dict, zhou_audit: list | None) -> None:
+    """Zhou-PDF → ZHOU_SPLIT; mehrere RE/GS in einer Datei netto summiert."""
     fname = os.path.basename(filepath)
     fl = fname.lower()
-    is_gs = " gs-" in fl or fl.startswith("gs ") or " gutschrift" in fl
+    filename_gs = " gs-" in fl or fl.startswith("gs ") or " gutschrift" in fl
 
     def audit(**fields: object) -> None:
-        if zhou_audit is None:
-            return
-        zhou_audit.append({"datei": fname, **fields})
+        if zhou_audit is not None:
+            zhou_audit.append({"datei": fname, **fields})
 
     try:
         with pdfplumber.open(filepath) as pdf:
@@ -216,88 +244,106 @@ def _parse_zhou(filepath: str, rm: dict, zhou_audit: list | None) -> None:
     except Exception:
         audit(status="FEHLER", grund="PDF konnte nicht gelesen werden")
         return
-
     if not txt.strip():
         audit(status="SKIP", grund="Kein Text im PDF")
         return
 
-    m_nr = re.search(r"(?:Rechnung|Gutschrift)\s+Nr\.?:\s*(\S+)", txt, re.I)
-    re_nr = m_nr.group(1) if m_nr else ""
-    typ = "GS" if is_gs else "RE"
-
-    we7, we19, endbetrag = _zhou_summary_amounts(txt)
-    if endbetrag <= 0 and we7 <= 0 and we19 <= 0:
-        audit(
-            status="SKIP",
-            grund="Keine Summenzeilen 7 % / 19 % / Endbetrag gefunden",
-            rechnung_nr=re_nr,
-            typ=typ,
+    chunks = _zhou_document_chunks(txt) or [("GS" if filename_gs else "RE", "", txt)]
+    ok_docs: list[tuple[str, str, float, float, float]] = []
+    for typ, re_nr, chunk in chunks:
+        we7, we19, endbetrag = _zhou_summary_amounts(chunk)
+        if endbetrag <= 0 and we7 <= 0 and we19 <= 0:
+            audit(
+                status="SKIP",
+                grund="Keine Summenzeilen 7 % / 19 % / Endbetrag gefunden",
+                rechnung_nr=re_nr,
+                typ=typ,
+            )
+            continue
+        sign = -1.0 if typ == "GS" else 1.0
+        we7, we19, endbetrag = (
+            round(we7 * sign, 2),
+            round(we19 * sign, 2),
+            round(endbetrag * sign, 2),
         )
+        probe = round(we7 + we19, 2)
+        if endbetrag and abs(probe - endbetrag) > 0.05:
+            audit(
+                status="SUMME_MISMATCH",
+                grund="Netto 7 % + Netto 19 % weicht vom Endbetrag ab",
+                rechnung_nr=re_nr,
+                typ=typ,
+                netto_7=we7,
+                netto_19=we19,
+                endbetrag=endbetrag,
+                probe_summe=probe,
+                diff_probe=round(probe - endbetrag, 2),
+                erw_final="Kein Einzel-Mapping",
+            )
+            continue
+        ok_docs.append((typ, re_nr, we7, we19, endbetrag))
+
+    if not ok_docs:
         return
 
-    sign = -1.0 if is_gs else 1.0
-    we7 = round(we7 * sign, 2)
-    we19 = round(we19 * sign, 2)
-    endbetrag = round(endbetrag * sign, 2)
-    probe = round(we7 + we19, 2)
-
-    if endbetrag and abs(probe - endbetrag) > 0.05:
+    multi = len(ok_docs) > 1
+    for typ, re_nr, we7, we19, endbetrag in ok_docs:
+        probe = round(we7 + we19, 2)
         audit(
-            status="SUMME_MISMATCH",
-            grund="Netto 7 % + Netto 19 % weicht vom Endbetrag ab",
+            status="OK_TEIL" if multi else "OK",
+            grund="Teilbetrag Datei-Sammel" if multi else "",
             rechnung_nr=re_nr,
             typ=typ,
             netto_7=we7,
             netto_19=we19,
             endbetrag=endbetrag,
             probe_summe=probe,
-            diff_probe=round(probe - endbetrag, 2),
-            erw_final="Kein Einzel-Mapping",
+            diff_probe=0.0,
+            erw_final=_zhou_erwartung_final(abs(we7), abs(we19), abs(endbetrag)),
         )
+
+    if not multi:
+        _t, re_nr, we7, we19, endbetrag = ok_docs[0]
+        _zhou_register_split(rm, we7, we19, endbetrag, re_nr)
         return
 
-    erw = _zhou_erwartung_final(abs(we7), abs(we19), abs(endbetrag))
+    sum_we7 = round(sum(d[2] for d in ok_docs), 2)
+    sum_we19 = round(sum(d[3] for d in ok_docs), 2)
+    sum_end = round(sum(d[4] for d in ok_docs), 2)
+    re_list = ",".join(nr for _t, nr, *_r in ok_docs if nr)
     audit(
         status="OK",
-        grund="",
-        rechnung_nr=re_nr,
-        typ=typ,
-        netto_7=we7,
-        netto_19=we19,
-        endbetrag=endbetrag,
-        probe_summe=probe,
-        diff_probe=0.0,
-        erw_final=erw,
+        grund=f"{len(ok_docs)} Belege in Datei summiert",
+        rechnung_nr=re_list,
+        typ="SUM",
+        netto_7=sum_we7,
+        netto_19=sum_we19,
+        endbetrag=sum_end,
+        probe_summe=round(sum_we7 + sum_we19, 2),
+        diff_probe=round(sum_we7 + sum_we19 - sum_end, 2),
+        erw_final=_zhou_erwartung_final(abs(sum_we7), abs(sum_we19), abs(sum_end)),
     )
-
-    key = round(abs(endbetrag), 2)
-    if key > 0:
-        rm[key] = ("ZHOU_SPLIT", f"{abs(we7)}|{abs(we19)}|{re_nr}")
+    _zhou_register_split(rm, sum_we7, sum_we19, sum_end, f"Sammel {re_list}")
 
 
 def _zhou_finalize_collective(zhou_audit: list | None, rm: dict) -> None:
-    """Sammelzahlung: Summe aller OK-Zhou-PDFs als ein ZHOU_SPLIT-Schlüssel."""
+    """Sammelzahlung über mehrere Zhou-Dateien (status OK, nicht OK_TEIL)."""
     if not zhou_audit:
         return
     ok = [r for r in zhou_audit if r.get("status") == "OK"]
     if len(ok) < 2:
         return
-
     sum_we7 = round(sum(float(r.get("netto_7") or 0) for r in ok), 2)
     sum_we19 = round(sum(float(r.get("netto_19") or 0) for r in ok), 2)
     sum_end = round(sum(float(r.get("endbetrag") or 0) for r in ok), 2)
     if sum_end <= 0:
         return
-
-    key = round(abs(sum_end), 2)
     re_list = ",".join(str(r.get("rechnung_nr") or "") for r in ok if r.get("rechnung_nr"))
-    erw = _zhou_erwartung_final(abs(sum_we7), abs(sum_we19), abs(sum_end))
-
     zhou_audit.append(
         {
             "datei": "(Sammelzahlung)",
             "status": "OK_SAMMEL",
-            "grund": f"{len(ok)} Rechnungen/Gutschriften",
+            "grund": f"{len(ok)} Dateien",
             "rechnung_nr": re_list,
             "typ": "SUM",
             "netto_7": sum_we7,
@@ -305,10 +351,10 @@ def _zhou_finalize_collective(zhou_audit: list | None, rm: dict) -> None:
             "endbetrag": sum_end,
             "probe_summe": round(sum_we7 + sum_we19, 2),
             "diff_probe": round(sum_we7 + sum_we19 - sum_end, 2),
-            "erw_final": erw,
+            "erw_final": _zhou_erwartung_final(abs(sum_we7), abs(sum_we19), abs(sum_end)),
         }
     )
-    rm[key] = ("ZHOU_SPLIT", f"{abs(sum_we7)}|{abs(sum_we19)}|Sammel {re_list}")
+    _zhou_register_split(rm, sum_we7, sum_we19, sum_end, f"Sammel {re_list}")
 
 
 def zhou_resolution_warning_lines(zhou_audit: list | None) -> list[str]:
