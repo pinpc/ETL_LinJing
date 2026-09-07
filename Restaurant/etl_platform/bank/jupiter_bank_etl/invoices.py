@@ -28,6 +28,30 @@ def _wolt_probe_summe(
     return round(umsatz + rabatt + provision + provision19 - gebühr, 2)
 
 
+_RE_WOLT_SUMME3 = re.compile(
+    r"Summe\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})\s+(-?[\d.]+,\d{2})"
+)
+
+
+def _wolt_page3_gebühr(p3: str) -> float:
+    """Seite-3-Gebühr: DL-Summe und Zusätzliche getrennt (keine Doppelzählung; Refund mit Minus)."""
+    if "Zusätzliche Gebühren" in p3:
+        before_zus, zus_part = p3.split("Zusätzliche Gebühren", 1)
+    else:
+        before_zus, zus_part = p3, ""
+
+    gebühr = 0.0
+    if "Wolt Dienstleistungen" in before_zus:
+        dl_part = before_zus.split("Wolt Dienstleistungen", 1)[-1]
+        m_dl = _RE_WOLT_SUMME3.search(dl_part)
+        if m_dl:
+            gebühr += de_float(m_dl.group(3))
+    m_zus = _RE_WOLT_SUMME3.search(zus_part)
+    if m_zus:
+        gebühr += de_float(m_zus.group(3))
+    return round(gebühr, 2)
+
+
 _RE_HAM_VAT7 = re.compile(
     r"7,00\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+"
     r"[\d.]+,\d{2}-?\s+[\d.]+,\d{2}-?\s+([\d.]+,\d{2}-?)"
@@ -268,17 +292,18 @@ def _parse_zhou(filepath: str, rm: dict, zhou_audit: list | None) -> None:
         )
         probe = round(we7 + we19, 2)
         if endbetrag and abs(probe - endbetrag) > 0.05:
+            grund, diff, erw = _split_mismatch_hint(probe, endbetrag, "Endbetrag")
             audit(
                 status="SUMME_MISMATCH",
-                grund="Netto 7 % + Netto 19 % weicht vom Endbetrag ab",
+                grund=grund,
                 rechnung_nr=re_nr,
                 typ=typ,
                 netto_7=we7,
                 netto_19=we19,
                 endbetrag=endbetrag,
                 probe_summe=probe,
-                diff_probe=round(probe - endbetrag, 2),
-                erw_final="Kein Einzel-Mapping",
+                diff_probe=diff,
+                erw_final=erw,
             )
             continue
         ok_docs.append((typ, re_nr, we7, we19, endbetrag))
@@ -357,22 +382,42 @@ def _zhou_finalize_collective(zhou_audit: list | None, rm: dict) -> None:
     _zhou_register_split(rm, sum_we7, sum_we19, sum_end, f"Sammel {re_list}")
 
 
-def zhou_resolution_warning_lines(zhou_audit: list | None) -> list[str]:
-    if not zhou_audit:
+def _split_mismatch_hint(probe: float, soll: float, soll_label: str) -> tuple[str, float, str]:
+    """Hinweistexte bei Summenabweichung: (grund, diff, erw_final)."""
+    diff = round(probe - soll, 2)
+    grund = (
+        f"HINWEIS: Split fehlgeschlagen – Probe {probe:.2f} ≠ "
+        f"{soll_label} {soll:.2f} (Diff {diff:+.2f} EUR)"
+    )
+    return grund, diff, "HINWEIS: Final bleibt 1 Zeile – Split manuell prüfen"
+
+
+def _resolution_warning_lines(
+    audit: list | None, *, problem_stati: frozenset[str]
+) -> list[str]:
+    """Gemeinsame Hinweiszeilen für Wolt/Zhou-Audit."""
+    if not audit:
         return []
-    problem = frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP"})
     out: list[str] = []
-    for row in zhou_audit:
+    for row in audit:
         fn = str(row.get("datei") or "?")
         if fn == "(keine)":
             continue
-        st = row.get("status") or ""
+        st = str(row.get("status") or "")
         grund = (row.get("grund") or "").strip()
-        if st in problem:
-            out.append(f"{fn}: [{st}] {grund}".strip())
-        elif st == "OK" and "Fallback" in str(row.get("erw_final") or ""):
-            out.append(f"{fn}: [Final-Fallback] {row.get('erw_final')}")
+        erw = str(row.get("erw_final") or "")
+        if st in problem_stati:
+            out.append(f"{fn}: {grund or st}")
+        elif st == "OK" and ("Fallback" in erw or "HINWEIS" in erw):
+            out.append(f"{fn}: {erw}")
     return out
+
+
+def zhou_resolution_warning_lines(zhou_audit: list | None) -> list[str]:
+    """Hinweiszeilen: Zhou-PDFs mit Split-Problemen."""
+    return _resolution_warning_lines(
+        zhou_audit, problem_stati=frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP"})
+    )
 
 
 def _parse_uber(filepath: str, rm: dict) -> None:
@@ -528,25 +573,15 @@ def _parse_wolt(filepath: str, rm: dict, wolt_audit: list | None) -> None:
     # "%" nach dem Steuersatz fehlt in manchen Wolt-PDFs (z. B. "19.00 -10,78").
     provision = _wolt_vertrieb_netto_spalte(p2, "7")
     provision19 = _wolt_vertrieb_netto_spalte(p2, "19")
-
-    gebühr = 0.0
-    if p3:
-        dl_block = p3.split("Wolt Dienstleistungen")[-1] if "Wolt Dienstleistungen" in p3 else ""
-        m_dl = re.search(r"Summe\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})", dl_block)
-        if m_dl:
-            gebühr += de_float(m_dl.group(3))
-        zus_block = p3.split("Zusätzliche Gebühren")[-1] if "Zusätzliche Gebühren" in p3 else ""
-        m_zus = re.search(r"Summe\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})\s+([\d.]+,\d{2})", zus_block)
-        if m_zus:
-            gebühr += de_float(m_zus.group(3))
-    gebühr = round(gebühr, 2)
+    gebühr = _wolt_page3_gebühr(p3) if p3 else 0.0
 
     summe = _wolt_probe_summe(umsatz, rabatt, provision, provision19, gebühr)
     key = round(auszahlung, 2)
     if abs(summe - auszahlung) > _WOLT_NET_TOLERANCE:
+        grund, diff, erw = _split_mismatch_hint(summe, key, "Nettoauszahlung")
         audit(
             status="SUMME_MISMATCH",
-            grund="Umsatz+Rabatt+Vertrieb7%+Vertrieb19%-Gebühr weicht >0,05 EUR von Nettoauszahlung ab",
+            grund=grund,
             nettoauszahlung=key,
             umsatz=umsatz,
             rabatt=rabatt,
@@ -555,8 +590,8 @@ def _parse_wolt(filepath: str, rm: dict, wolt_audit: list | None) -> None:
             gebühr=gebühr,
             zeitraum=tf,
             probe_summe=summe,
-            diff_probe=round(summe - auszahlung, 2),
-            erw_final="Kein rechnung_map-Eintrag; Final bleibt 1 Zeile",
+            diff_probe=diff,
+            erw_final=erw,
         )
         return
 
@@ -652,24 +687,11 @@ def _parse_takeaway(filepath: str, rm: dict) -> None:
 
 
 def wolt_resolution_warning_lines(wolt_audit: list | None) -> list[str]:
-    """Kurze Textzeilen fuer Konsole: Wolt-PDFs mit Mapping- oder Final-Aufloesungsproblemen."""
-    if not wolt_audit:
-        return []
-    problem_stati = frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP", "OK_DUPLIKAT"})
-    out: list[str] = []
-    for row in wolt_audit:
-        fn = str(row.get("datei") or "?")
-        if fn == "(keine)":
-            continue
-        st = row.get("status") or ""
-        grund = (row.get("grund") or "").strip()
-        if st in problem_stati:
-            out.append(f"{fn}: [{st}] {grund}".strip())
-        elif st == "OK":
-            erw = row.get("erw_final") or ""
-            if "Fallback" in erw:
-                out.append(f"{fn}: [Final-Fallback] {erw}")
-    return out
+    """Hinweiszeilen: Wolt-PDFs mit Split-/Mapping-Problemen."""
+    return _resolution_warning_lines(
+        wolt_audit,
+        problem_stati=frozenset({"SUMME_MISMATCH", "FEHLER", "SKIP", "OK_DUPLIKAT"}),
+    )
 
 
 def _parse_xxl_gastro(filepath: str, rm: dict) -> None:

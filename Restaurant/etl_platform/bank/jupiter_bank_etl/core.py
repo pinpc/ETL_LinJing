@@ -127,17 +127,14 @@ class JupiterBankETL:
             for b, t in ohne[:10]:
                 print(f"     {b:>10.2f}  {t[:50]}")
 
-        wolt_lines = wolt_resolution_warning_lines(self.wolt_audit)
-        if wolt_lines:
-            print(f"\n   WARN Wolt-Aufloesung ({len(wolt_lines)}):")
-            for line in wolt_lines:
-                print(f"     {line}")
-
-        zhou_lines = zhou_resolution_warning_lines(self.zhou_audit)
-        if zhou_lines:
-            print(f"\n   WARN Zhou-Aufloesung ({len(zhou_lines)}):")
-            for line in zhou_lines:
-                print(f"     {line}")
+        for label, lines in (
+            ("Wolt", wolt_resolution_warning_lines(self.wolt_audit)),
+            ("Zhou", zhou_resolution_warning_lines(self.zhou_audit)),
+        ):
+            if lines:
+                print(f"\n   HINWEIS {label}-Split ({len(lines)}):")
+                for line in lines:
+                    print(f"     {line}")
 
         if agenda_path:
             from .compare_bu_agenda import run_compare

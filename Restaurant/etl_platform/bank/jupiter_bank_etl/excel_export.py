@@ -14,6 +14,30 @@ SHEET_WOLT = "Wolt"
 SHEET_ZHOU = "Zhou"
 
 
+def _split_fail_hints_from_audits(
+    wolt_audit: list | None, zhou_audit: list | None
+) -> dict[float, str]:
+    """Betrag → Hinweistext für Final, wenn Rechnungssplit fehlgeschlagen ist."""
+    hints: dict[float, str] = {}
+    for label, audit, amount_key in (
+        ("Wolt", wolt_audit, "nettoauszahlung"),
+        ("Zhou", zhou_audit, "endbetrag"),
+    ):
+        for row in audit or []:
+            if row.get("status") != "SUMME_MISMATCH":
+                continue
+            amt = row.get(amount_key)
+            if not isinstance(amt, (int, float)):
+                continue
+            diff = row.get("diff_probe")
+            fn = str(row.get("datei") or "")
+            diff_s = f", Diff {diff:+.2f}" if isinstance(diff, (int, float)) else ""
+            hints[round(abs(float(amt)), 2)] = (
+                f"HINWEIS: {label}-Split fehlgeschlagen ({fn}{diff_s})"
+            )
+    return hints
+
+
 def beleg_month_from_rows(all_rows: list[tuple]) -> str:
     """Beleg 1 = Monatsnummer aus erster Buchung (Agenda: 6 für Juni)."""
     for _betrag, _bu, datum, _text in all_rows:
@@ -24,7 +48,12 @@ def beleg_month_from_rows(all_rows: list[tuple]) -> str:
 
 
 def build_final_sheet(
-    wb: Workbook, bank: str, kost: str, rechnung_map: dict, beleg: str
+    wb: Workbook,
+    bank: str,
+    kost: str,
+    rechnung_map: dict,
+    beleg: str,
+    split_fail_hints: dict[float, str] | None = None,
 ) -> None:
     ws_konto = wb["Kontoauszug"]
     ws_allo = wb["Allopay"]
@@ -216,7 +245,13 @@ def build_final_sheet(
                         final_idx += 1
                     continue
 
-            write_row(ws_final, final_idx, kr[:7])
+            row_vals = list(kr[:7])
+            hint = (split_fail_hints or {}).get(key)
+            if hint:
+                base = str(row_vals[6] or "").strip()
+                if "HINWEIS" not in base:
+                    row_vals[6] = f"{base} — {hint}" if base else hint
+            write_row(ws_final, final_idx, row_vals)
             final_running += float(kr[0])
             final_idx += 1
 
@@ -489,7 +524,8 @@ def build_workbook(
                 row_idx += 1
         print(f"   Sheet Allopay: {len(stripe_rows)} Stripe-Dateien -> {row_idx - 2} Zeilen")
 
-        build_final_sheet(wb, bank, kost, rechnung_map, beleg)
+        split_hints = _split_fail_hints_from_audits(wolt_audit, zhou_audit)
+        build_final_sheet(wb, bank, kost, rechnung_map, beleg, split_hints)
 
     wb.save(output_path)
     return len(all_rows), round(running, 2)
