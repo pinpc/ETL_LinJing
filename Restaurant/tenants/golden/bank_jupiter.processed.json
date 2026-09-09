@@ -148,7 +148,7 @@
     "module_name": "bank",
     "amount": -140.42,
     "booking_date": "2026-04-09",
-    "booking_text": "allO Technology Gebühr",
+    "booking_text": "allO Technology Gebühr 04 2026",
     "bu_gkto": "904930",
     "beleg_1": "4"
   },
@@ -506,15 +506,6 @@
   {
     "tenant_id": "jupiter",
     "module_name": "bank",
-    "amount": -7000.0,
-    "booking_date": "2026-04-30",
-    "booking_text": "Erstattung Lohnkosten Jupiter",
-    "bu_gkto": "1360",
-    "beleg_1": "4"
-  },
-  {
-    "tenant_id": "jupiter",
-    "module_name": "bank",
     "amount": -439.43,
     "booking_date": "2026-04-30",
     "booking_text": "HAMBERGER Wareneinkauf",
@@ -537,6 +528,15 @@
     "booking_date": "2026-04-30",
     "booking_text": "allO pay",
     "bu_gkto": "1360",
+    "beleg_1": "4"
+  },
+  {
+    "tenant_id": "jupiter",
+    "module_name": "bank",
+    "amount": -7000.0,
+    "booking_date": "2026-04-30",
+    "booking_text": "an Sparkasse Allgäu",
+    "bu_gkto": "1361",
     "beleg_1": "4"
   }
 ]

@@ -69,9 +69,9 @@ def expand_transaction(tx: dict, rechnung_map: dict) -> list[tuple]:
             return [(betrag, "3300", datum, "Zhou Wareneinkauf")]
         rows = []
         if we7:
-            rows.append((round(-we7, 2), "3300", datum, "Zhou WE 7 %"))
+            rows.append((round(-we7, 2), "3300", datum, "Zhou Import WE 7 %"))
         if we19:
-            rows.append((round(-we19, 2), "3400", datum, "Zhou WE 19 %"))
+            rows.append((round(-we19, 2), "3400", datum, "Zhou Import WE 19 %"))
         return rows if rows else [(betrag, "3300", datum, "Zhou Wareneinkauf")]
 
     if key in rechnung_map and rechnung_map[key][0] == "HAMBERGER_SPLIT":

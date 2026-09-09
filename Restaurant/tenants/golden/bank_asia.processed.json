@@ -121,8 +121,8 @@
     "module_name": "bank",
     "amount": -112.64,
     "booking_date": "2026-04-10",
-    "booking_text": "DEHOGA Bayern e.V Beitrag",
-    "bu_gkto": "1743",
+    "booking_text": "DEHOGA Bayern e.V Beitrag Q 2 2026",
+    "bu_gkto": "4380",
     "beleg_1": "04"
   },
   {
@@ -139,8 +139,8 @@
     "module_name": "bank",
     "amount": -1744.44,
     "booking_date": "2026-04-10",
-    "booking_text": "Yiu UG & Co KG Rg.Nr. 26-22, Kd.Nr. 24540 DATUM 09.04.2026, 23.51 UHR",
-    "bu_gkto": "",
+    "booking_text": "Yiu WE 7 %",
+    "bu_gkto": "4800",
     "beleg_1": "04"
   },
   {
@@ -220,8 +220,8 @@
     "module_name": "bank",
     "amount": -18.36,
     "booking_date": "2026-04-15",
-    "booking_text": "Rundfunk ARD, ZDF, DRadio RF57X672952108 DATUM 15.04.2026, 01.35 UHR",
-    "bu_gkto": "",
+    "booking_text": "Rundfunk ARD, ZDF, DRadio Beitrag",
+    "bu_gkto": "4830",
     "beleg_1": "04"
   },
   {
@@ -274,7 +274,7 @@
     "module_name": "bank",
     "amount": -1988.56,
     "booking_date": "2026-04-20",
-    "booking_text": "Lohn Ze Peng",
+    "booking_text": "Lohn Ze Peng 03 2026",
     "bu_gkto": "4120",
     "beleg_1": "04"
   },
@@ -301,7 +301,7 @@
     "module_name": "bank",
     "amount": -24.98,
     "booking_date": "2026-04-21",
-    "booking_text": "Telefonica Mobil 04 2026",
+    "booking_text": "Telefonica Mobil 03 2026",
     "bu_gkto": "904925",
     "beleg_1": "04"
   },
@@ -364,7 +364,7 @@
     "module_name": "bank",
     "amount": -147.08,
     "booking_date": "2026-04-27",
-    "booking_text": "Bortz & Dr. Fuehrer Datenübertragung",
+    "booking_text": "Bortz & Dr. Fuehrer Gehaltskosten 04 2026",
     "bu_gkto": "904955",
     "beleg_1": "04"
   },
@@ -380,19 +380,19 @@
   {
     "tenant_id": "asia",
     "module_name": "bank",
-    "amount": -1807.69,
+    "amount": -117.81,
     "booking_date": "2026-04-27",
-    "booking_text": "Fruchthaus Stöckl",
-    "bu_gkto": "4800",
+    "booking_text": "Knittel GmbH Essensreste Entsorgung 03 2026",
+    "bu_gkto": "3106",
     "beleg_1": "04"
   },
   {
     "tenant_id": "asia",
     "module_name": "bank",
-    "amount": -117.81,
+    "amount": -1807.69,
     "booking_date": "2026-04-27",
-    "booking_text": "Knittel GmbH Abfallentsorgung Essensre",
-    "bu_gkto": "3106",
+    "booking_text": "Stöckl WE 7 %",
+    "bu_gkto": "3300",
     "beleg_1": "04"
   },
   {
@@ -481,7 +481,7 @@
     "module_name": "bank",
     "amount": -1223.72,
     "booking_date": "2026-04-30",
-    "booking_text": "Lohn Fan Peng",
+    "booking_text": "Lohn Fan Peng 03 2026",
     "bu_gkto": "1740",
     "beleg_1": "04"
   },
@@ -490,7 +490,7 @@
     "module_name": "bank",
     "amount": -602.0,
     "booking_date": "2026-04-30",
-    "booking_text": "Lohn Huizhen Lyu",
+    "booking_text": "Lohn Huizhen Lyu 03 2026",
     "bu_gkto": "4120",
     "beleg_1": "04"
   },
@@ -499,7 +499,7 @@
     "module_name": "bank",
     "amount": -1470.85,
     "booking_date": "2026-04-30",
-    "booking_text": "Lohn Ling Jin",
+    "booking_text": "Lohn Ling Jin 03 2026",
     "bu_gkto": "1740",
     "beleg_1": "04"
   },
@@ -527,7 +527,7 @@
     "amount": 7000.0,
     "booking_date": "2026-04-30",
     "booking_text": "vom Jupiter",
-    "bu_gkto": "1360",
+    "bu_gkto": "1361",
     "beleg_1": "04"
   }
 ]

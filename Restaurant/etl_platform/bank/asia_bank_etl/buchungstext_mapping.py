@@ -20,40 +20,45 @@ BUCHUNG_PARSER_RULES: list[tuple[str, str | None, str]] = [
     ("Olivia Dang-Huang Pacht", "904210", "Pacht Asia mm yyyy"),
     # --- Darlehen: Split erfolgt in darlehen_split.py; Fallback falls kein Split ---
     ("SPARKASSE ALLGAEU Rechnung Darl", "4360", "Sparkasse Darlehen"),
-    ("Knittel GmbH Abfallentsorgung", "3106", "Knittel GmbH Abfallentsorgung Essensre"),
+    ("Knittel GmbH Abfallentsorgung", "3106", "Knittel GmbH Essensreste Entsorgung mm yyyy"),
     ("DEVK Allgemeine Versicherungs", "4360", "DEVK KFZ"),
     ("Elektrizitätswerke Reutte", "904240", "Strom mm yyyy"),
     ("Knappschaft-Bahn-See", "1743", "Knappschaft mm yyyy"),
     ("Ling Jin privat benutzen", "1800", "Privat Ling Jin"),
     ("V-BAUMARKT FUESSEN ELV", None, "V-BAUMARKT WE"),
     ("SB-EINZAHLUNG", "1360", "von Kasse"),
-    ("HISEAS INTERNATIONAL", "1360", "HISEAS"),
+    ("HISEAS INTERNATIONAL", "1360", "HISEAS von Kasse"),
+    ("Hiseas International", "1360", "HISEAS von Kasse"),
+    ("GREAT LINE OU", "1360", "GREAT LINE OU von Kasse"),
     ("Wanyun Chen Ausleihen", "1800", "Darlehen Chen"),
     ("Yuzhong Zhao Darlehen", "1800", "Darlehen Zhao"),
     ("Telefonica Germany", "904925", "Telefonica Mobil mm yyyy"),
     # Jupiter: Erstattung (Haben) vs. Lohn (Soll)
-    ("Erstattung Lohnkosten Jupiter", "1360", "vom Jupiter"),
+    ("Erstattung Lohnkosten Jupiter", "1361", "vom Jupiter"),
     ("Jupiter Restaurant", "4120", "Lohn Jupiter"),
-    # Finanzamt: LOHNST / USt-Erstattung vor generischem UmSt
+    # Finanzamt: Jahres-Erstattung / LOHNST-Split vor generischem UmSt
     ("LOHNST", "1741", "LSt mm yyyy"),
+    ("ERSTATT .* UMS.ST 20", "1791", "UST yyyy"),
+    ("UMS.ST 20", "1791", "UST yyyy"),
     ("ERSTATT .* UMS.ST", "1780", "UST VA mm yyyy"),
     ("UMS.ST", "1780", "UST VA mm yyyy"),
     ("Finanzamt Kaufbeuren", "4830", "Finanzamt UmSt"),
+    ("Rundfunk ARD", "4830", "Rundfunk ARD, ZDF, DRadio Beitrag"),
     # Vodafone: Mobil vs. Internet
     ("Vodafone GmbH 40549", "904925", "Vodafone GmbH Mobil mm yyyy"),
     ("Vodafone GmbH", "904925", "Vodafone GmbH Internet mm yyyy"),
     ("Union SB-Grosmarkt", "4800", "Edeka WE"),
     ("Fruchthaus Stöckl", "4800", "Fruchthaus Stöckl"),
     ("STRIPE CO A L GOODBODY", "4970", "AllOpay"),
-    ("DEHOGA Bayern e.V", "1743", "DEHOGA Bayern e.V Beitrag"),
+    ("DEHOGA Bayern e.V", "4380", "DEHOGA Bayern e.V Beitrag Q q"),
     ("AOK Bayern", "1743", "AOK Bayern Beitrag mm yyyy"),
     ("ERGO Vorsorge LV AG R71390271.3", "1748", "ERGO LV Linjing mm yyyy"),
-    ("Huizhen Lyu Lohn", "4120", "Lohn Huizhen Lyu"),
-    ("Fan Peng Lohn", "1740", "Lohn Fan Peng"),
-    ("Ling Jin Lohn", "1740", "Lohn Ling Jin"),
-    ("Ze Peng Lohn", "4120", "Lohn Ze Peng"),
-    ("Ping Zhou Lohn", "1740", "Ping Zhou Lohn"),
-    ("Sheue-Ru Wang Ping Zhou", "1740", "Ping Zhou Lohn"),
+    ("Huizhen Lyu Lohn", "4120", "Lohn Huizhen Lyu mm yyyy"),
+    ("Fan Peng Lohn", "1740", "Lohn Fan Peng mm yyyy"),
+    ("Ling Jin Lohn", "1740", "Lohn Ling Jin mm yyyy"),
+    ("Ze Peng Lohn", "4120", "Lohn Ze Peng mm yyyy"),
+    ("Ping Zhou Lohn", "1740", "Ping Zhou Lohn mm yyyy"),
+    ("Sheue-Ru Wang Ping Zhou", "1740", "Ping Zhou Lohn mm yyyy"),
     ("V-MARKT TANKA", "904530", "V-MARKT Tank"),
     ("ESSO", "904530", "ESSO Tanken"),
     ("ARAL", "904530", "ARAL Tank"),
@@ -66,7 +71,7 @@ BUCHUNG_PARSER_RULES: list[tuple[str, str | None, str]] = [
     ("AMAZON", "3400", "AMAZON WE 19%"),
     ("allO Technology GmbH ALLO TECHNOLOGY GMBH", "904930", "allO Technology GmbH Nutzungsgebühr mm yyyy"),
     ("allO Technology GmbH", "904930", "allO Technology GmbH Nutzungsgebühr mm yyyy"),
-    ("Bortz & Dr. Führer Steuerberatungsg esellschaft", "904955", "Bortz & Dr. Fuehrer Datenübertragung"),
+    ("Bortz & Dr. Führer Steuerberatungsg esellschaft", "904955", "Bortz & Dr. Fuehrer Gehaltskosten mm yyyy"),
     ("ACV Automobil-Club", None, "ACV Automobil-Club"),
     ("ABK Betriebsgesellschaft", "3400", "ABK Getränke WE 19 %"),
     ("H.I.S. DEUTSCHLAND TOURISTIK GMBH", "1360", "H.I.S. DEUTSCHLAND"),
@@ -92,7 +97,8 @@ BUCHUNG_PARSER_RULES: list[tuple[str, str | None, str]] = [
     ("Staatsoberkasse Bayern", "2010", "Überbrückungshilfe Corona UBH3XR-57164 Rückzahlung"),
     ("Sheue-Ru Wang Rechnung", "904955", "Fibu"),
     ("Check24 .* Kfz-Ve rsicherungen GmbH", None, "Kfz-Versicherung"),
-    ("Jing Ling privat benutzen", "1800", "Privat Ling Jin tt.mm.jjjj"),
+    ("Jing Ling privat benutzen", "1800", "Jing Ling Privat"),
+    ("Jing Ling DATUM", "1800", "Jing Ling Privat"),
 ]
 
 
@@ -115,12 +121,19 @@ def _pattern_matches(parser: str, text: str) -> bool:
 _KUERZEL_DATUM_PLATZ = "tt.mm.jjjj"
 _KUERZEL_MONAT_DOT = "mm.jjjj"
 _KUERZEL_MONAT_SPACE = "mm yyyy"
+_KUERZEL_JAHR = "yyyy"
+_KUERZEL_QUARTAL = "Q q"
 _DATUM_ERSTES = re.compile(r"\d{2}\.\d{2}\.\d{4}")
 _RE_BEITRAG_MMYY = re.compile(r"BEITRAG\s+(\d{2})(\d{2})", re.IGNORECASE)
 _RE_MONAT_ABBR = re.compile(
-    r"\b(JAN|FEB|MÄR|MAR|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ|MRZ)\.?(\d{2})\b",
+    r"\b(JAN|FEB|MÄR|MAR|APR|MAI|JUN|JUL|AUG|SEP|OKT|NOV|DEZ|MRZ)\.?\s*(\d{2})\b",
     re.IGNORECASE,
 )
+_RE_MM_YYYY = re.compile(r"(?<!\d)(\d{2})\.(\d{4})\b")
+_RE_DATUM_KURZ = re.compile(r"\b(\d{2})\.(\d{2})\.(\d{2})\b")
+_RE_UMST_JAHR = re.compile(r"UMS\.ST\s+(20\d{2})", re.IGNORECASE)
+_RE_BTRG_QUARTAL = re.compile(r"Btrg\s+(\d{2})-(\d{2})/(\d{2})", re.IGNORECASE)
+_RE_LOHN_MMYYYY = re.compile(r"Lohn\s+(\d{2})\.(\d{4})", re.IGNORECASE)
 _MONAT_MAP = {
     "JAN": "01",
     "FEB": "02",
@@ -160,11 +173,10 @@ def _datum_tt_mm_jjjj_aus_text(text: str) -> str | None:
 
 
 def _monat_jahr_aus_text(text: str, fallback_datum: str | None = None) -> tuple[str, str] | None:
-    """Monat/Jahr als (MM, YYYY) aus Datum, BEITRAG MMYY oder Monats-Kürzel."""
-    d = _datum_tt_mm_jjjj_aus_text(text)
-    if d:
-        _tag, monat, jahr = d.split(".")
-        return monat, jahr
+    """Monat/Jahr als (MM, YYYY) aus Lohn-MM.YYYY, BEITRAG, Monats-Kürzel oder Datum."""
+    m = _RE_LOHN_MMYYYY.search(text)
+    if m:
+        return m.group(1), m.group(2)
 
     m = _RE_BEITRAG_MMYY.search(text)
     if m:
@@ -177,6 +189,21 @@ def _monat_jahr_aus_text(text: str, fallback_datum: str | None = None) -> tuple[
         if mon:
             return mon, f"20{m.group(2)}"
 
+    # MM.YYYY ohne Tag (nach Entfernen voller DD.MM.YYYY, damit DATUM nicht gewinnt)
+    ohne_voll = _DATUM_ERSTES.sub(" ", text)
+    m = _RE_MM_YYYY.search(ohne_voll)
+    if m:
+        return m.group(1), m.group(2)
+
+    m = _RE_DATUM_KURZ.search(text)
+    if m:
+        return m.group(2), f"20{m.group(3)}"
+
+    d = _datum_tt_mm_jjjj_aus_text(text)
+    if d:
+        _tag, monat, jahr = d.split(".")
+        return monat, jahr
+
     if fallback_datum:
         fb = _datum_tt_mm_jjjj_aus_text(str(fallback_datum))
         if fb:
@@ -188,6 +215,28 @@ def _monat_jahr_aus_text(text: str, fallback_datum: str | None = None) -> tuple[
             return m.group(2), m.group(1)
 
     return None
+
+
+def _jahr_aus_text(text: str, fallback_datum: str | None = None) -> str | None:
+    m = _RE_UMST_JAHR.search(text)
+    if m:
+        return m.group(1)
+    mj = _monat_jahr_aus_text(text, fallback_datum=fallback_datum)
+    return mj[1] if mj else None
+
+
+def _quartal_label_aus_text(text: str, fallback_datum: str | None = None) -> str | None:
+    """``Q 3 2026`` aus ``Btrg 07-09/26`` oder Buchungsdatum."""
+    m = _RE_BTRG_QUARTAL.search(text)
+    if m:
+        start_m = int(m.group(1))
+        q = (start_m - 1) // 3 + 1
+        return f"Q {q} 20{m.group(3)}"
+    mj = _monat_jahr_aus_text(text, fallback_datum=fallback_datum)
+    if not mj:
+        return None
+    q = (int(mj[0]) - 1) // 3 + 1
+    return f"Q {q} {mj[1]}"
 
 
 def _kuerzel_mit_datum(
@@ -223,6 +272,13 @@ def _kuerzel_mit_datum(
                 .strip(" -–—")
             )
 
+    if _KUERZEL_QUARTAL in kuerzel:
+        qlab = _quartal_label_aus_text(text, fallback_datum=fallback_datum)
+        if qlab:
+            kuerzel = kuerzel.replace(_KUERZEL_QUARTAL, qlab)
+        else:
+            kuerzel = kuerzel.replace(_KUERZEL_QUARTAL, "").replace("  ", " ").strip()
+
     mj = _monat_jahr_aus_text(text, fallback_datum=fallback_datum)
     if _KUERZEL_MONAT_DOT in kuerzel:
         if mj:
@@ -242,6 +298,14 @@ def _kuerzel_mit_datum(
                 .replace("  ", " ")
                 .strip(" -–—")
             )
+
+    # Jahres-Platzhalter zuletzt (nicht Teil von mm yyyy / mm.jjjj)
+    if _KUERZEL_JAHR in kuerzel and _KUERZEL_MONAT_SPACE not in kuerzel and _KUERZEL_MONAT_DOT not in kuerzel:
+        jahr = _jahr_aus_text(text, fallback_datum=fallback_datum)
+        if jahr:
+            kuerzel = kuerzel.replace(_KUERZEL_JAHR, jahr)
+        else:
+            kuerzel = kuerzel.replace(_KUERZEL_JAHR, "").replace("  ", " ").strip()
 
     return kuerzel
 

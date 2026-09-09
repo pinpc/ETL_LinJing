@@ -109,12 +109,15 @@ def map_booking(
             if label == "BGN Beitrag":
                 d = tx.get("bu_tag")
                 if d:
-                    q = min(4, d.month // 3 + 1)
-                    return kto, f"BGN Beitrag {d.year} Q {q}"
+                    return kto, f"BGN Beitrag {d.year} {d.strftime('%m')}"
                 m_y = re.search(r"Vorschuss\s+(\d{4})", beschr, re.I)
                 if m_y:
-                    return kto, f"BGN Beitrag {m_y.group(1)} Q 2"
+                    return kto, f"BGN Beitrag {m_y.group(1)}"
                 return kto, label
+
+            if label == "allO Technology Gebühr":
+                period = _mm_yyyy_from_booking(tx)
+                return kto, f"{label} {period}".strip()
 
             if label == "A.R.Z. GmbH":
                 m_rg = re.search(r"Rg\.-Nr\.\s*(\d+)", beschr, re.I)
@@ -151,9 +154,7 @@ def map_booking(
                 return kto, f"Bankgebühr {period}".strip()
 
             if label == "ADSA":
-                m = _RE_ADSA_RE.search(beschr)
-                if m:
-                    return kto, f"ADSA GmbH {m.group(1)}"
+                # Invoice-Map setzt Agenda-Text; Fallback ohne RE-Nr.
                 return kto, "ADSA GmbH"
 
             if kto == "1740" and richtung == "S":

@@ -42,13 +42,11 @@ def _parse_allopay_datum(value: str) -> datetime:
 
 
 def _format_allopay_day_range(dates: list[str]) -> str:
-    """Datumsbereich für Sammeltext, z. B. ``27-29.06.2026`` oder ``04.07.-06.07.2026``."""
+    """Datumsbereich für Sammeltext, z. B. ``27.06.-29.06.2026``."""
     parsed = sorted(_parse_allopay_datum(d) for d in dates)
     first, last = parsed[0], parsed[-1]
     if first == last:
         return first.strftime("%d.%m.%Y")
-    if first.month == last.month and first.year == last.year:
-        return f"{first.day:02d}-{last.day:02d}.{first.month:02d}.{first.year}"
     return f"{first.strftime('%d.%m.')}-{last.strftime('%d.%m.%Y')}"
 
 

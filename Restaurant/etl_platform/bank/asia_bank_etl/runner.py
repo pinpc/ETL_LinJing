@@ -7,16 +7,19 @@ from pathlib import Path
 from typing import Any
 
 from .beleg import beleg_month_from_pdf
+from .beleg_enrich import enrich_rows_from_belege
 from .buchungstext_mapping import apply_buchungs_mapping
 from .config import AsiaEtlConfig, as_legacy_dict
 from .darlehen_split import expand_sparkasse_darlehen_rows
 from .excel_export import exportiere_excel
 from .final_sheet import erstelle_final_blatt
+from .finanzamt_split import expand_finanzamt_lohnst_umsst_rows
 from .invoices import load_invoices
 from .merge_agenda import lade_agenda, merge_mit_agenda_und_split
 from .pdf_statement import parse_sparkasse_pdf
 from .sql_export import exportiere_sql_skript, exportiere_sqlite
 from .stripe_csv import verarbeite_stripe_csvs
+from .supplier_splits import expand_supplier_invoice_splits
 from .text_normalize import kuerze_stripe_text
 
 logger = logging.getLogger(__name__)
@@ -138,9 +141,12 @@ def run_etl(config: AsiaEtlConfig, *, excel_titel: str | None = None) -> None:
     else:
         buchungen_rows = _buchungen_ohne_agenda(pdf_rows, cfg, beleg)
 
-    apply_buchungs_mapping(buchungen_rows)
-
     verzeichnis = str(Path(cfg["PDF_FILE"]).parent)
+    buchungen_rows = expand_finanzamt_lohnst_umsst_rows(buchungen_rows)
+    apply_buchungs_mapping(buchungen_rows)
+    buchungen_rows = expand_supplier_invoice_splits(buchungen_rows, verzeichnis)
+    enrich_rows_from_belege(buchungen_rows, verzeichnis)
+
     edeka_rows = [row.as_excel_dict() for row in load_invoices(verzeichnis)]
     allopay_rows = verarbeite_stripe_csvs(verzeichnis, cfg)
     logger.info("%s Zeilen aus Stripe-CSVs für Allopay erzeugt", len(allopay_rows))

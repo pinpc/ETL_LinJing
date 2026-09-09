@@ -41,6 +41,13 @@ BOOKING_TEXT_TIPS_0 = "Trinkgeld"
 BOOKING_TEXT_UMSATZ_19 = "Umsatz 19 %"
 BOOKING_TEXT_UMSATZ_7 = "Umsatz 7 %"
 BOOKING_TEXT_BANK = "an Bank"
+BOOKING_TEXT_UEBERWEISUNG = "per überweisung"
+
+# Partner-Kürzel für Kasse→Bank-Überweisungen (Dateiname → Final-Text, Agenda-Schreibweise)
+_TRANSFER_PARTNER_RULES: list[tuple[tuple[str, ...], str]] = [
+    (("hiseas",), "Hsieas an Bank"),
+    (("great line",), "Great Line OU an Bank"),
+]
 
 # (pattern on cashbook subject / booking text, BU Gkto, Final Buchungstext)
 EXPENSE_RULES: list[tuple[re.Pattern[str], str, str]] = [
@@ -206,6 +213,64 @@ def apply_cashbook_mapping(row: BuchungRow) -> BuchungRow:
             return replace(row, bu_gkto=bu_gkto, buchungstext=label)
 
     return row
+
+
+_EURO_TOKEN = re.compile(r"(-?\d{1,3}(?:\.\d{3})+,\d{2}|-?\d+,\d{2})")
+
+
+def _norm_key(value: str) -> str:
+    import unicodedata
+
+    nfkd = unicodedata.normalize("NFKD", value)
+    return "".join(c for c in nfkd if not unicodedata.combining(c)).casefold()
+
+
+def _pdf_amounts(path: Path) -> set[Decimal]:
+    try:
+        with pdfplumber.open(str(path)) as pdf:
+            text = "\n".join((page.extract_text() or "") for page in pdf.pages)
+    except Exception:
+        return set()
+    out: set[Decimal] = set()
+    for m in _EURO_TOKEN.finditer(text):
+        try:
+            out.add(parse_amount(m.group(1)).copy_abs().quantize(Decimal("0.01")))
+        except Exception:
+            continue
+    return out
+
+
+def _transfer_search_dirs(pdf_base_dir: Path) -> list[Path]:
+    dirs = [pdf_base_dir]
+    parent = pdf_base_dir.parent
+    if parent.is_dir():
+        for cand in sorted(parent.iterdir()):
+            if cand.is_dir() and "konto" in _norm_key(cand.name):
+                dirs.append(cand)
+    return dirs
+
+
+def resolve_ueberweisung_text(amount: Decimal, pdf_base_dir: Path) -> str | None:
+    """Mappt ``per Überweisung`` anhand Beleg-PDF-Betrag auf Partner-Text."""
+    target = amount.copy_abs().quantize(Decimal("0.01"))
+    for directory in _transfer_search_dirs(pdf_base_dir):
+        if not directory.is_dir():
+            continue
+        for path in sorted(directory.glob("*.pdf")):
+            key = _norm_key(path.name)
+            if "kontoauszug" in key:
+                continue
+            label = None
+            for needles, partner_label in _TRANSFER_PARTNER_RULES:
+                if all(n in key for n in needles):
+                    label = partner_label
+                    break
+            if label is None:
+                continue
+            amounts = _pdf_amounts(path)
+            if any(abs(a - target) <= MERGE_TOLERANCE for a in amounts):
+                return label
+    return None
 
 
 def needs_sequential_beleg(row: BuchungRow) -> bool:
@@ -648,8 +713,16 @@ class AsiaKasseETL:
 
     def merge_final_rows(self, buchung_rows: list[BuchungRow], allopay_rows: list[BuchungRow]) -> list[BuchungRow]:
         def normalize_final_text(row: BuchungRow) -> BuchungRow:
-            if row.buchungstext.strip().lower() == "bankeinzahlung":
+            text = row.buchungstext.strip().lower()
+            if text == "bankeinzahlung":
                 return replace(row, buchungstext=BOOKING_TEXT_BANK)
+            if text == BOOKING_TEXT_UEBERWEISUNG:
+                partner = None
+                if getattr(self, "_pdf_base_dir", None) is not None:
+                    partner = resolve_ueberweisung_text(row.umsatz_euro, self._pdf_base_dir)
+                if partner:
+                    return replace(row, buchungstext=partner)
+                return row
             return row
 
         if not buchung_rows:
@@ -724,6 +797,7 @@ class AsiaKasseETL:
         if pdf_base_dir is None:
             pdf_base_dir = input_path.parents[2]
 
+        self._pdf_base_dir = pdf_base_dir
         self.buchung_rows = read_cashbook_rows(input_path, sheet_name=sheet_name)
         self.allopay_rows = read_allopay_rows(pdf_base_dir)
         self.final_rows = self.merge_final_rows(self.buchung_rows, self.allopay_rows)

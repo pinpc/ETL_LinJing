@@ -11,6 +11,9 @@ from Restaurant.etl_platform.bank.asia_bank_etl.buchungstext_mapping import (
 from Restaurant.etl_platform.bank.asia_bank_etl.darlehen_split import (
     expand_sparkasse_darlehen_rows,
 )
+from Restaurant.etl_platform.bank.asia_bank_etl.finanzamt_split import (
+    expand_finanzamt_lohnst_umsst_rows,
+)
 from Restaurant.etl_platform.bank.asia_bank_etl.final_sheet import (
     _find_best_combination,
     _format_allopay_day_range,
@@ -104,6 +107,24 @@ class BuchungstextMappingTests(unittest.TestCase):
         self.assertEqual(rows[0]["Umsatz Euro"], -5705.75)
 
 
+class FinanzamtSplitTests(unittest.TestCase):
+    def test_split_lohnst_umsst(self) -> None:
+        text = (
+            "Abbuchung Lastschrift FK Kaufbeuren STEUERNR 125/245/71747 "
+            "LOHNST JUN.26 1.200,07EUR UMS.ST MAI 26 607,35EUR"
+        )
+        rows = expand_finanzamt_lohnst_umsst_rows(
+            [{"Umsatz Euro": -1807.42, "Datum": "16.07.2026", "Buchungstext": text}]
+        )
+        self.assertEqual(len(rows), 2)
+        self.assertEqual(rows[0]["Umsatz Euro"], -1200.07)
+        self.assertEqual(rows[0]["BU Gkto"], "1741")
+        self.assertEqual(rows[0]["Buchungstext"], "LSt 06 2026")
+        self.assertEqual(rows[1]["Umsatz Euro"], -607.35)
+        self.assertEqual(rows[1]["BU Gkto"], "1780")
+        self.assertEqual(rows[1]["Buchungstext"], "USt VA 05 2026")
+
+
 class AllopaySammelTests(unittest.TestCase):
     def test_three_day_net_match(self) -> None:
         candidates = [
@@ -118,7 +139,7 @@ class AllopaySammelTests(unittest.TestCase):
         self.assertIsNotNone(items)
         self.assertEqual(days, ["27.06.2026", "28.06.2026", "29.06.2026"])
         self.assertEqual(len(items), 6)
-        self.assertEqual(_format_allopay_day_range(days), "27-29.06.2026")
+        self.assertEqual(_format_allopay_day_range(days), "27.06.-29.06.2026")
 
     def test_max_three_days_only(self) -> None:
         candidates = [

@@ -8,6 +8,8 @@ BUCHUNGSTYPEN = (
     "Abbuchung Firmen-LS",
     "Überweisung Online",
     "Gutschr einer Überw",
+    "GutschrÜbw SEPA-Dritt",
+    "Gutschrift preisfrei",
     "Dauerauftrag",
     "Debitkartenzahl. EUR",
     "Bargeldeinzahlung GA",

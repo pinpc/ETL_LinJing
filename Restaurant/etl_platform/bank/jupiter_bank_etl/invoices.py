@@ -736,14 +736,14 @@ def _parse_adsa(filepath: str, rm: dict) -> None:
     m_re = re.search(r"Rechnungs-Nr\.\s+(RE-\d+)", txt, re.I)
     re_nr = m_re.group(1) if m_re else ""
     m_pos = re.search(r"^\s*\d+\.\s+(.+?)\s+([\d.]+,\d{2})\s+Stk", txt, re.M)
-    if m_pos and re_nr:
+    if m_pos:
         name = re.sub(r"\s+", " ", m_pos.group(1)).strip()
-        qty = de_float(m_pos.group(2))
-        qty_s = str(int(qty)) if abs(qty - int(qty)) < 0.001 else str(qty).replace(".", ",")
-        rm[total] = ("480", f"ADSA GmbH {re_nr}, {qty_s} x {name}")
+        rm[total] = ("900480", f"ADSA GmbH - {name}")
         return
     if re_nr:
-        rm[total] = ("480", f"ADSA GmbH {re_nr}")
+        rm[total] = ("900480", f"ADSA GmbH {re_nr}")
+    else:
+        rm[total] = ("900480", "ADSA GmbH")
 
 
 def load_invoices(
